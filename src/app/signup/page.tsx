@@ -2,7 +2,6 @@
 // Email + password sign-up. Server Component shell that renders the form
 // (a client component for the in-flight state).
 
-import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { SignupForm } from "./SignupForm";
 

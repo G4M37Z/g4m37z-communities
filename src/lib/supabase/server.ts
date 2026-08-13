@@ -21,7 +21,30 @@ function stubClient() {
 
   const empty = { data: null, error: { message } };
 
-  const chain: any = {
+  // Loose type for the stub chain — only used when Supabase env vars are
+  // missing. Real queries go through createServerClient, which has its own
+  // strongly-typed return.
+  type StubChain = {
+    select: (...args: unknown[]) => StubChain;
+    insert: (...args: unknown[]) => StubChain;
+    update: (...args: unknown[]) => StubChain;
+    upsert: (...args: unknown[]) => StubChain;
+    delete: (...args: unknown[]) => StubChain;
+    eq: (...args: unknown[]) => StubChain;
+    neq: (...args: unknown[]) => StubChain;
+    in: (...args: unknown[]) => StubChain;
+    or: (...args: unknown[]) => StubChain;
+    order: (...args: unknown[]) => StubChain;
+    limit: (...args: unknown[]) => StubChain;
+    range: (...args: unknown[]) => StubChain;
+    maybeSingle: () => Promise<{ data: null; error: null }>;
+    single: () => Promise<{ data: null; error: { message: string } }>;
+    then: (
+      resolve: (v: unknown) => void
+    ) => Promise<{ data: null; error: { message: string } }>;
+  };
+  const chain = {} as StubChain;
+  Object.assign(chain, {
     select: () => chain,
     insert: () => chain,
     update: () => chain,
@@ -36,8 +59,9 @@ function stubClient() {
     range: () => chain,
     maybeSingle: () => Promise.resolve({ data: null, error: null }),
     single: () => Promise.resolve({ data: null, error: { message } }),
-    then: (resolve: (v: unknown) => void) => resolve(empty),
-  };
+    then: (resolve: (v: unknown) => void) =>
+      Promise.resolve(empty).then(resolve),
+  });
 
   return {
     auth: {

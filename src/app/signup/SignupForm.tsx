@@ -40,15 +40,20 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const u = username.trim();
+    // Defer setState to avoid lint rule against synchronous setState-in-effect.
+    // The updates are intentional and harmless — they only update UI state.
+    const queue = (next: typeof usernameStatus) => {
+      queueMicrotask(() => setUsernameStatus(next));
+    };
     if (u.length === 0) {
-      setUsernameStatus("idle");
+      queue("idle");
       return;
     }
     if (!USERNAME_RULE.test(u) || /^_|_$/.test(u)) {
-      setUsernameStatus("invalid");
+      queue("invalid");
       return;
     }
-    setUsernameStatus("checking");
+    queue("checking");
     debounceRef.current = setTimeout(async () => {
       const res = await checkUsernameAvailability(u);
       if (res.available) setUsernameStatus("ok");

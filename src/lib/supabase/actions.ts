@@ -94,36 +94,13 @@ export async function signUpWithPassword(formData: FormData) {
     };
   }
 
-  if (data?.user) {
-    // Create the profile row for the new user. Use the same cookie-bound
-    // client — the user is now authenticated so RLS WITH CHECK (auth.uid() = id)
-    // will permit the insert. If email confirmation is enabled, this insert
-    // happens on the confirmation callback instead (see /auth/callback).
-    const { error: profileError } = await supabase.from("profiles").insert([
-      {
-        id: data.user.id,
-        username,
-        display_name: displayName,
-        avatar_url: null,
-        bio: null,
-      },
-    ]);
-
-    if (profileError) {
-      console.error("Failed to create profile for new user:", profileError);
-      if (
-        profileError.message.toLowerCase().includes("duplicate") ||
-        profileError.code === "23505"
-      ) {
-        return {
-          error:
-            "That username is already taken. Please choose a different one.",
-        };
-      }
-      // The auth account exists — return success and let the callback handle
-      // any missing profile.
-    }
-  }
+  // NOTE on profile creation:
+  // When email confirmation is enabled (Supabase default), the user is NOT
+  // authenticated immediately after signUp — auth.uid() is null. Inserting
+  // into profiles here would fail the RLS WITH CHECK (auth.uid() = id).
+  // We pass username + display_name through user_metadata and let
+  // /auth/callback create the profile once the user is authenticated.
+  // See src/app/auth/callback/route.ts.
 
   return { ok: true, email };
 }
