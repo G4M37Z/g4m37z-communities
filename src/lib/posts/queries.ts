@@ -44,34 +44,54 @@ interface CommentRow {
 /**
  * Fetch posts for a single community, with author + community joined, plus
  * vote score, comment count, and the current user's vote on each post.
- * Sort: latest | popular | trending.
+ * Sort: latest | popular | trending. Supports offset-based pagination.
+ *
+ * Sort behavior:
+ *   - latest:   ORDER BY created_at DESC (DB)
+ *   - popular:  ORDER BY score DESC, created_at DESC (in-memory; the
+ *               small page sizes (30) make this acceptable for v0.1).
+ *   - trending: ORDER BY score/age_hours DESC (in-memory; same caveat).
  */
 export async function getCommunityPosts(
   communityId: string,
   sort: SortKey = "latest",
   limit = 30,
-  viewerId: string | null = null
+  viewerId: string | null = null,
+  offset = 0
 ): Promise<PostCardData[]> {
   const supabase = await createClient();
+
+  // Latest uses pure DB ordering so offset is consistent.
+  // Popular/trending fetch a window sized (offset + limit) and re-sort.
+  const fetchLimit = sort === "latest" ? limit : offset + limit;
 
   const { data: posts } = await supabase
     .from("posts")
     .select(POST_SELECT)
     .eq("community_id", communityId)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(fetchLimit);
 
   if (!posts || posts.length === 0) return [];
-  return await enrichPosts(posts as unknown as JoinedPost[], sort, viewerId);
+  const enriched = await enrichPosts(
+    posts as unknown as JoinedPost[],
+    sort,
+    viewerId
+  );
+
+  if (sort === "latest") return enriched;
+  return enriched.slice(offset, offset + limit);
 }
 
 /**
  * Fetch posts from all communities the user has joined. Used on /home.
+ * Supports offset-based pagination.
  */
 export async function getHomeFeed(
   userId: string | null,
   sort: SortKey = "latest",
-  limit = 30
+  limit = 30,
+  offset = 0
 ): Promise<PostCardData[]> {
   const supabase = await createClient();
 
@@ -90,7 +110,7 @@ export async function getHomeFeed(
     .from("posts")
     .select(POST_SELECT)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (joinedIds.length > 0) {
     postsQuery = postsQuery.in("community_id", joinedIds);
