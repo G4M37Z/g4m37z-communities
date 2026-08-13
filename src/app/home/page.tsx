@@ -1,13 +1,15 @@
 // src/app/home/page.tsx
-// Protected landing page shown after login. Verifies the session is valid
-// and surfaces the authenticated user's profile (read directly from the
-// database — RLS enforces ownership/visibility rules).
+// Authenticated home: shows posts from communities the user has joined
+// (with a fallback to recent global posts when none are joined yet).
 
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
+import { redirect } from "next/navigation";
+import { LogOut, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/supabase/actions";
+import { PostCard } from "@/components/post/PostCard";
+import { getHomeFeed } from "@/lib/posts/queries";
+import { timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -26,120 +28,138 @@ export default async function HomePage() {
     redirect("/login?next=/home");
   }
 
-  // Fetch the user's own profile. RLS policy allows SELECT for everyone.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, username, display_name, avatar_url, bio, created_at")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Fetch the user's own profile + joined communities + posts in parallel.
+  const [{ data: profile }, posts] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar_url, bio, created_at")
+      .eq("id", user.id)
+      .maybeSingle(),
+    getHomeFeed(user.id, "latest", 30),
+  ]);
+
+  // Joined community ids for the right-side list.
+  const { data: memberships } = await supabase
+    .from("community_members")
+    .select("community_id, joined_at, communities:community_id ( slug, name )")
+    .eq("user_id", user.id)
+    .order("joined_at", { ascending: false })
+    .limit(6);
+
+  type Row = {
+      community_id: string;
+      communities: { slug: string; name: string } | { slug: string; name: string }[] | null;
+    };
+    const joined: { slug: string; name: string }[] = (
+      (memberships ?? []) as Row[]
+    )
+      .map((m: Row) => {
+        return Array.isArray(m.communities) ? m.communities[0] : m.communities;
+      })
+      .filter(
+        (c: { slug: string; name: string } | null | undefined): c is {
+          slug: string;
+          name: string;
+        } => Boolean(c && typeof c === "object" && "slug" in c)
+      );
 
   return (
-    <main className="container-x py-12">
-      <div className="mx-auto max-w-3xl">
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-black text-fg">
-              Welcome
-              {profile?.display_name ? `, ${profile.display_name}` : ""}
-            </h1>
-            <p className="mt-1 text-sm text-text-muted">
-              You&apos;re signed in to G4M37Z Communities.
-            </p>
-          </div>
+    <main className="container-x py-8 sm:py-10">
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-fg sm:text-3xl">
+            Welcome
+            {profile?.display_name ? `, ${profile.display_name}` : ""}
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">
+            @{profile?.username ?? user.email} ·{" "}
+            {profile?.created_at
+              ? `joined ${timeAgo(profile.created_at)}`
+              : "Welcome to G4M37Z."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/create/post"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+          >
+            New post
+            <ArrowRight size={14} />
+          </Link>
           <form action={signOut}>
             <button
               type="submit"
               className="inline-flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-2 text-sm font-medium text-fg hover:border-accent hover:text-accent"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
               Sign out
             </button>
           </form>
-        </header>
+        </div>
+      </header>
 
-        <section className="rounded-2xl border border-border bg-bg p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-full bg-accent/10 text-accent">
-              <UserIcon size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-fg">Your profile</h2>
-              <p className="text-xs text-text-muted">
-                @{profile?.username ?? user.email}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <h2 className="mb-3 text-base font-bold text-fg">
+            {joined.length > 0 ? "Posts from your communities" : "Recent posts"}
+          </h2>
+          {posts.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+              <h3 className="mb-1 text-sm font-bold text-fg">
+                Your feed is empty
+              </h3>
+              <p className="mb-4 text-sm text-text-muted">
+                Join a community to see its posts here, or browse for something interesting.
               </p>
+              <Link
+                href="/communities"
+                className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+              >
+                Browse communities
+              </Link>
             </div>
-          </div>
-
-          {profile ? (
-            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs uppercase tracking-wider text-text-muted">
-                  Display name
-                </dt>
-                <dd className="text-sm font-medium text-fg">
-                  {profile.display_name ?? "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wider text-text-muted">
-                  Username
-                </dt>
-                <dd className="text-sm font-medium text-fg">
-                  @{profile.username}
-                </dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs uppercase tracking-wider text-text-muted">
-                  Bio
-                </dt>
-                <dd className="text-sm font-medium text-fg">
-                  {profile.bio ?? "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wider text-text-muted">
-                  Member since
-                </dt>
-                <dd className="text-sm font-medium text-fg">
-                  {new Date(profile.created_at).toLocaleDateString()}
-                </dd>
-              </div>
-            </dl>
           ) : (
-            <p className="text-sm text-sale">
-              We couldn&apos;t find your profile. Try signing out and back in.
-            </p>
+            <ul className="space-y-4">
+              {posts.map((p) => (
+                <li key={p.id}>
+                  <PostCard post={p} />
+                </li>
+              ))}
+            </ul>
           )}
-        </section>
+        </div>
 
-        <section className="mt-6 rounded-2xl border border-border bg-bg p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-success" />
-            <h2 className="text-base font-bold text-fg">
-              You&apos;re authenticated
-            </h2>
-          </div>
-          <p className="text-sm text-text-muted">
-            Communities, posts, comments, and feeds will appear here in the next
-            milestones. For now, this page verifies your session, profile
-            loading, and sign-out flow.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
+        <aside className="space-y-4">
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-fg">
+              Your communities
+            </h3>
+            {joined.length === 0 ? (
+              <p className="text-sm text-text-muted">
+                You haven&apos;t joined any communities yet.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {joined.map((c) => (
+                  <li key={c.slug}>
+                    <Link
+                      href={`/communities/${c.slug}`}
+                      className="text-fg hover:text-accent"
+                    >
+                      {c.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Link
-              href="/login"
-              className="text-sm font-medium text-accent hover:underline"
+              href="/communities"
+              className="mt-3 inline-block text-xs font-medium text-accent hover:underline"
             >
-              Sign-in page
-            </Link>
-            <span className="text-text-muted">·</span>
-            <Link
-              href="/signup"
-              className="text-sm font-medium text-accent hover:underline"
-            >
-              Sign-up page
+              Discover more →
             </Link>
           </div>
-        </section>
+        </aside>
       </div>
     </main>
   );
