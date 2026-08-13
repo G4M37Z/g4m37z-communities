@@ -17,6 +17,7 @@ interface JoinedPost {
   image_url: string | null;
   created_at: string;
   updated_at: string;
+  comment_count: number;
   author: {
     username: string;
     display_name: string | null;
@@ -26,13 +27,14 @@ interface JoinedPost {
 }
 
 const POST_SELECT = `
-  id, community_id, author_id, title, body, image_url, created_at, updated_at,
+  id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count,
   author:profiles!posts_author_id_fkey ( username, display_name, avatar_url ),
   community:communities!posts_community_id_fkey ( slug, name )
 `;
 
 interface VoteRow {
   post_id: string;
+  user_id: string;
   value: number;
 }
 interface CommentRow {
@@ -41,12 +43,14 @@ interface CommentRow {
 
 /**
  * Fetch posts for a single community, with author + community joined, plus
- * vote score and comment count. Sort: latest | popular | trending.
+ * vote score, comment count, and the current user's vote on each post.
+ * Sort: latest | popular | trending.
  */
 export async function getCommunityPosts(
   communityId: string,
   sort: SortKey = "latest",
-  limit = 30
+  limit = 30,
+  viewerId: string | null = null
 ): Promise<PostCardData[]> {
   const supabase = await createClient();
 
@@ -58,7 +62,7 @@ export async function getCommunityPosts(
     .limit(limit);
 
   if (!posts || posts.length === 0) return [];
-  return await enrichPosts(posts as unknown as JoinedPost[], sort);
+  return await enrichPosts(posts as unknown as JoinedPost[], sort, viewerId);
 }
 
 /**
@@ -94,31 +98,33 @@ export async function getHomeFeed(
 
   const { data: posts } = await postsQuery;
   if (!posts || posts.length === 0) return [];
-  return await enrichPosts(posts as unknown as JoinedPost[], sort);
+  return await enrichPosts(posts as unknown as JoinedPost[], sort, userId);
 }
 
 async function enrichPosts(
   posts: JoinedPost[],
-  sort: SortKey
+  sort: SortKey,
+  viewerId: string | null
 ): Promise<PostCardData[]> {
   const supabase = await createClient();
   const postIds = posts.map((p: JoinedPost) => p.id);
 
+  // Fetch votes + comments in parallel.
   const [{ data: votes }, { data: comments }] = await Promise.all([
     supabase
       .from("post_votes")
-      .select("post_id, value")
+      .select("post_id, user_id, value")
       .in("post_id", postIds),
-    // Comments table may not exist yet (M5) — fall back to 0 if so.
     supabase.from("comments").select("post_id").in("post_id", postIds),
   ]);
 
   const scoreByPost = new Map<string, number>();
+  const myVoteByPost = new Map<string, 1 | -1>();
   for (const v of (votes ?? []) as VoteRow[]) {
-    scoreByPost.set(
-      v.post_id,
-      (scoreByPost.get(v.post_id) ?? 0) + v.value
-    );
+    scoreByPost.set(v.post_id, (scoreByPost.get(v.post_id) ?? 0) + v.value);
+    if (viewerId && v.user_id === viewerId) {
+      myVoteByPost.set(v.post_id, v.value === 1 ? 1 : -1);
+    }
   }
   const commentCountByPost = new Map<string, number>();
   for (const c of (comments ?? []) as CommentRow[]) {
@@ -145,10 +151,12 @@ async function enrichPosts(
         image_url: p.image_url,
         created_at: p.created_at,
         updated_at: p.updated_at,
+        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,
         author: p.author,
         community: p.community,
         score,
-        comment_count: commentCountByPost.get(p.id) ?? 0,
+        my_vote: myVoteByPost.get(p.id) ?? null,
+        signed_in: Boolean(viewerId),
         trending: score / ageHours,
       };
     }
