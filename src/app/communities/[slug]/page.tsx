@@ -64,10 +64,12 @@ export default async function CommunityPage({
   if (!communityRaw) notFound();
   const community = communityRaw as Community;
 
-  // Member count + current user's membership + categories — fetched in parallel.
+  // Member count + current user's membership + categories + posts feed.
+  // Resolve the auth user first so we can pass its id into the posts query.
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+
   const [
     { count: memberCount },
-    { data: { user } },
     { data: linksRaw },
     { data: categoriesRaw },
     posts,
@@ -76,14 +78,15 @@ export default async function CommunityPage({
       .from("community_members")
       .select("user_id", { count: "exact", head: true })
       .eq("community_id", community.id),
-    supabase.auth.getUser(),
     supabase
       .from("community_category_links")
       .select("category_id")
       .eq("community_id", community.id),
     supabase.from("community_categories").select("id, slug, name"),
-    getCommunityPosts(community.id, sort, 30),
+    getCommunityPosts(community.id, sort, 30, authUser?.id ?? null),
   ]);
+
+  const user = authUser;
 
   let currentRole: "member" | "moderator" | "admin" | null = null;
   if (user) {
