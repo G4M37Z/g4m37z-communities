@@ -9,6 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { Community, CommunityCategory } from "@/types/database";
 import { JoinLeaveButton } from "./JoinLeaveButton";
 import { timeAgo } from "@/lib/utils";
+import { PostCard } from "@/components/post/PostCard";
+import { getCommunityPosts, type SortKey } from "@/lib/posts/queries";
+import { FeedSortTabs } from "./FeedSortTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +40,17 @@ export async function generateMetadata({
 
 export default async function CommunityPage({
   params,
+  searchParams,
 }: {
   params: Promise<Params>;
+  searchParams: Promise<{ sort?: string }>;
 }) {
   const { slug } = await params;
+  const { sort: sortParam } = await searchParams;
+  const sort: SortKey =
+    sortParam === "popular" || sortParam === "trending"
+      ? sortParam
+      : "latest";
   const supabase = await createClient();
 
   const { data: communityRaw } = await supabase
@@ -60,6 +70,7 @@ export default async function CommunityPage({
     { data: { user } },
     { data: linksRaw },
     { data: categoriesRaw },
+    posts,
   ] = await Promise.all([
     supabase
       .from("community_members")
@@ -71,6 +82,7 @@ export default async function CommunityPage({
       .select("category_id")
       .eq("community_id", community.id),
     supabase.from("community_categories").select("id, slug, name"),
+    getCommunityPosts(community.id, sort, 30),
   ]);
 
   let currentRole: "member" | "moderator" | "admin" | null = null;
@@ -140,11 +152,37 @@ export default async function CommunityPage({
 
       <section className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <h2 className="mb-2 text-base font-bold text-fg">Posts</h2>
-            <p className="text-sm text-text-muted">
-              Posts arrive in Milestone 4. For now, this is the community hub.
-            </p>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-bold text-fg">Posts</h2>
+            {currentRole && (
+              <Link
+                href={`/create/post?community=${community.slug}`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover"
+              >
+                New post
+              </Link>
+            )}
+          </div>
+          <FeedSortTabs slug={community.slug} current={sort} />
+          <div className="mt-4">
+            {posts.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+                <h3 className="mb-1 text-sm font-bold text-fg">No posts yet</h3>
+                <p className="text-sm text-text-muted">
+                  {currentRole
+                    ? "Be the first to share something."
+                    : "Join the community to start posting."}
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-4">
+                {posts.map((p) => (
+                  <li key={p.id}>
+                    <PostCard post={p} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

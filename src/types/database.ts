@@ -66,21 +66,7 @@ export interface Post {
 }
 
 // ----------------------------------------------------------------------------
-// comments (added in Milestone 5)
-// ----------------------------------------------------------------------------
-
-export interface Comment {
-  id: string;
-  post_id: string;
-  author_id: string;
-  parent_id: string | null;
-  body: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// ----------------------------------------------------------------------------
-// votes (added in Milestone 5)
+// votes (added in Milestone 4 — post_votes; comment_votes in M5)
 // ----------------------------------------------------------------------------
 
 export type VoteValue = -1 | 1;
@@ -97,6 +83,20 @@ export interface CommentVote {
   comment_id: string;
   user_id: string;
   value: VoteValue;
+  created_at: string;
+  updated_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// comments (added in Milestone 5)
+// ----------------------------------------------------------------------------
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  parent_id: string | null;
+  body: string;
   created_at: string;
   updated_at: string;
 }
