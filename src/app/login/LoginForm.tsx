@@ -5,7 +5,6 @@
 // On success, navigates to the post-login redirect (onboarding or ?next=).
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, AlertCircle, Loader2, ArrowRight } from "lucide-react";
 import { signInWithPassword } from "@/lib/supabase/actions";
@@ -22,7 +21,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function LoginForm({ next, initialError }: LoginFormProps) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(
     initialError ? ERROR_MESSAGES[initialError] ?? "Something went wrong." : null,
