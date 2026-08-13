@@ -10,8 +10,11 @@ import type { Community, CommunityCategory } from "@/types/database";
 import { JoinLeaveButton } from "./JoinLeaveButton";
 import { timeAgo } from "@/lib/utils";
 import { PostCard } from "@/components/post/PostCard";
+import { Pagination } from "@/components/Pagination";
 import { getCommunityPosts, type SortKey } from "@/lib/posts/queries";
 import { FeedSortTabs } from "./FeedSortTabs";
+
+const PAGE_LIMIT = 30;
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +46,16 @@ export default async function CommunityPage({
   searchParams,
 }: {
   params: Promise<Params>;
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; page?: string }>;
 }) {
   const { slug } = await params;
-  const { sort: sortParam } = await searchParams;
+  const { sort: sortParam, page: pageParam } = await searchParams;
   const sort: SortKey =
     sortParam === "popular" || sortParam === "trending"
       ? sortParam
       : "latest";
+  const page = Math.max(1, Number(pageParam ?? 1) || 1);
+  const offset = (page - 1) * PAGE_LIMIT;
   const supabase = await createClient();
 
   const { data: communityRaw } = await supabase
@@ -83,7 +88,7 @@ export default async function CommunityPage({
       .select("category_id")
       .eq("community_id", community.id),
     supabase.from("community_categories").select("id, slug, name"),
-    getCommunityPosts(community.id, sort, 30, authUser?.id ?? null),
+    getCommunityPosts(community.id, sort, PAGE_LIMIT, authUser?.id ?? null, offset),
   ]);
 
   const user = authUser;
@@ -178,13 +183,24 @@ export default async function CommunityPage({
                 </p>
               </div>
             ) : (
-              <ul className="space-y-4">
-                {posts.map((p) => (
-                  <li key={p.id}>
-                    <PostCard post={p} />
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-4">
+                  {posts.map((p) => (
+                    <li key={p.id}>
+                      <PostCard post={p} />
+                    </li>
+                  ))}
+                </ul>
+                <Pagination
+                  basePath={`/communities/${community.slug}`}
+                  extraParams={{
+                    sort: sort === "latest" ? undefined : sort,
+                  }}
+                  page={page}
+                  limit={PAGE_LIMIT}
+                  hasMore={posts.length === PAGE_LIMIT}
+                />
+              </>
             )}
           </div>
         </div>

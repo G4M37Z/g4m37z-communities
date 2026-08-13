@@ -187,3 +187,63 @@ export async function signOut() {
   revalidatePath("/", "layout");
   redirect("/");
 }
+
+// ---------------------------------------------------------------------------
+// updateProfile
+// Updates the authenticated user's profile (display_name, bio, avatar_url).
+// RLS policy ensures users can only update their own row.
+// ---------------------------------------------------------------------------
+
+export async function updateProfile(input: {
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be signed in." };
+  }
+
+  // Validate display_name length
+  if (input.display_name && input.display_name.length > 80) {
+    return { error: "Display name must be 80 characters or fewer." };
+  }
+
+  // Validate bio length
+  if (input.bio && input.bio.length > 500) {
+    return { error: "Bio must be 500 characters or fewer." };
+  }
+
+  // Validate avatar_url is a valid URL if provided
+  if (input.avatar_url) {
+    try {
+      new URL(input.avatar_url);
+    } catch {
+      return { error: "Avatar URL must be a valid URL." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: input.display_name,
+      bio: input.bio,
+      avatar_url: input.avatar_url,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("updateProfile failed:", error);
+    return { error: "Couldn't update profile. Please try again." };
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/profile/[username]", "page");
+  return { ok: true };
+}
+

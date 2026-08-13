@@ -8,17 +8,28 @@ import { LogOut, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/supabase/actions";
 import { PostCard } from "@/components/post/PostCard";
+import { Pagination } from "@/components/Pagination";
 import { getHomeFeed } from "@/lib/posts/queries";
 import { timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_LIMIT = 30;
 
 export const metadata = {
   title: "Home — G4M37Z Communities",
   description: "Your G4M37Z Communities home feed.",
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam ?? 1) || 1);
+  const offset = (page - 1) * PAGE_LIMIT;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,7 +46,7 @@ export default async function HomePage() {
       .select("id, username, display_name, avatar_url, bio, created_at")
       .eq("id", user.id)
       .maybeSingle(),
-    getHomeFeed(user.id, "latest", 30),
+    getHomeFeed(user.id, "latest", PAGE_LIMIT, offset),
   ]);
 
   // Joined community ids for the right-side list.
@@ -119,14 +130,22 @@ export default async function HomePage() {
               </Link>
             </div>
           ) : (
-            <ul className="space-y-4">
-              {posts.map((p) => (
-                <li key={p.id}>
-                  <PostCard post={p} />
-                </li>
-              ))}
-            </ul>
-          )}
+                      <>
+                        <ul className="space-y-4">
+                          {posts.map((p) => (
+                            <li key={p.id}>
+                              <PostCard post={p} />
+                            </li>
+                          ))}
+                        </ul>
+                        <Pagination
+                          basePath="/home"
+                          page={page}
+                          limit={PAGE_LIMIT}
+                          hasMore={posts.length === PAGE_LIMIT}
+                        />
+                      </>
+                    )}
         </div>
 
         <aside className="space-y-4">
