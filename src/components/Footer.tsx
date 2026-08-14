@@ -2,6 +2,7 @@
 // G4M37Z Communities site footer.
 
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 
 const EXPLORE = [
   { label: "Communities", href: "/communities" },
@@ -9,12 +10,18 @@ const EXPLORE = [
   { label: "Create", href: "/create" },
 ];
 
-const ACCOUNT = [
+const ACCOUNT_SIGNED_OUT = [
   { label: "Sign in", href: "/login" },
   { label: "Sign up", href: "/signup" },
 ];
 
-export function Footer() {
+const ACCOUNT_SIGNED_IN = [
+  { label: "Home", href: "/home" },
+  { label: "Notifications", href: "/notifications" },
+  { label: "Settings", href: "/settings" },
+];
+
+export function Footer({ user }: { user: User | null }) {
   const year = new Date().getFullYear();
   return (
     <footer className="mt-auto border-t border-border bg-bg">
@@ -41,7 +48,7 @@ export function Footer() {
             Account
           </h3>
           <ul className="space-y-2 text-sm text-text-muted">
-            {ACCOUNT.map((l) => (
+            {(user ? ACCOUNT_SIGNED_IN : ACCOUNT_SIGNED_OUT).map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}

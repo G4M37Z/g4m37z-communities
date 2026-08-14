@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { createClient } from "@/lib/supabase/server";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,13 +21,18 @@ export const metadata: Metadata = {
     "Discover gaming communities, share posts, and connect with players across every platform.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="flex min-h-full flex-col bg-bg font-sans text-fg antialiased">
         <Header />
         <main className="flex-1">{children}</main>
-        <Footer />
+        <Footer user={user} />
       </body>
     </html>
   );
