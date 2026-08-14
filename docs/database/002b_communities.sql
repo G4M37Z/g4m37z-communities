@@ -1,15 +1,4 @@
--- 1. Table: community_categories (gaming topics)
-CREATE TABLE IF NOT EXISTS public.community_categories (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
-
--- 2. Index for slug lookups
-CREATE INDEX IF NOT EXISTS idx_community_categories_slug ON public.community_categories(slug);
-
--- 3. Table: communities
+-- 1. Table: communities
 CREATE TABLE IF NOT EXISTS public.communities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -23,13 +12,26 @@ CREATE TABLE IF NOT EXISTS public.communities (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
--- 4. Indexes for communities
 CREATE INDEX IF NOT EXISTS idx_communities_slug ON public.communities(slug);
 CREATE INDEX IF NOT EXISTS idx_communities_creator_id ON public.communities(creator_id);
 CREATE INDEX IF NOT EXISTS idx_communities_category_id ON public.communities(category_id);
 CREATE INDEX IF NOT EXISTS idx_communities_created_at ON public.communities(created_at);
 
--- 5. Table: community_members
+ALTER TABLE public.communities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Communities are viewable by everyone" ON public.communities
+  FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users can create communities" ON public.communities
+  FOR INSERT WITH CHECK (auth.uid() = creator_id);
+
+CREATE POLICY "Creator can update own community" ON public.communities
+  FOR UPDATE USING (auth.uid() = creator_id);
+
+CREATE POLICY "Creator can delete own community" ON public.communities
+  FOR DELETE USING (auth.uid() = creator_id);
+
+-- 2. Table: community_members
 CREATE TABLE IF NOT EXISTS public.community_members (
   community_id UUID NOT NULL REFERENCES public.communities(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -38,55 +40,24 @@ CREATE TABLE IF NOT EXISTS public.community_members (
   PRIMARY KEY (community_id, user_id)
 );
 
--- 6. Role check constraint
 ALTER TABLE public.community_members
   ADD CONSTRAINT community_members_role_check
   CHECK (role IN ('member', 'moderator', 'admin'));
 
--- 7. Indexes for community_members
 CREATE INDEX IF NOT EXISTS idx_community_members_user_id ON public.community_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_community_members_role ON public.community_members(role);
 
--- 8. Enable RLS
-ALTER TABLE public.community_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.communities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
 
--- 9. Policies for community_categories (public read)
-CREATE POLICY "Categories are viewable by everyone" ON public.community_categories
-  FOR SELECT USING (true);
-
--- 10. Policies for communities
--- Public can read communities
-CREATE POLICY "Communities are viewable by everyone" ON public.communities
-  FOR SELECT USING (true);
-
--- Authenticated users can create communities
-CREATE POLICY "Authenticated users can create communities" ON public.communities
-  FOR INSERT WITH CHECK (auth.uid() = creator_id);
-
--- Creator can update their community
-CREATE POLICY "Creator can update own community" ON public.communities
-  FOR UPDATE USING (auth.uid() = creator_id);
-
--- Creator can delete their community
-CREATE POLICY "Creator can delete own community" ON public.communities
-  FOR DELETE USING (auth.uid() = creator_id);
-
--- 11. Policies for community_members
--- Public can read memberships (to show member count, check if joined)
 CREATE POLICY "Memberships are viewable by everyone" ON public.community_members
   FOR SELECT USING (true);
 
--- Authenticated users can join (insert their own membership)
 CREATE POLICY "Users can join communities" ON public.community_members
   FOR INSERT WITH CHECK (auth.uid() = user_id AND role = 'member');
 
--- Users can leave (delete their own membership)
 CREATE POLICY "Users can leave communities" ON public.community_members
   FOR DELETE USING (auth.uid() = user_id);
 
--- Moderators/admins can manage members (update role)
 CREATE POLICY "Moderators can update member roles" ON public.community_members
   FOR UPDATE USING (
     EXISTS (
@@ -97,7 +68,6 @@ CREATE POLICY "Moderators can update member roles" ON public.community_members
     )
   );
 
--- Moderators/admins can remove members
 CREATE POLICY "Moderators can remove members" ON public.community_members
   FOR DELETE USING (
     EXISTS (
@@ -107,19 +77,3 @@ CREATE POLICY "Moderators can remove members" ON public.community_members
         AND cm.role IN ('moderator', 'admin')
     )
   );
-
--- 12. Seed initial gaming categories
-INSERT INTO public.community_categories (slug, name) VALUES
-  ('efootball', 'eFootball'),
-  ('fifa-ea-fc', 'FIFA / EA FC'),
-  ('gta', 'GTA'),
-  ('call-of-duty', 'Call of Duty'),
-  ('roblox', 'Roblox'),
-  ('fortnite', 'Fortnite'),
-  ('rpg', 'RPG'),
-  ('pc-gaming', 'PC Gaming'),
-  ('playstation', 'PlayStation'),
-  ('xbox', 'Xbox'),
-  ('nintendo', 'Nintendo'),
-  ('mobile-gaming', 'Mobile Gaming')
-ON CONFLICT (slug) DO NOTHING;

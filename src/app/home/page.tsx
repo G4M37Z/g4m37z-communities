@@ -1,6 +1,7 @@
 // src/app/home/page.tsx
 // Authenticated home: shows posts from communities the user has joined
 // (with a fallback to recent global posts when none are joined yet).
+// Supports Latest / Popular / Trending sort.
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -9,7 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/supabase/actions";
 import { PostCard } from "@/components/post/PostCard";
 import { Pagination } from "@/components/Pagination";
-import { getHomeFeed } from "@/lib/posts/queries";
+import { FeedSortTabs } from "./FeedSortTabs";
+import { getHomeFeed, type SortKey } from "@/lib/posts/queries";
 import { timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +26,11 @@ export const metadata = {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sort?: string }>;
 }) {
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, sort: sortParam } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? 1) || 1);
+  const sort: SortKey = sortParam === "popular" || sortParam === "trending" ? sortParam : "latest";
   const offset = (page - 1) * PAGE_LIMIT;
 
   const supabase = await createClient();
@@ -46,7 +49,7 @@ export default async function HomePage({
       .select("id, username, display_name, avatar_url, bio, created_at")
       .eq("id", user.id)
       .maybeSingle(),
-    getHomeFeed(user.id, "latest", PAGE_LIMIT, offset),
+    getHomeFeed(user.id, sort, PAGE_LIMIT, offset),
   ]);
 
   // Joined community ids for the right-side list.
@@ -58,21 +61,21 @@ export default async function HomePage({
     .limit(6);
 
   type Row = {
-      community_id: string;
-      communities: { slug: string; name: string } | { slug: string; name: string }[] | null;
-    };
-    const joined: { slug: string; name: string }[] = (
-      (memberships ?? []) as Row[]
-    )
-      .map((m: Row) => {
-        return Array.isArray(m.communities) ? m.communities[0] : m.communities;
-      })
-      .filter(
-        (c: { slug: string; name: string } | null | undefined): c is {
-          slug: string;
-          name: string;
-        } => Boolean(c && typeof c === "object" && "slug" in c)
-      );
+    community_id: string;
+    communities: { slug: string; name: string } | { slug: string; name: string }[] | null;
+  };
+  const joined: { slug: string; name: string }[] = (
+    (memberships ?? []) as Row[]
+  )
+    .map((m: Row) => {
+      return Array.isArray(m.communities) ? m.communities[0] : m.communities;
+    })
+    .filter(
+      (c: { slug: string; name: string } | null | undefined): c is {
+        slug: string;
+        name: string;
+      } => Boolean(c && typeof c === "object" && "slug" in c)
+    );
 
   return (
     <main className="container-x py-8 sm:py-10">
@@ -109,6 +112,8 @@ export default async function HomePage({
         </div>
       </header>
 
+      <FeedSortTabs current={sort} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h2 className="mb-3 text-base font-bold text-fg">
@@ -130,22 +135,23 @@ export default async function HomePage({
               </Link>
             </div>
           ) : (
-                      <>
-                        <ul className="space-y-4">
-                          {posts.map((p) => (
-                            <li key={p.id}>
-                              <PostCard post={p} />
-                            </li>
-                          ))}
-                        </ul>
-                        <Pagination
-                          basePath="/home"
-                          page={page}
-                          limit={PAGE_LIMIT}
-                          hasMore={posts.length === PAGE_LIMIT}
-                        />
-                      </>
-                    )}
+            <>
+              <ul className="space-y-4">
+                {posts.map((p) => (
+                  <li key={p.id}>
+                    <PostCard post={p} />
+                  </li>
+                ))}
+              </ul>
+              <Pagination
+                basePath="/home"
+                page={page}
+                limit={PAGE_LIMIT}
+                hasMore={posts.length === PAGE_LIMIT}
+                extraParams={{ sort }}
+              />
+            </>
+          )}
         </div>
 
         <aside className="space-y-4">
