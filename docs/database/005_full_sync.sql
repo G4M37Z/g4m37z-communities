@@ -359,8 +359,174 @@ FOR EACH ROW
 EXECUTE FUNCTION public.update_post_comment_count();
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 9. profiles (already exists from Milestone 1 — just ensure policies)
+-- 9. notification triggers (Milestone 7)
 -- ─────────────────────────────────────────────────────────────────────────────
+
+-- 9a. When a comment is created on a post, notify the post author
+CREATE OR REPLACE FUNCTION public.notify_comment_on_post() RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  post_author UUID;
+BEGIN
+  -- Get the post author
+  SELECT author_id INTO post_author
+  FROM public.posts
+  WHERE id = NEW.post_id;
+
+  -- Don't notify if commenting on own post
+  IF post_author IS NOT NULL AND post_author <> NEW.author_id THEN
+    PERFORM public.create_notification(
+      post_author,
+      NEW.author_id,
+      'comment_on_post',
+      NEW.id
+    );
+  END IF;
+
+  -- If this is a reply (has parent_id), notify the parent comment author
+  IF NEW.parent_id IS NOT NULL THEN
+    DECLARE
+      parent_author UUID;
+    BEGIN
+      SELECT author_id INTO parent_author
+      FROM public.comments
+      WHERE id = NEW.parent_id;
+
+      IF parent_author IS NOT NULL AND parent_author <> NEW.author_id THEN
+        PERFORM public.create_notification(
+          parent_author,
+          NEW.author_id,
+          'reply_to_comment',
+          NEW.id
+        );
+      END IF;
+    END;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_comment_on_post ON public.comments;
+CREATE TRIGGER trg_notify_comment_on_post
+AFTER INSERT ON public.comments
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_comment_on_post();
+
+-- 9b. When a post vote is created/updated, notify the post author (on upvote)
+CREATE OR REPLACE FUNCTION public.notify_post_vote() RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  post_author UUID;
+BEGIN
+  -- Only notify on upvote (value = 1), not downvote
+  IF NEW.value = 1 THEN
+    SELECT author_id INTO post_author
+    FROM public.posts
+    WHERE id = NEW.post_id;
+
+    IF post_author IS NOT NULL AND post_author <> NEW.user_id THEN
+      PERFORM public.create_notification(
+        post_author,
+        NEW.user_id,
+        'post_vote',
+        NEW.post_id
+      );
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_post_vote ON public.post_votes;
+CREATE TRIGGER trg_notify_post_vote
+AFTER INSERT OR UPDATE ON public.post_votes
+FOR EACH ROW
+WHEN (NEW.value = 1)
+EXECUTE FUNCTION public.notify_post_vote();
+
+-- 9c. When a comment vote is created/updated, notify the comment author (on upvote)
+CREATE OR REPLACE FUNCTION public.notify_comment_vote() RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  comment_author UUID;
+BEGIN
+  IF NEW.value = 1 THEN
+    SELECT author_id INTO comment_author
+    FROM public.comments
+    WHERE id = NEW.comment_id;
+
+    IF comment_author IS NOT NULL AND comment_author <> NEW.user_id THEN
+      PERFORM public.create_notification(
+        comment_author,
+        NEW.user_id,
+        'comment_vote',
+        NEW.comment_id
+      );
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_comment_vote ON public.comment_votes;
+CREATE TRIGGER trg_notify_comment_vote
+AFTER INSERT OR UPDATE ON public.comment_votes
+FOR EACH ROW
+WHEN (NEW.value = 1)
+EXECUTE FUNCTION public.notify_comment_vote();
+
+-- 9d. When a report is resolved, notify the reporter
+CREATE OR REPLACE FUNCTION public.notify_report_resolved() RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Notify when report status changes to resolved or dismissed
+  IF (NEW.status = 'resolved' OR NEW.status = 'dismissed')
+     AND OLD.status = 'open' THEN
+    PERFORM public.create_notification(
+      NEW.reporter_id,
+      NEW.resolved_by,
+      'report_resolved',
+      NEW.id
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_report_resolved ON public.reports;
+CREATE TRIGGER trg_notify_report_resolved
+AFTER UPDATE ON public.reports
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_report_resolved();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 10. profiles (already exists from Milestone 1 — just ensure policies)
+--     Add role column if missing for moderator/admin access
+-- ─────────────────────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'role'
+  ) THEN
+    ALTER TABLE public.profiles ADD COLUMN role TEXT NOT NULL DEFAULT 'member'
+      CHECK (role IN ('member', 'moderator', 'admin'));
+  END IF;
+END $$;
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Profiles are viewable by everyone" ON public.profiles
@@ -427,6 +593,129 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'storage DELETE policy skipped: %', SQLERRM;
 END $storage$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 11. notifications (Milestone 7)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  actor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN (
+    'comment_on_post',
+    'reply_to_comment',
+    'post_vote',
+    'comment_vote',
+    'moderation_action',
+    'report_resolved',
+    'mention',
+    'community_invite'
+  )),
+  reference_id UUID,
+  read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id_read_created_at
+  ON public.notifications(user_id, read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_reference_id
+  ON public.notifications(reference_id);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own notifications" ON public.notifications
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own notifications (mark read)" ON public.notifications
+  FOR UPDATE USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- System/trigger inserts need to bypass RLS — use a SECURITY DEFINER function
+-- for programmatic notification creation (see RPC below).
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 12. reports (Milestone 8)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL CHECK (target_type IN ('post', 'comment', 'user')),
+  target_id UUID NOT NULL,
+  reason TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'dismissed')),
+  resolved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reports_status_created_at
+  ON public.reports(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reports_target
+  ON public.reports(target_type, target_id);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can create reports" ON public.reports
+  FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+
+CREATE POLICY "Reporters can view their own reports" ON public.reports
+  FOR SELECT USING (auth.uid() = reporter_id);
+
+CREATE POLICY "Moderators/Admins can view all reports" ON public.reports
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('admin', 'moderator')
+    )
+  );
+
+CREATE POLICY "Moderators/Admins can update reports" ON public.reports
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('admin', 'moderator')
+    )
+  );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 13. RPC: create_notification (for triggers + server actions)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_notification(
+  p_user_id UUID,
+  p_actor_id UUID DEFAULT NULL,
+  p_type TEXT,
+  p_reference_id UUID DEFAULT NULL
+) RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_id UUID;
+BEGIN
+  INSERT INTO public.notifications (user_id, actor_id, type, reference_id)
+  VALUES (p_user_id, p_actor_id, p_type, p_reference_id)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_notification(UUID, UUID, TEXT, UUID) TO authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 14. Enable realtime on notifications and reports tables
+-- ─────────────────────────────────────────────────────────────────────────────
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.reports;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END $$;
 
 -- ============================================================================
 -- DONE. All tables, indexes, RLS, policies, triggers, and storage synced.

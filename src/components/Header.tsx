@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { UserMenu } from "@/components/UserMenu";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const NAV = [
   { label: "Home", href: "/home" },
@@ -52,6 +53,7 @@ export async function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {user && <NotificationBell />}
           {user ? (
             <UserMenu username={username} />
           ) : (
