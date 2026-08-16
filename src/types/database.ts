@@ -15,12 +15,15 @@
 // profiles
 // ----------------------------------------------------------------------------
 
+export type ProfileRole = "member" | "moderator" | "admin";
+
 export interface Profile {
   id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  role: ProfileRole;
   created_at: string;
   updated_at: string;
 }
@@ -111,7 +114,9 @@ export type NotificationType =
   | "post_vote"
   | "comment_vote"
   | "moderation_action"
-  | "report_resolved";
+  | "report_resolved"
+  | "mention"
+  | "community_invite";
 
 export interface Notification {
   id: string;
