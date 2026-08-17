@@ -1,4 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
-  <rect width="256" height="256" rx="56" fill="#0b0d12"/>
-  <text x="128" y="156" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, sans-serif" font-size="96" font-weight="800" fill="#ffffff" letter-spacing="-6">G4</text>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="G4M37Z">
+  <!--
+    Favicon v3 — silhouette-first design for tiny rendering.
+
+    At 16×16, only the OUTER CONTOUR survives. So the favicon
+    reduces the mark to:
+      - A BLACK SOLID BLADE (left half of a circle) — the silhouette anchor.
+      - A CRIMSON NOTCH breaking the blade top-right.
+
+    No more rings. The shape is now a closed black silhouette with a
+    crimson bite — same gesture as the primary mark but built for scale.
+
+    Net: at any size, the silhouette reads as "rounded blade with a notch."
+    Distinct from common app icons.
+  -->
+  <path d="M 8 32
+           A 24 24 0 1 1 56 32
+           L 56 56
+           L 8 56
+           Z"
+        fill="#0b0d12"/>
+  <path d="M 50 12
+           A 24 24 0 0 1 56 32
+           L 56 18
+           Z"
+        fill="#B4232F"/>
 </svg>

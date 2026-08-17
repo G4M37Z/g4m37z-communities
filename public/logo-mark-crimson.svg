@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="G4M37Z mark, crimson variant">
+  <!--
+    Crimson-only primary mark — for use when the standard black-on-crimson
+    is reversed, or for backgrounds where black is unavailable.
+
+    Outer ring: crimson
+    Spark: crimson (matches ring — the silhouette reads as a single
+            crimson mark with a black pinhole gap)
+    Stroke width matches the standard mark so swapping between the two
+    requires no other layout changes.
+  -->
+  <circle cx="252" cy="252" r="184"
+          fill="none"
+          stroke="#B4232F"
+          stroke-width="56"/>
+  <path d="M 380 76
+           A 184 184 0 0 1 446 234"
+        fill="none"
+        stroke="#0b0d12"
+        stroke-width="56"
+        stroke-linecap="butt"/>
+  <circle cx="208" cy="252" r="32" fill="#B4232F"/>
+</svg>
