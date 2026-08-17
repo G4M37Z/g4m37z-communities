@@ -38,14 +38,37 @@ export async function generateMetadata({
   const supabase = await createClient();
   const { data: post } = await supabase
     .from("posts")
-    .select("title, body")
+    .select("title, body, image_url, community:communities!posts_community_id_fkey ( name )")
     .eq("id", id)
     .maybeSingle();
   if (!post) return { title: "Post not found" };
-  const p = post as { title: string; body: string | null };
+  const p = post as {
+    title: string;
+    body: string | null;
+    image_url: string | null;
+    community: { name: string } | { name: string }[] | null;
+  };
+  const communityName = Array.isArray(p.community) ? p.community[0]?.name : p.community?.name;
+  const description =
+    p.body?.slice(0, 160) ??
+    `Post on G4M37Z Communities${communityName ? ` in ${communityName}` : ""}.`;
+  const ogImage = p.image_url ?? "/icon.svg";
   return {
     title: p.title,
-    description: p.body?.slice(0, 160) ?? `Post on G4M37Z Communities.`,
+    description,
+    openGraph: {
+      title: p.title,
+      description,
+      type: "article",
+      siteName: "G4M37Z Communities",
+      images: [ogImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: p.title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 

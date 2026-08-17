@@ -32,10 +32,46 @@ interface MembershipRow {
   community: { id: string; slug: string; name: string; icon_url: string | null } | { id: string; slug: string; name: string; icon_url: string | null }[] | null;
 }
 
-export const metadata = {
-  title: "Profile",
-  description: "User profile on G4M37Z Communities.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
+  const { username } = await params;
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username, display_name, bio, avatar_url")
+    .eq("username", username)
+    .maybeSingle();
+  if (!profile) return { title: "Profile · G4M37Z" };
+  const p = profile as {
+    username: string;
+    display_name: string | null;
+    bio: string | null;
+    avatar_url: string | null;
+  };
+  const name = p.display_name ?? p.username;
+  const description =
+    p.bio?.slice(0, 160) ?? `${name} (@${p.username}) on G4M37Z Communities.`;
+  return {
+    title: `${name} (@${p.username})`,
+    description,
+    openGraph: {
+      title: `${name} (@${p.username})`,
+      description,
+      type: "profile",
+      siteName: "G4M37Z Communities",
+      images: [p.avatar_url ?? "/icon.svg"],
+    },
+    twitter: {
+      card: "summary",
+      title: `${name} (@${p.username})`,
+      description,
+      images: [p.avatar_url ?? "/icon.svg"],
+    },
+  };
+}
 
 export default async function ProfilePage({
   params,

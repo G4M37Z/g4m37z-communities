@@ -19,6 +19,61 @@ export const metadata: Metadata = {
   },
   description:
     "Discover gaming communities, share posts, and connect with players across every platform.",
+  keywords: [
+    "gaming",
+    "communities",
+    "esports",
+    "PlayStation",
+    "Xbox",
+    "PC gaming",
+    "mobile gaming",
+    "forum",
+    "social",
+  ],
+  authors: [{ name: "G4M37Z" }],
+  creator: "G4M37Z",
+  publisher: "G4M37Z",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "G4M37Z Communities",
+    title: "G4M37Z Communities — Where gamers gather",
+    description:
+      "Discover gaming communities, share posts, and connect with players across every platform.",
+    images: [
+      {
+        url: "/icon.svg",
+        width: 1200,
+        height: 630,
+        alt: "G4M37Z Communities",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "G4M37Z Communities — Where gamers gather",
+    description:
+      "Discover gaming communities, share posts, and connect with players across every platform.",
+    images: ["/icon.svg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
