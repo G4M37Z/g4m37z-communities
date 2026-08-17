@@ -11,6 +11,7 @@ import { PostActions } from "./PostActions";
 import { PostVoteControl } from "@/components/voting/PostVoteControl";
 import { Comment } from "@/components/comments/Comment";
 import { CommentForm } from "@/components/comments/CommentForm";
+import { ReportButton } from "@/components/ReportButton";
 import { getCommentThread } from "@/lib/comments/queries";
 import type { Post } from "@/types/database";
 
@@ -200,6 +201,9 @@ export default async function PostPage({
                   {post.comment_count ?? 0}{" "}
                   {post.comment_count === 1 ? "comment" : "comments"}
                 </span>
+                {user && user.id !== post.author_id && (
+                  <ReportButton targetType="post" targetId={post.id} />
+                )}
               </div>
               {isOwner && <PostActions post={post} />}
             </footer>

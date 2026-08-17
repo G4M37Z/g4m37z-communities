@@ -15,7 +15,7 @@
 // profiles
 // ----------------------------------------------------------------------------
 
-export type ProfileRole = "member" | "moderator" | "admin";
+export type ProfileRole = "member" | "moderator" | "admin" | "suspended";
 
 export interface Profile {
   id: string;

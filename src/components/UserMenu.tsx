@@ -3,14 +3,16 @@
 // to the user's profile, settings, notifications, and a sign-out action.
 
 import Link from "next/link";
-import { User as UserIcon, ChevronDown } from "lucide-react";
+import { User as UserIcon, ChevronDown, Shield } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
 
 interface UserMenuProps {
   username: string | null;
+  isModerator?: boolean;
+  isAdmin?: boolean;
 }
 
-export function UserMenu({ username }: UserMenuProps) {
+export function UserMenu({ username, isModerator, isAdmin }: UserMenuProps) {
   // Fall back to "?" when no username is set yet.
   const initial = (username ?? "?").charAt(0).toUpperCase();
 
@@ -53,14 +55,25 @@ export function UserMenu({ username }: UserMenuProps) {
             </Link>
           </li>
           <li>
-            <Link
-              href="/settings"
-              className="block px-4 py-2 text-fg hover:bg-surface"
-            >
-              Settings
-            </Link>
-          </li>
-        </ul>
+                      <Link
+                        href="/settings"
+                        className="block px-4 py-2 text-fg hover:bg-surface"
+                      >
+                        Settings
+                      </Link>
+                    </li>
+                    {(isAdmin || isModerator) && (
+                      <li>
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-2 px-4 py-2 text-fg hover:bg-surface"
+                        >
+                          <Shield size={14} />
+                          Admin
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
         <div className="border-t border-border p-1">
           <SignOutButton />
         </div>

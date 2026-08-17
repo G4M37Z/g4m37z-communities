@@ -523,7 +523,36 @@ BEGIN
     WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'role'
   ) THEN
     ALTER TABLE public.profiles ADD COLUMN role TEXT NOT NULL DEFAULT 'member'
-      CHECK (role IN ('member', 'moderator', 'admin'));
+      CHECK (role IN ('member', 'moderator', 'admin', 'suspended'));
+  END IF;
+END $$;
+
+-- If the role column already exists with a different CHECK, expand it to include 'suspended'
+DO $$
+DECLARE v_check TEXT;
+BEGIN
+  SELECT pg_get_constraintdef(c.oid)
+    INTO v_check
+    FROM pg_constraint c
+    JOIN pg_namespace n ON n.oid = c.connamespace
+   WHERE n.nspname = 'public'
+     AND c.conrelid = 'public.profiles'::regclass
+     AND c.conname LIKE '%role%';
+
+  IF v_check IS NOT NULL AND v_check NOT LIKE '%suspended%' THEN
+    -- Drop the old CHECK and recreate with suspended
+    EXECUTE (
+      SELECT 'ALTER TABLE public.profiles DROP CONSTRAINT ' || quote_ident(c.conname)
+      FROM pg_constraint c
+      JOIN pg_namespace n ON n.oid = c.connamespace
+      WHERE n.nspname = 'public'
+        AND c.conrelid = 'public.profiles'::regclass
+        AND c.conname LIKE '%role%'
+      LIMIT 1
+    );
+    ALTER TABLE public.profiles
+      ADD CONSTRAINT profiles_role_check
+      CHECK (role IN ('member', 'moderator', 'admin', 'suspended'));
   END IF;
 END $$;
 
@@ -703,6 +732,52 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.create_notification(UUID, UUID, TEXT, UUID) TO authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 14. Admin / moderation helper functions
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Get the caller's platform role from profiles
+CREATE OR REPLACE FUNCTION public.get_my_platform_role() RETURNS TEXT
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid();
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_my_platform_role() TO authenticated;
+
+-- Admin: change a user's platform role
+CREATE OR REPLACE FUNCTION public.admin_set_user_role(
+  p_user_id UUID,
+  p_role TEXT
+) RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  caller_id UUID;
+  caller_role TEXT;
+BEGIN
+  caller_id := auth.uid();
+  SELECT role INTO caller_role FROM public.profiles WHERE id = caller_id;
+
+  IF caller_role IS DISTINCT FROM 'admin' THEN
+    RAISE EXCEPTION 'Only admins can change user roles';
+  END IF;
+
+  IF p_role NOT IN ('member', 'moderator', 'admin', 'suspended') THEN
+    RAISE EXCEPTION 'Invalid role: %', p_role;
+  END IF;
+
+  UPDATE public.profiles SET role = p_role, updated_at = NOW() WHERE id = p_user_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_set_user_role(UUID, TEXT) TO authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 14. Enable realtime on notifications and reports tables
