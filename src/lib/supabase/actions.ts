@@ -44,15 +44,23 @@ export async function signUpWithPassword(formData: FormData) {
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
-  }
-  const usernameError = validateUsername(username);
-  if (usernameError) return { error: usernameError };
-  if (displayName.length === 0) {
+    }
+    const usernameError = validateUsername(username);
+    if (usernameError) return { error: usernameError };
+    if (displayName.length === 0) {
     return { error: "Please enter a display name." };
-  }
-  if (displayName.length > 80) {
+    }
+    if (displayName.length > 80) {
     return { error: "Display name must be 80 characters or fewer." };
-  }
+    }
+
+    // Terms acceptance guard (UI also requires the checkbox, but server
+    // double-checks so a forged request can never bypass it).
+    const accepted = formData.get("acceptTerms");
+    const termsVersion = String(formData.get("termsVersion") ?? "");
+    if (accepted !== "true" || termsVersion.length === 0) {
+    return { error: "You must accept the Terms of Service to create an account." };
+    }
 
   const supabase = await createClient();
   const rawSiteUrl =
@@ -71,6 +79,8 @@ export async function signUpWithPassword(formData: FormData) {
       data: {
         username,
         display_name: displayName,
+        terms_version: termsVersion,
+        terms_accepted_at: new Date().toISOString(),
       },
     },
   });
@@ -78,7 +88,7 @@ export async function signUpWithPassword(formData: FormData) {
   if (error) {
     console.error("signUpWithPassword failed:", error);
     if (error.message.toLowerCase().includes("already registered")) {
-      return {
+    return {
         error: "An account with this email already exists. Try signing in.",
       };
     }
@@ -159,7 +169,7 @@ export async function signInWithPassword(formData: FormData) {
   if (error) {
     console.error("signInWithPassword failed:", error);
     if (error.message.toLowerCase().includes("email not confirmed")) {
-      return {
+    return {
         error:
           "Please verify your email first — check your inbox for the confirmation link.",
       };
@@ -168,7 +178,7 @@ export async function signInWithPassword(formData: FormData) {
       error.message.toLowerCase().includes("invalid login") ||
       error.message.toLowerCase().includes("invalid credentials")
     ) {
-      return { error: "Wrong email or password." };
+    return { error: "Wrong email or password." };
     }
     return { error: "We couldn't sign you in. Please try again." };
   }
@@ -223,7 +233,7 @@ export async function updateProfile(input: {
     try {
       new URL(input.avatar_url);
     } catch {
-      return { error: "Avatar URL must be a valid URL." };
+    return { error: "Avatar URL must be a valid URL." };
     }
   }
 
