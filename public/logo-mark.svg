@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="G4M37Z mark">
+  <!--
+    G4M37Z — primary mark (v2)
+
+    Concept: "broken compass"
+    - A heavy black ring is the silhouette anchor.
+    - The ring is cut by a single 64° gap at the top-right (12 o'clock → 1:30 clock).
+    - The gap is filled with crimson — same arc radius, same stroke width.
+    - One solid dot below-left of the centre, sized to read as a "polestar."
+    - The ring is asymmetric: centre is offset slightly up and left so the
+      dot feels seated, not floating.
+
+    Why it works at any scale:
+    - 16×16: ring with a coloured bite + dot → strong silhouette, two distinct colours.
+    - 64×64: detail emerges — the precise angle of the crimson break.
+    - 128×128+: optical tension between the dark ring and the bright wedge.
+  -->
+
+  <!-- Heavy black ring (silhouette anchor). -->
+  <circle cx="252" cy="252" r="184"
+          fill="none"
+          stroke="#0b0d12"
+          stroke-width="56"/>
+
+  <!-- Crimson arc continuing the ring's path through the gap.
+       Starts where the black ring is "cut" (90° from positive y-axis,
+       measured clockwise → 1:30 clock) and spans ~70°. Same R, same
+       stroke width so the two pieces feel like a single interrupted
+       ring, not two separate shapes. -->
+  <path d="M 380 76
+           A 184 184 0 0 1 446 234"
+        fill="none"
+        stroke="#B4232F"
+        stroke-width="56"
+        stroke-linecap="butt"/>
+
+  <!-- Polestar: a solid filled circle, sitting inside the ring, just
+       left of vertical centre, just below centre. Acts as an anchor
+       at large sizes. At favicon sizes it integrates with the ring
+       to read as a single solid mark. -->
+  <circle cx="208" cy="252" r="32" fill="#0b0d12"/>
+</svg>

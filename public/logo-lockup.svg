@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 320" role="img" aria-label="G4M37Z">
+  <!--
+    Primary lockup — symbol + wordmark.
+    Canvas 1024×320. Symbol sits left, opt size 256×256, vertically centred.
+    Wordmark right of symbol; letters drawn as filled paths (no font dep).
+    Letters: G 4 M 3 7 Z.
+
+    Note on the wordmark: I am drawing G4M37Z as <text> using a system
+    monospace stack. This is a PLACEHOLDER — for real use, replace with
+    a custom-fitted wordmark drawn as paths so it can match a custom
+    letter geometry. The text below is sized to look balanced in this
+    lockup; expect a real designer-built wordmark to replace it.
+  -->
+  <g id="symbol">
+    <!-- Centred at (160, 160) to mirror logo-mark.svg — same geometry
+         scaled 0.5×. -->
+    <circle cx="158" cy="160" r="92"
+            fill="none"
+            stroke="#0b0d12"
+            stroke-width="28"/>
+    <path d="M 190 76
+             A 92 92 0 0 1 222 154"
+          fill="none"
+          stroke="#B4232F"
+          stroke-width="28"
+          stroke-linecap="butt"/>
+    <circle cx="104" cy="160" r="16" fill="#0b0d12"/>
+  </g>
+
+  <g id="wordmark">
+    <text x="320" y="200"
+          font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Inter, sans-serif"
+          font-size="160"
+          font-weight="800"
+          letter-spacing="-8"
+          fill="#0b0d12">G4M37Z</text>
+  </g>
+</svg>
