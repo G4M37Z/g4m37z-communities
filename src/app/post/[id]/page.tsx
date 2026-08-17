@@ -9,9 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
 import { PostActions } from "./PostActions";
 import { PostVoteControl } from "@/components/voting/PostVoteControl";
-import { Comment } from "@/components/comments/Comment";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { ReportButton } from "@/components/ReportButton";
+import { RealtimeComments } from "@/components/comments/RealtimeComments";
 import { getCommentThread } from "@/lib/comments/queries";
 import type { Post } from "@/types/database";
 
@@ -258,25 +258,11 @@ export default async function PostPage({
           </div>
         )}
 
-        {thread.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-8 text-center">
-            <p className="text-sm text-text-muted">
-              No comments yet. Be the first to share what you think.
-            </p>
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {thread.map((c) => (
-              <li key={c.id}>
-                <Comment
-                  comment={c}
-                  postId={post.id}
-                  currentUserId={user?.id ?? null}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <RealtimeComments
+          postId={post.id}
+          initialComments={thread}
+          currentUserId={user?.id ?? null}
+        />
       </section>
     </main>
   );

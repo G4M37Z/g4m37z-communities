@@ -1,77 +1,95 @@
 @import "tailwindcss";
 
-/* ─────────────────────────────────────────────────────────────
- * G4M37Z Communities design tokens (Tailwind v4 CSS-first @theme)
- * Dark-first visual system. Strong hierarchy, subtle borders,
- * restrained motion. No neon-heavy or copy-Reddit aesthetics.
- * ───────────────────────────────────────────────────────────── */
+/* ============================================================================
+ * G4M37Z Communities — Design System
+ * Premium dark-first visual language. Restrained red accent. No neon.
+ * Apple's product discipline + gaming DNA.
+ * ========================================================================== */
+
 @theme {
-  /* Brand — single restrained accent */
-  --color-accent: #6366f1;          /* indigo-500 — premium, not gaming-neon */
-  --color-accent-hover: #4f46e5;    /* indigo-600 */
-  --color-sale: #ef4444;            /* used for destructive states */
+  /* ── Surface scale (tonal hierarchy) ─────────────────────────────────── */
+  --color-bg: #0B0C0E;              /* page background, near-black charcoal */
+  --color-surface: #111316;         /* card / panel surface */
+  --color-surface-elevated: #17191D;/* popovers, modals, hover-lifted */
+  --color-surface-subtle: #1D2025;  /* hovered cards, active rows */
 
-  /* Semantic */
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
+  /* ── Borders (deliberately soft) ────────────────────────────────────── */
+  --color-border: #282C32;
+  --color-border-strong: #3A3F47;
 
-  /* Neutrals (dark-first) */
-  --color-fg: #f5f5f7;              /* near-white for primary text */
-  --color-text-muted: #9ca3af;      /* gray-400 for secondary text */
-  --color-border: #262626;          /* subtle dividers on dark surface */
-  --color-surface: #16181d;         /* card / panel surface */
-  --color-bg: #0b0d12;              /* page background */
+  /* ── Text scale ──────────────────────────────────────────────────────── */
+  --color-fg: #F5F5F3;              /* primary text */
+  --color-text-secondary: #A7A9AD;
+  --color-text-muted: #6F737A;
+  --color-text-disabled: #4D5157;
 
-  /* Fonts */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* ── Brand accent (restrained deep red — not the whole site) ────────── */
+  --color-accent: #B4232F;
+  --color-accent-hover: #C52B37;
+  --color-accent-soft: #6F2028;
 
-  /* Container */
+  /* ── Semantic ───────────────────────────────────────────────────────── */
+  --color-success: #22C55E;
+  --color-success-soft: #14361F;
+  --color-warning: #F59E0B;
+  --color-sale: #EF4444;            /* destructive / downvote */
+
+  /* ── Radius system ──────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-micro: 140ms;
+  --duration-normal: 200ms;
+  --duration-major: 320ms;
+
+  /* ── Container ──────────────────────────────────────────────────────── */
   --breakpoint-3xl: 1280px;
+
+  /* ── Fonts (SF Pro > Inter > system) ────────────────────────────────── */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ─────────────────────────────────────────────────────────────
- * Base styles
- * ───────────────────────────────────────────────────────────── */
-html,
-body {
+/* ─────────────────────────────────────────────────────────────────────────
+ * Base
+ * ─────────────────────────────────────────────────────────────────────── */
+html, body {
   background: var(--color-bg);
   color: var(--color-fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   min-height: 100dvh;
+  font-feature-settings: "cv11", "ss01", "ss03";
 }
 
-/* Scrollbar — minimal, on-brand for dark theme */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-bg);
-}
+/* ─────────────────────────────────────────────────────────────────────────
+ * Scrollbar — minimal, on-brand for dark theme
+ * ─────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
 ::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 4px;
+  background: var(--color-border);
+  border-radius: 8px;
+  border: 2px solid var(--color-bg);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #555555;
-}
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
 
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Container helper */
+/* ─────────────────────────────────────────────────────────────────────────
+ * Container helper
+ * ─────────────────────────────────────────────────────────────────────── */
 .container-x {
   max-width: 1280px;
   margin-left: auto;
@@ -80,21 +98,87 @@ body {
   padding-right: 1rem;
 }
 @media (min-width: 768px) {
-  .container-x {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
+  .container-x { padding-left: 1.5rem; padding-right: 1.5rem; }
 }
 @media (min-width: 1024px) {
-  .container-x {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
+  .container-x { padding-left: 2rem; padding-right: 2rem; }
 }
 
-/* Focus ring — keyboard accessibility */
+/* ─────────────────────────────────────────────────────────────────────────
+ * Focus ring — restrained, accessible
+ * ─────────────────────────────────────────────────────────────────────── */
+:focus { outline: none; }
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Press micro-interaction (tactile)
+ * ─────────────────────────────────────────────────────────────────────── */
+.press {
+  transition: transform var(--duration-micro) var(--ease-out),
+              background-color var(--duration-normal) var(--ease-out);
+}
+.press:active { transform: scale(0.985); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Sticky header behavior — quieten on scroll (toggled by JS via [data-scrolled])
+ * ─────────────────────────────────────────────────────────────────────── */
+.site-header {
+  transition: background-color var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+.site-header[data-scrolled="true"] {
+  background-color: color-mix(in oklab, var(--color-bg) 88%, transparent);
+  border-bottom-color: var(--color-border);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Skeleton shimmer — calm, 1.6s, no flash
+ * ─────────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    var(--color-surface-subtle) 50%,
+    var(--color-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Page entrance — used by lib/motion.ts. Initial state hides; GSAP reveals.
+ * ─────────────────────────────────────────────────────────────────────── */
+.page-enter > * { opacity: 0; transform: translateY(8px); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Reduced motion — preserve function, drop decoration
+ * ─────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton { animation: none; opacity: 0.6; }
+  .press:active { transform: none; }
+  .page-enter > * { opacity: 1; transform: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Selection
+ * ─────────────────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-fg);
 }

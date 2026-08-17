@@ -7,12 +7,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   basePath: string;
-  // Additional query params to preserve (sort, q, etc.)
   extraParams?: Record<string, string | undefined>;
   page: number;
   limit: number;
-  // Pass `hasMore=true` if the next page is likely to have items.
-  // Conservative: pass `false` when the last page returned fewer than `limit`.
   hasMore: boolean;
 }
 
@@ -36,16 +33,18 @@ export function Pagination({
     return qs ? `${basePath}?${qs}` : basePath;
   }
 
+  const linkClass =
+    "press inline-flex items-center gap-1 rounded-md border border-border bg-surface " +
+    "px-3 py-2 text-sm text-fg hover:bg-surface-subtle hover:border-border-strong " +
+    "transition-colors";
+
   return (
     <nav
       aria-label="Pagination"
-      className="mt-6 flex items-center justify-between text-sm"
+      className="mt-8 flex items-center justify-between text-sm"
     >
       {prevPage ? (
-        <Link
-          href={buildHref(prevPage)}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-3 py-2 text-fg hover:border-accent/60"
-        >
+        <Link href={buildHref(prevPage)} className={linkClass}>
           <ChevronLeft size={14} />
           Previous
         </Link>
@@ -54,10 +53,7 @@ export function Pagination({
       )}
       <span className="text-text-muted">Page {page}</span>
       {nextPage ? (
-        <Link
-          href={buildHref(nextPage)}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-3 py-2 text-fg hover:border-accent/60"
-        >
+        <Link href={buildHref(nextPage)} className={linkClass}>
           Next
           <ChevronRight size={14} />
         </Link>

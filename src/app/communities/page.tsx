@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Community, CommunityCategory } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
+import { PageEnter } from "@/components/PageEnter";
 
 export const dynamic = "force-dynamic";
 
@@ -77,16 +78,16 @@ export default async function CommunitiesPage() {
     <main className="container-x py-10 sm:py-14">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-fg sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-fg sm:text-4xl">
             Communities
           </h1>
-          <p className="mt-1 text-sm text-text-muted">
+          <p className="mt-1 text-sm text-text-secondary">
             Find your squad. Discover communities for every game and platform.
           </p>
         </div>
         <Link
           href="/create"
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+          className="press inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
         >
           Create community
           <ArrowRight size={16} />
@@ -101,13 +102,15 @@ export default async function CommunitiesPage() {
           action={{ label: "Create the first community", href: "/create" }}
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {communities.map((c) => (
-            <li key={c.id}>
-              <CommunityCard community={c} />
-            </li>
-          ))}
-        </ul>
+        <PageEnter stagger={0.04} y={10}>
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {communities.map((c) => (
+              <li key={c.id}>
+                <CommunityCard community={c} />
+              </li>
+            ))}
+          </ul>
+        </PageEnter>
       )}
     </main>
   );
@@ -117,12 +120,12 @@ function CommunityCard({ community }: { community: CommunityRow }) {
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="block rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-accent"
+      className="press block rounded-lg border border-border bg-surface p-5 transition-colors hover:border-border-strong hover:bg-surface-subtle"
     >
       <div className="mb-3 flex items-center gap-3">
         <CommunityIcon name={community.name} url={community.icon_url} />
         <div className="min-w-0">
-          <h2 className="truncate text-base font-bold text-fg">
+          <h2 className="truncate text-base font-semibold text-fg">
             {community.name}
           </h2>
           <p className="truncate text-xs text-text-muted">
@@ -132,7 +135,7 @@ function CommunityCard({ community }: { community: CommunityRow }) {
       </div>
 
       {community.description && (
-        <p className="mb-3 line-clamp-2 text-sm text-text-muted">
+        <p className="mb-3 line-clamp-2 text-sm text-text-secondary">
           {community.description}
         </p>
       )}
@@ -150,7 +153,7 @@ function CommunityCard({ community }: { community: CommunityRow }) {
           {community.category_names.slice(0, 3).map((name) => (
             <span
               key={name}
-              className="rounded-full border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted"
+              className="rounded-full border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-[0.04em] text-text-muted"
             >
               {name}
             </span>
@@ -164,19 +167,18 @@ function CommunityCard({ community }: { community: CommunityRow }) {
 function CommunityIcon({ name, url }: { name: string; url: string | null }) {
   if (url) {
     return (
-      // External user-uploaded image — no known dimensions for next/image.
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={url}
         alt=""
-        className="h-10 w-10 rounded-full border border-border object-cover"
+        className="h-10 w-10 rounded-md border border-border object-cover"
       />
     );
   }
   const initial = name.charAt(0).toUpperCase();
   return (
     <span
-      className="grid h-10 w-10 place-items-center rounded-full bg-accent/15 text-base font-black text-accent"
+      className="grid h-10 w-10 place-items-center rounded-md bg-accent-soft/40 text-base font-bold text-accent"
       aria-hidden="true"
     >
       {initial}

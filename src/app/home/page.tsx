@@ -1,7 +1,6 @@
 // src/app/home/page.tsx
 // Authenticated home: shows posts from communities the user has joined
 // (with a fallback to recent global posts when none are joined yet).
-// Supports Latest / Popular / Trending sort.
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -10,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/supabase/actions";
 import { PostCard } from "@/components/post/PostCard";
 import { Pagination } from "@/components/Pagination";
+import { PageEnter } from "@/components/PageEnter";
 import { FeedSortTabs } from "./FeedSortTabs";
 import { getHomeFeed, type SortKey } from "@/lib/posts/queries";
 import { timeAgo } from "@/lib/utils";
@@ -30,7 +30,8 @@ export default async function HomePage({
 }) {
   const { page: pageParam, sort: sortParam } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? 1) || 1);
-  const sort: SortKey = sortParam === "popular" || sortParam === "trending" ? sortParam : "latest";
+  const sort: SortKey =
+    sortParam === "popular" || sortParam === "trending" ? sortParam : "latest";
   const offset = (page - 1) * PAGE_LIMIT;
 
   const supabase = await createClient();
@@ -42,7 +43,6 @@ export default async function HomePage({
     redirect("/login?next=/home");
   }
 
-  // Fetch the user's own profile + joined communities + posts in parallel.
   const [{ data: profile }, posts] = await Promise.all([
     supabase
       .from("profiles")
@@ -52,7 +52,6 @@ export default async function HomePage({
     getHomeFeed(user.id, sort, PAGE_LIMIT, offset),
   ]);
 
-  // Joined community ids for the right-side list.
   const { data: memberships } = await supabase
     .from("community_members")
     .select("community_id, joined_at, communities:community_id ( slug, name )")
@@ -67,35 +66,35 @@ export default async function HomePage({
   const joined: { slug: string; name: string }[] = (
     (memberships ?? []) as Row[]
   )
-    .map((m: Row) => {
-      return Array.isArray(m.communities) ? m.communities[0] : m.communities;
-    })
+    .map((m: Row) =>
+      Array.isArray(m.communities) ? m.communities[0] : m.communities,
+    )
     .filter(
       (c: { slug: string; name: string } | null | undefined): c is {
         slug: string;
         name: string;
-      } => Boolean(c && typeof c === "object" && "slug" in c)
+      } => Boolean(c && typeof c === "object" && "slug" in c),
     );
 
   return (
     <main className="container-x py-8 sm:py-10">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-fg sm:text-3xl">
+      <header className="mb-6 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">
             Welcome
             {profile?.display_name ? `, ${profile.display_name}` : ""}
           </h1>
-          <p className="mt-1 text-sm text-text-muted">
+          <p className="mt-1 text-sm text-text-secondary">
             @{profile?.username ?? user.email} ·{" "}
             {profile?.created_at
               ? `joined ${timeAgo(profile.created_at)}`
               : "Welcome to G4M37Z."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/create/post"
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+            className="press inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
           >
             New post
             <ArrowRight size={14} />
@@ -103,7 +102,7 @@ export default async function HomePage({
           <form action={signOut}>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-2 text-sm font-medium text-fg hover:border-accent hover:text-accent"
+              className="press inline-flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-2 text-sm font-medium text-fg transition-colors hover:border-border-strong hover:bg-surface"
             >
               <LogOut size={14} />
               Sign out
@@ -116,33 +115,35 @@ export default async function HomePage({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <h2 className="mb-3 text-base font-bold text-fg">
+          <h2 className="mb-3 text-base font-semibold text-fg">
             {joined.length > 0 ? "Posts from your communities" : "Recent posts"}
           </h2>
           {posts.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-surface p-8 text-center">
-              <h3 className="mb-1 text-sm font-bold text-fg">
+            <div className="rounded-lg border border-border bg-surface p-10 text-center">
+              <h3 className="mb-1 text-sm font-semibold text-fg">
                 Your feed is empty
               </h3>
-              <p className="mb-4 text-sm text-text-muted">
+              <p className="mb-4 text-sm text-text-secondary">
                 Join a community to see its posts here, or browse for something interesting.
               </p>
               <Link
                 href="/communities"
-                className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+                className="press inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
               >
                 Browse communities
               </Link>
             </div>
           ) : (
             <>
-              <ul className="space-y-4">
-                {posts.map((p) => (
-                  <li key={p.id}>
-                    <PostCard post={p} />
-                  </li>
-                ))}
-              </ul>
+              <PageEnter stagger={0.04}>
+                <ul className="space-y-3">
+                  {posts.map((p) => (
+                    <li key={p.id}>
+                      <PostCard post={p} />
+                    </li>
+                  ))}
+                </ul>
+              </PageEnter>
               <Pagination
                 basePath="/home"
                 page={page}
@@ -155,12 +156,12 @@ export default async function HomePage({
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-fg">
+          <div className="rounded-lg border border-border bg-surface p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
               Your communities
             </h3>
             {joined.length === 0 ? (
-              <p className="text-sm text-text-muted">
+              <p className="text-sm text-text-secondary">
                 You haven&apos;t joined any communities yet.
               </p>
             ) : (
@@ -169,7 +170,7 @@ export default async function HomePage({
                   <li key={c.slug}>
                     <Link
                       href={`/communities/${c.slug}`}
-                      className="text-fg hover:text-accent"
+                      className="text-fg transition-colors hover:text-accent"
                     >
                       {c.name}
                     </Link>
@@ -179,7 +180,7 @@ export default async function HomePage({
             )}
             <Link
               href="/communities"
-              className="mt-3 inline-block text-xs font-medium text-accent hover:underline"
+              className="mt-3 inline-block text-xs font-medium text-text-secondary transition-colors hover:text-fg"
             >
               Discover more →
             </Link>
