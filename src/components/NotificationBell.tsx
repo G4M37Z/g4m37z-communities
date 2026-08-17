@@ -12,47 +12,6 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [supabase] = useState(() => createClient());
 
-  useEffect(() => {
-    let userId: string | null = null;
-
-    // Initial fetch
-    async function init() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      userId = user?.id ?? null;
-      await fetchUnreadCount();
-
-      // Subscribe to realtime notifications
-      if (userId) {
-        const channel = supabase
-          .channel("notifications")
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${userId}`,
-            },
-            () => {
-              fetchUnreadCount();
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
-      }
-    }
-
-    const cleanup = init();
-    return () => {
-      if (cleanup) cleanup.then((fn) => fn?.());
-    };
-  }, [supabase]);
-
   async function fetchUnreadCount() {
     const {
       data: { user },
@@ -70,6 +29,48 @@ export function NotificationBell() {
 
     setUnreadCount(count ?? 0);
   }
+
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+
+    async function init() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const userId = user?.id ?? null;
+
+      await fetchUnreadCount();
+
+      if (userId) {
+        const channel = supabase
+          .channel("notifications")
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "notifications",
+              filter: `user_id=eq.${userId}`,
+            },
+            () => {
+              void fetchUnreadCount();
+            }
+          )
+          .subscribe();
+
+        cleanup = () => {
+          supabase.removeChannel(channel);
+        };
+      }
+    }
+
+    void init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   if (typeof window === "undefined") return null; // SSR safety
 

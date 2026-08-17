@@ -70,7 +70,7 @@ export function ReportButton({ targetType, targetId }: Props) {
               Report this {targetType}
             </h3>
             <p className="mb-4 text-sm text-text-muted">
-              Tell us what's wrong. Reports are reviewed by moderators.
+              Tell us what&apos;s wrong. Reports are reviewed by moderators.
             </p>
 
             <form onSubmit={onSubmit}>

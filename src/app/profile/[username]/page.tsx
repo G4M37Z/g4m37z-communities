@@ -114,7 +114,13 @@ export default async function ProfilePage({
       .limit(20),
   ]);
 
-  const posts: PostRow[] = (postsData ?? []).map((p: any) => ({
+  const posts: PostRow[] = ((postsData ?? []) as Array<{
+    id: string;
+    title: string;
+    created_at: string;
+    comment_count: number | null;
+    community: { slug: string; name: string } | { slug: string; name: string }[] | null;
+  }>).map((p) => ({
     id: p.id,
     title: p.title,
     created_at: p.created_at,
@@ -122,7 +128,12 @@ export default async function ProfilePage({
     community: Array.isArray(p.community) ? p.community[0] : p.community,
   }));
 
-  const memberships: { community_id: string; role: string; joined_at: string; community: { id: string; slug: string; name: string; icon_url: string | null } | null }[] = (membershipsData ?? []).map((m: any) => {
+  const memberships: { community_id: string; role: string; joined_at: string; community: { id: string; slug: string; name: string; icon_url: string | null } | null }[] = ((membershipsData ?? []) as Array<{
+    community_id: string;
+    role: string;
+    joined_at: string;
+    community: { id: string; slug: string; name: string; icon_url: string | null } | { id: string; slug: string; name: string; icon_url: string | null }[] | null;
+  }>).map((m) => {
     const comm = Array.isArray(m.community) ? m.community[0] : m.community;
     return {
       community_id: m.community_id,
@@ -188,7 +199,7 @@ export default async function ProfilePage({
         </h2>
         {posts.length === 0 ? (
           <p className="text-sm text-text-muted">
-            @{profileData.username} hasn't posted yet.
+            @{profileData.username} hasn&apos;t posted yet.
           </p>
         ) : (
           <ul className="divide-y divide-border">
@@ -228,7 +239,7 @@ export default async function ProfilePage({
         </h2>
         {memberships.length === 0 ? (
           <p className="text-sm text-text-muted">
-            @{profileData.username} hasn't joined any communities yet.
+            @{profileData.username} hasn&apos;t joined any communities yet.
           </p>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
