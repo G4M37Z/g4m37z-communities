@@ -31,107 +31,132 @@ function safeExt(mime: string): string {
 }
 
 export async function uploadAvatar(formData: FormData) {
-  const file = formData.get("avatar");
-  if (!(file instanceof File)) {
-    return { error: "No file uploaded." };
-  }
-  if (file.size === 0) {
-    return { error: "Avatar file is empty." };
-  }
-  if (file.size > MAX_BYTES) {
-    return { error: "Avatar must be 5 MB or smaller." };
-  }
-  if (!ALLOWED_MIME.has(file.type)) {
-    return { error: "Avatar must be JPEG, PNG, WebP, or GIF." };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
-
-  // Object key: {userId}/avatar.{ext}
-  const ext = safeExt(file.type);
-  const path = `${user.id}/avatar.${ext}`;
-
-  // Delete any prior avatar variants for this user (best-effort cleanup).
-  const { data: existing } = await supabase.storage
-    .from("avatars")
-    .list(user.id, { limit: 10 });
-  if (existing && existing.length > 0) {
-    const oldPaths = existing
-      .filter((f: { name: string }) => f.name.startsWith("avatar."))
-      .map((f: { name: string }) => `${user.id}/${f.name}`);
-    if (oldPaths.length > 0) {
-      await supabase.storage.from("avatars").remove(oldPaths);
+  try {
+    const file = formData.get("avatar");
+    if (!(file instanceof File)) {
+      return { error: "No file uploaded." };
     }
+    if (file.size === 0) {
+      return { error: "Avatar file is empty." };
+    }
+    if (file.size > MAX_BYTES) {
+      return { error: "Avatar must be 5 MB or smaller." };
+    }
+    if (!ALLOWED_MIME.has(file.type)) {
+      return { error: "Avatar must be JPEG, PNG, WebP, or GIF." };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "You must be signed in." };
+
+    // Object key: {userId}/avatar.{ext}
+    const ext = safeExt(file.type);
+    const path = `${user.id}/avatar.${ext}`;
+
+    // Optional: best-effort cleanup of prior variants.
+    try {
+      const { data: existing } = await supabase.storage
+        .from("avatars")
+        .list(user.id, { limit: 10 });
+      if (existing && existing.length > 0) {
+        const oldPaths = existing
+          .filter((f: { name: string }) => f.name.startsWith("avatar."))
+          .map((f: { name: string }) => `${user.id}/${f.name}`);
+        if (oldPaths.length > 0) {
+          await supabase.storage.from("avatars").remove(oldPaths);
+        }
+      }
+    } catch {
+      // ignore cleanup errors
+    }
+
+    const { error: uploadErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type,
+      });
+
+    if (uploadErr) {
+      console.error("uploadAvatar failed:", uploadErr);
+      // Common cause: the avatars storage bucket doesn't exist yet
+      // (008_avatars_bucket.sql hasn't been run).
+      const msg = uploadErr.message?.toLowerCase().includes("bucket")
+        ? "Storage is not configured yet. Please contact support."
+        : "Couldn't upload the avatar. Try again.";
+      return { error: msg };
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("avatars").getPublicUrl(path);
+
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+      .eq("id", user.id);
+
+    if (updateErr) {
+      console.error("avatar url update failed:", updateErr);
+      return { error: "Avatar uploaded but profile update failed." };
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/profile", "page");
+    revalidatePath("/");
+    return { ok: true, url: publicUrl };
+  } catch (err) {
+    console.error("uploadAvatar crashed:", err);
+    return {
+      error:
+        "We hit an unexpected error. The avatars bucket may not be configured yet — please contact support if this keeps happening.",
+    };
   }
-
-  const { error: uploadErr } = await supabase.storage
-    .from("avatars")
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: true,
-      contentType: file.type,
-    });
-
-  if (uploadErr) {
-    console.error("uploadAvatar failed:", uploadErr);
-    return { error: "Couldn't upload the avatar. Try again." };
-  }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("avatars").getPublicUrl(path);
-
-  // Persist avatar_url on the profile.
-  const { error: updateErr } = await supabase
-    .from("profiles")
-    .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
-    .eq("id", user.id);
-
-  if (updateErr) {
-    console.error("avatar url update failed:", updateErr);
-    return { error: "Avatar uploaded but profile update failed." };
-  }
-
-  revalidatePath("/settings");
-  revalidatePath("/profile/[username]", "page");
-  revalidatePath("/");
-  return { ok: true, url: publicUrl };
 }
 
 export async function removeAvatar() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "You must be signed in." };
 
-  const { data: existing } = await supabase.storage
-    .from("avatars")
-    .list(user.id, { limit: 10 });
-  if (existing && existing.length > 0) {
-    const oldPaths = existing
-      .filter((f: { name: string }) => f.name.startsWith("avatar."))
-      .map((f: { name: string }) => `${user.id}/${f.name}`);
-    if (oldPaths.length > 0) {
-      await supabase.storage.from("avatars").remove(oldPaths);
+    try {
+      const { data: existing } = await supabase.storage
+        .from("avatars")
+        .list(user.id, { limit: 10 });
+      if (existing && existing.length > 0) {
+        const oldPaths = existing
+          .filter((f: { name: string }) => f.name.startsWith("avatar."))
+          .map((f: { name: string }) => `${user.id}/${f.name}`);
+        if (oldPaths.length > 0) {
+          await supabase.storage.from("avatars").remove(oldPaths);
+        }
+      }
+    } catch {
+      // ignore cleanup errors
     }
+
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null, updated_at: new Date().toISOString() })
+      .eq("id", user.id);
+
+    if (updateErr) {
+      console.error("avatar remove failed:", updateErr);
+      return { error: "Couldn't remove the avatar." };
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/profile", "page");
+    return { ok: true };
+  } catch (err) {
+    console.error("removeAvatar crashed:", err);
+    return { error: "We hit an unexpected error removing the avatar." };
   }
-
-  const { error: updateErr } = await supabase
-    .from("profiles")
-    .update({ avatar_url: null, updated_at: new Date().toISOString() })
-    .eq("id", user.id);
-
-  if (updateErr) {
-    console.error("avatar remove failed:", updateErr);
-    return { error: "Couldn't remove the avatar." };
-  }
-
-  revalidatePath("/settings");
-  revalidatePath("/profile/[username]", "page");
-  return { ok: true };
 }
