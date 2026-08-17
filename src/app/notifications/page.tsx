@@ -109,7 +109,7 @@ export default async function NotificationsPage() {
           <h2 className="mb-1 text-base font-bold text-fg">No notifications yet</h2>
           <p className="mx-auto max-w-md text-sm text-text-muted">
             When someone comments on your posts, replies to your comments, or upvotes
-            your content, you'll see it here.
+            your content, you&apos;ll see it here.
           </p>
         </div>
       ) : (
