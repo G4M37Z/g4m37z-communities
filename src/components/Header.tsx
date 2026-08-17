@@ -21,14 +21,16 @@ export async function Header() {
   } = await supabase.auth.getUser();
 
   let username: string | null = null;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .maybeSingle();
-    username = profile?.username ?? null;
-  }
+    let role: string = "member";
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, role")
+        .eq("id", user.id)
+        .maybeSingle();
+      username = profile?.username ?? null;
+      role = (profile?.role as string) ?? "member";
+    }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/85 backdrop-blur supports-[backdrop-filter]:bg-bg/70">
@@ -55,7 +57,11 @@ export async function Header() {
         <div className="ml-auto flex items-center gap-2">
           {user && <NotificationBell />}
           {user ? (
-            <UserMenu username={username} />
+            <UserMenu
+              username={username}
+              isAdmin={role === "admin"}
+              isModerator={role === "moderator"}
+            />
           ) : (
             <>
               <Link
