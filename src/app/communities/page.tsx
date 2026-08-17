@@ -7,6 +7,7 @@ import { Users, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Community, CommunityCategory } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,12 @@ export default async function CommunitiesPage() {
       </header>
 
       {communities.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          icon={Users}
+          title="No communities yet"
+          body="Be the first to start one. Communities are where players gather for specific games, platforms, and topics."
+          action={{ label: "Create the first community", href: "/create" }}
+        />
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {communities.map((c) => (
@@ -175,24 +181,5 @@ function CommunityIcon({ name, url }: { name: string; url: string | null }) {
     >
       {initial}
     </span>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-2xl border border-border bg-surface p-12 text-center">
-      <Users size={36} className="mx-auto mb-4 text-text-muted" />
-      <h2 className="mb-2 text-lg font-bold text-fg">No communities yet</h2>
-      <p className="mx-auto mb-6 max-w-md text-sm text-text-muted">
-        Be the first to start one. Communities are where players gather for
-        specific games, platforms, and topics.
-      </p>
-      <Link
-        href="/create"
-        className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
-      >
-        Create the first community
-      </Link>
-    </div>
   );
 }

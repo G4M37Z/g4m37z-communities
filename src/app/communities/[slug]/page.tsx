@@ -29,15 +29,32 @@ export async function generateMetadata({
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("name, description")
+    .select("name, description, banner_url")
     .eq("slug", slug)
     .maybeSingle();
   if (!community) return { title: "Community not found" };
+  const c = community as {
+    name: string;
+    description: string | null;
+    banner_url: string | null;
+  };
   return {
-    title: `${(community as { name: string }).name} · Communities`,
+    title: `${c.name} · Communities`,
     description:
-      (community as { description: string | null }).description ??
-      `Join ${(community as { name: string }).name} on G4M37Z Communities.`,
+      c.description ?? `Join ${c.name} on G4M37Z Communities.`,
+    openGraph: {
+      title: c.name,
+      description: c.description ?? `Join ${c.name} on G4M37Z Communities.`,
+      type: "website",
+      siteName: "G4M37Z Communities",
+      images: [c.banner_url ?? "/icon.svg"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: c.name,
+      description: c.description ?? `Join ${c.name} on G4M37Z Communities.`,
+      images: [c.banner_url ?? "/icon.svg"],
+    },
   };
 }
 
