@@ -1,5 +1,5 @@
 // src/components/Footer.tsx
-// G4M37Z Communities site footer.
+// G4M37Z Communities site footer. Restrained, generous spacing.
 
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
@@ -25,9 +25,9 @@ export function Footer({ user }: { user: User | null }) {
   const year = new Date().getFullYear();
   return (
     <footer className="mt-auto border-t border-border bg-bg">
-      <div className="container-x grid gap-10 py-12 sm:grid-cols-2">
+      <div className="container-x grid gap-10 py-14 sm:grid-cols-2">
         <div>
-          <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-fg">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
             Explore
           </h3>
           <ul className="space-y-2 text-sm text-text-muted">
@@ -44,7 +44,7 @@ export function Footer({ user }: { user: User | null }) {
           </ul>
         </div>
         <div>
-          <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-fg">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
             Account
           </h3>
           <ul className="space-y-2 text-sm text-text-muted">
@@ -63,11 +63,9 @@ export function Footer({ user }: { user: User | null }) {
       </div>
 
       <div className="border-t border-border">
-        <div className="container-x flex flex-col items-start justify-between gap-3 py-5 text-xs text-text-muted sm:flex-row sm:items-center">
+        <div className="container-x flex flex-col items-start justify-between gap-2 py-5 text-xs text-text-muted sm:flex-row sm:items-center">
           <p>© {year} G4M37Z Communities.</p>
-          <p className="text-text-muted">
-            Built for gamers. Powered by Supabase & Next.js.
-          </p>
+          <p>Built for gamers. Powered by Supabase &amp; Next.js.</p>
         </div>
       </div>
     </footer>

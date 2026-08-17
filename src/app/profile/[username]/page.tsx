@@ -1,10 +1,11 @@
 // src/app/profile/[username]/page.tsx
-// Public profile page with activity feed (user's posts, joined communities).
+// Public profile page with activity feed.
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
+import { PageEnter } from "@/components/PageEnter";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,6 @@ interface PostRow {
   created_at: string;
   comment_count: number;
   community: { slug: string; name: string } | null;
-}
-
-interface MembershipRow {
-  community_id: string;
-  role: string;
-  joined_at: string;
-  community: { id: string; slug: string; name: string; icon_url: string | null } | { id: string; slug: string; name: string; icon_url: string | null }[] | null;
 }
 
 export async function generateMetadata({
@@ -82,7 +76,6 @@ export default async function ProfilePage({
 
   const supabase = await createClient();
 
-  // Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, username, display_name, avatar_url, bio, created_at")
@@ -95,7 +88,6 @@ export default async function ProfilePage({
 
   const profileData = profile as ProfileData;
 
-  // Fetch user's posts and community memberships in parallel
   const [
     { data: postsData },
     { data: membershipsData },
@@ -128,7 +120,12 @@ export default async function ProfilePage({
     community: Array.isArray(p.community) ? p.community[0] : p.community,
   }));
 
-  const memberships: { community_id: string; role: string; joined_at: string; community: { id: string; slug: string; name: string; icon_url: string | null } | null }[] = ((membershipsData ?? []) as Array<{
+  const memberships: {
+    community_id: string;
+    role: string;
+    joined_at: string;
+    community: { id: string; slug: string; name: string; icon_url: string | null } | null;
+  }[] = ((membershipsData ?? []) as Array<{
     community_id: string;
     role: string;
     joined_at: string;
@@ -146,36 +143,35 @@ export default async function ProfilePage({
   return (
     <main className="container-x py-12 max-w-3xl">
       {/* Profile header */}
-      <section className="mb-8 flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-6">
+      <section className="mb-8 flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
         <div className="relative">
           {profileData.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profileData.avatar_url}
               alt={`${profileData.display_name ?? profileData.username}'s avatar`}
-              className="h-28 w-28 rounded-full object-cover border-2 border-border"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
+              className="h-28 w-28 rounded-full border border-border object-cover"
             />
           ) : (
-            <div className="h-28 w-28 rounded-full bg-accent/10 flex items-center justify-center border-2 border-border">
-              <span className="text-4xl font-black text-accent">
-                {profileData.display_name?.[0]?.toUpperCase() ?? profileData.username[0].toUpperCase()}
+            <div className="grid h-28 w-28 place-items-center rounded-full border border-border bg-surface">
+              <span className="text-3xl font-semibold text-accent">
+                {profileData.display_name?.[0]?.toUpperCase() ??
+                  profileData.username[0].toUpperCase()}
               </span>
             </div>
           )}
         </div>
 
         <div className="flex-1">
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <h1 className="text-3xl font-black text-fg">
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h1 className="text-3xl font-bold text-fg">
               {profileData.display_name ?? profileData.username}
             </h1>
-            <span className="text-base font-mono text-text-muted">
+            <span className="text-sm text-text-muted">
               @{profileData.username}
             </span>
           </div>
-          <p className="mt-2 text-sm text-text-muted">
+          <p className="mt-2 text-sm text-text-secondary">
             Member since{" "}
             {new Date(profileData.created_at).toLocaleDateString(undefined, {
               month: "long",
@@ -187,18 +183,20 @@ export default async function ProfilePage({
 
       {/* Bio */}
       {profileData.bio && (
-        <section className="mb-8 rounded-2xl border border-border bg-bg p-6">
-          <p className="text-base text-fg whitespace-pre-wrap">{profileData.bio}</p>
+        <section className="mb-8 rounded-lg border border-border bg-surface p-6">
+          <p className="text-base leading-relaxed text-fg whitespace-pre-wrap">
+            {profileData.bio}
+          </p>
         </section>
       )}
 
       {/* Posts */}
-      <section className="mb-6 rounded-2xl border border-border bg-surface p-6">
-        <h2 className="mb-4 text-base font-bold text-fg">
+      <section className="mb-6 rounded-lg border border-border bg-surface p-6">
+        <h2 className="mb-4 text-base font-semibold text-fg">
           Posts ({posts.length})
         </h2>
         {posts.length === 0 ? (
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-text-secondary">
             @{profileData.username} hasn&apos;t posted yet.
           </p>
         ) : (
@@ -207,12 +205,12 @@ export default async function ProfilePage({
               <li key={p.id} className="py-3">
                 <Link
                   href={`/post/${p.id}`}
-                  className="block hover:text-accent transition-colors"
+                  className="press block transition-colors hover:text-accent"
                 >
                   <div className="mb-1 flex items-center gap-2 text-xs text-text-muted">
                     {p.community && (
                       <>
-                        <span className="font-semibold text-fg">
+                        <span className="font-medium text-fg">
                           {p.community.name}
                         </span>
                         <span aria-hidden="true">·</span>
@@ -221,7 +219,8 @@ export default async function ProfilePage({
                     <span>{timeAgo(p.created_at)}</span>
                     <span aria-hidden="true">·</span>
                     <span>
-                      {p.comment_count} {p.comment_count === 1 ? "comment" : "comments"}
+                      {p.comment_count}{" "}
+                      {p.comment_count === 1 ? "comment" : "comments"}
                     </span>
                   </div>
                   <p className="text-sm font-medium text-fg">{p.title}</p>
@@ -233,48 +232,51 @@ export default async function ProfilePage({
       </section>
 
       {/* Communities */}
-      <section className="rounded-2xl border border-border bg-surface p-6">
-        <h2 className="mb-4 text-base font-bold text-fg">
+      <section className="rounded-lg border border-border bg-surface p-6">
+        <h2 className="mb-4 text-base font-semibold text-fg">
           Communities ({memberships.length})
         </h2>
         {memberships.length === 0 ? (
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-text-secondary">
             @{profileData.username} hasn&apos;t joined any communities yet.
           </p>
         ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {memberships.map((m) => {
-              if (!m.community) return null;
-              return (
-                <li key={m.community_id}>
-                  <Link
-                    href={`/communities/${m.community.slug}`}
-                    className="flex items-center gap-3 rounded-md border border-border bg-bg p-3 transition-colors hover:border-accent"
-                  >
-                    {m.community.icon_url ? (
-                      <img
-                        src={m.community.icon_url}
-                        alt=""
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="grid h-8 w-8 place-items-center rounded-full bg-accent/15 text-sm font-black text-accent">
-                        {m.community.name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-fg">
-                        {m.community.name}
-                      </p>
-                      <p className="text-xs text-text-muted capitalize">
-                        {m.role}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <PageEnter stagger={0.04} y={8}>
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {memberships.map((m) => {
+                if (!m.community) return null;
+                return (
+                  <li key={m.community_id}>
+                    <Link
+                      href={`/communities/${m.community.slug}`}
+                      className="press flex items-center gap-3 rounded-md border border-border bg-bg p-3 transition-colors hover:border-border-strong hover:bg-surface"
+                    >
+                      {m.community.icon_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={m.community.icon_url}
+                          alt=""
+                          className="h-8 w-8 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-8 w-8 place-items-center rounded-md bg-accent-soft/40 text-sm font-semibold text-accent">
+                          {m.community.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-fg">
+                          {m.community.name}
+                        </p>
+                        <p className="text-xs capitalize text-text-muted">
+                          {m.role}
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </PageEnter>
         )}
       </section>
     </main>

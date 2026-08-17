@@ -11,6 +11,7 @@ import { JoinLeaveButton } from "./JoinLeaveButton";
 import { timeAgo } from "@/lib/utils";
 import { PostCard } from "@/components/post/PostCard";
 import { Pagination } from "@/components/Pagination";
+import { PageEnter } from "@/components/PageEnter";
 import { getCommunityPosts, type SortKey } from "@/lib/posts/queries";
 import { FeedSortTabs } from "./FeedSortTabs";
 
@@ -133,28 +134,28 @@ export default async function CommunityPage({
     <main className="container-x py-8 sm:py-10">
       <Link
         href="/communities"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-text-muted hover:text-fg"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-text-secondary transition-colors hover:text-fg"
       >
         <ArrowLeft size={14} />
         All communities
       </Link>
 
-      <header className="mb-6 overflow-hidden rounded-2xl border border-border bg-surface">
+      <header className="mb-6 overflow-hidden rounded-lg border border-border bg-surface">
         <Banner url={community.banner_url} name={community.name} />
         <div className="flex flex-wrap items-start justify-between gap-4 p-6">
           <div className="min-w-0 flex-1">
-            <h1 className="mb-1 text-2xl font-black tracking-tight text-fg sm:text-3xl">
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-fg sm:text-3xl">
               {community.name}
             </h1>
             <p className="text-xs text-text-muted">/{community.slug}</p>
             {community.description && (
-              <p className="mt-3 max-w-2xl text-sm text-text-muted">
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">
                 {community.description}
               </p>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg px-3 py-2 text-sm text-text-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg px-3 py-2 text-sm text-text-secondary">
               <Users size={14} />
               {memberCount ?? 0} members
             </span>
@@ -166,7 +167,7 @@ export default async function CommunityPage({
             ) : (
               <Link
                 href={`/login?next=/communities/${community.slug}`}
-                className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+                className="press inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
               >
                 Sign in to join
               </Link>
@@ -178,11 +179,11 @@ export default async function CommunityPage({
       <section className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-bold text-fg">Posts</h2>
+            <h2 className="text-base font-semibold text-fg">Posts</h2>
             {currentRole && (
               <Link
                 href={`/create/post?community=${community.slug}`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover"
+                className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover"
               >
                 New post
               </Link>
@@ -191,9 +192,9 @@ export default async function CommunityPage({
           <FeedSortTabs slug={community.slug} current={sort} />
           <div className="mt-4">
             {posts.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-surface p-8 text-center">
-                <h3 className="mb-1 text-sm font-bold text-fg">No posts yet</h3>
-                <p className="text-sm text-text-muted">
+              <div className="rounded-lg border border-border bg-surface p-10 text-center">
+                <h3 className="mb-1 text-sm font-semibold text-fg">No posts yet</h3>
+                <p className="text-sm text-text-secondary">
                   {currentRole
                     ? "Be the first to share something."
                     : "Join the community to start posting."}
@@ -201,13 +202,15 @@ export default async function CommunityPage({
               </div>
             ) : (
               <>
-                <ul className="space-y-4">
-                  {posts.map((p) => (
-                    <li key={p.id}>
-                      <PostCard post={p} />
-                    </li>
-                  ))}
-                </ul>
+                <PageEnter stagger={0.05}>
+                  <ul className="space-y-3">
+                    {posts.map((p) => (
+                      <li key={p.id}>
+                        <PostCard post={p} />
+                      </li>
+                    ))}
+                  </ul>
+                </PageEnter>
                 <Pagination
                   basePath={`/communities/${community.slug}`}
                   extraParams={{
@@ -223,8 +226,8 @@ export default async function CommunityPage({
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-fg">
+          <div className="rounded-lg border border-border bg-surface p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
               About
             </h3>
             <dl className="space-y-2 text-sm">
@@ -244,15 +247,15 @@ export default async function CommunityPage({
           </div>
 
           {categoryNames.length > 0 && (
-            <div className="rounded-2xl border border-border bg-surface p-5">
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-fg">
+            <div className="rounded-lg border border-border bg-surface p-5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
                 Categories
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 {categoryNames.map((name) => (
                   <span
                     key={name}
-                    className="rounded-full border border-border bg-bg px-2 py-0.5 text-[11px] uppercase tracking-wider text-text-muted"
+                    className="rounded-full border border-border bg-bg px-2 py-0.5 text-[11px] uppercase tracking-[0.04em] text-text-muted"
                   >
                     {name}
                   </span>
@@ -269,7 +272,6 @@ export default async function CommunityPage({
 function Banner({ url, name }: { url: string | null; name: string }) {
   if (url) {
     return (
-      // External user-uploaded image — no known dimensions for next/image.
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={url}
@@ -283,7 +285,7 @@ function Banner({ url, name }: { url: string | null; name: string }) {
       className="h-32 w-full sm:h-44"
       style={{
         background:
-          "linear-gradient(135deg, #1f2937 0%, #0b0d12 60%, #312e81 100%)",
+          "linear-gradient(135deg, #17191D 0%, #0B0C0E 60%, #1D2025 100%)",
       }}
       aria-label={`${name} banner`}
     />
