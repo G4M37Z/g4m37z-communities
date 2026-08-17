@@ -28,7 +28,8 @@ const USERNAME_RULE = /^[a-zA-Z0-9_]{3,30}$/;
 export function SignupForm({ next, initialError }: SignupFormProps) {
   const [pending, startTransition] = useTransition();
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(initialError ?? null);
+    const [error, setError] = useState<string | null>(initialError ?? null);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Live username availability check
   const [username, setUsername] = useState("");
@@ -65,12 +66,19 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
   }, [username]);
 
   function onSubmit(formData: FormData) {
-    setError(null);
-    if (usernameStatus !== "ok") {
-      setError("Please choose a valid, available username.");
-      return;
-    }
-    startTransition(async () => {
+      setError(null);
+      if (!acceptedTerms) {
+        setError("You must accept the Terms of Service to create an account.");
+        return;
+      }
+      if (usernameStatus !== "ok") {
+        setError("Please choose a valid, available username.");
+        return;
+      }
+      // Append terms_version + acceptance timestamp for the server to persist
+      formData.set("termsAccepted", "true");
+      formData.set("termsVersion", "v1");
+      startTransition(async () => {
       const res = await signUpWithPassword(formData);
       if (res.error) {
         setError(res.error);
@@ -239,52 +247,79 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
 
       <input type="hidden" name="next" value={next} />
 
-      {error && (
-        <div className="flex items-start gap-2 rounded-md border border-sale/30 bg-sale/5 px-3 py-2 text-sm text-sale">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <p>{error}</p>
-        </div>
-      )}
+            {error && (
+              <div className="flex items-start gap-2 rounded-md border border-sale/30 bg-sale/5 px-3 py-2 text-sm text-sale">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
 
-      <button
-        type="submit"
-        disabled={pending || usernameStatus !== "ok"}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pending ? (
-          <>
-            <Loader2 size={16} className="animate-spin" />
-            Creating account…
-          </>
-        ) : (
-          <>
-            Create account
-            <ArrowRight size={16} />
-          </>
-        )}
-      </button>
+            {/* Terms acceptance checkbox — required */}
+            <label
+              htmlFor="acceptTerms"
+              className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-bg p-3 text-sm text-fg transition-colors hover:border-accent has-[:focus-visible]:border-accent has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/30"
+            >
+              <input
+                id="acceptTerms"
+                name="acceptTerms"
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                required
+                aria-required="true"
+                aria-describedby="acceptTermsLabel"
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border bg-surface text-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              />
+              <span id="acceptTermsLabel" className="text-xs leading-relaxed text-text-muted">
+                I have read and agree to the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-accent underline decoration-accent/40 hover:decoration-accent"
+                >
+                  Terms of Service
+                </Link>
+                {" "}and{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-accent underline decoration-accent/40 hover:decoration-accent"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
 
-      <p className="text-center text-xs text-text-muted">
-        By creating an account, you agree to our{" "}
-        <Link href="/terms" className="underline hover:text-fg">
-          Terms
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="underline hover:text-fg">
-          Privacy Policy
-        </Link>
-        .
-      </p>
+            <button
+              type="submit"
+              disabled={pending || usernameStatus !== "ok" || !acceptedTerms}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Creating account…
+                </>
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
 
-      <p className="text-center text-sm text-text-muted">
-        Already have an account?{" "}
-        <Link
-          href={`/login?next=${encodeURIComponent(next)}`}
-          className="font-semibold text-accent hover:underline"
-        >
-          Sign in
-        </Link>
-      </p>
-    </form>
-  );
-}
+            <p className="text-center text-sm text-text-muted">
+              Already have an account?{" "}
+              <Link
+                href={`/login?next=${encodeURIComponent(next)}`}
+                className="font-semibold text-accent hover:underline"
+              >
+                Sign in
+              </Link>
+            </p>
+          </form>
+        );
+      }

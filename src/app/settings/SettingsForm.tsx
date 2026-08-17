@@ -1,12 +1,16 @@
 "use client";
 
 // src/app/settings/SettingsForm.tsx
-// Profile edit form — display_name, bio, avatar_url (URL input for now).
-// Calls a server action to update the profile (RLS enforces ownership).
+// Profile edit form — display_name, bio, avatar (real file upload).
+// Calls server actions to update the profile (RLS enforces ownership).
 
-import { useState, useTransition } from "react";
-import { User, Loader2, Check } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { User, Loader2, Check, Upload, Trash2, ImageIcon } from "lucide-react";
 import { updateProfile } from "@/lib/supabase/actions";
+import {
+  uploadAvatar,
+  removeAvatar,
+} from "@/lib/supabase/avatar-actions";
 
 interface SettingsFormProps {
   profile: {
@@ -21,10 +25,20 @@ interface SettingsFormProps {
 
 export function SettingsForm({ profile }: SettingsFormProps) {
   const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [avatarPending, startAvatarTransition] = useTransition();
+  const [message, setMessage] = useState<
+    { type: "success" | "error"; text: string } | null
+  >(null);
+  const [avatarMessage, setAvatarMessage] = useState<
+    { type: "success" | "error"; text: string } | null
+  >(null);
+
+  // Local state mirrors the saved profile so the form feels responsive.
+  // Updated by the result of updateProfile on success.
   const [displayName, setDisplayName] = useState(profile.display_name ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,13 +47,71 @@ export function SettingsForm({ profile }: SettingsFormProps) {
       const res = await updateProfile({
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
-        avatar_url: avatarUrl.trim() || null,
+        // avatar_url is no longer edited in this form — it's handled by the
+        // uploadAvatar action which writes to storage + profile. Keep the
+        // existing value so updateProfile doesn't clear it.
+        avatar_url: avatarUrl || null,
       });
       if (res.error) {
         setMessage({ type: "error", text: res.error });
       } else {
         setMessage({ type: "success", text: "Profile updated." });
       }
+    });
+  }
+
+  function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarMessage(null);
+
+    if (file.size === 0) {
+      setAvatarMessage({ type: "error", text: "File is empty." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarMessage({ type: "error", text: "Avatar must be 5 MB or smaller." });
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.type)) {
+      setAvatarMessage({
+        type: "error",
+        text: "Avatar must be JPEG, PNG, WebP, or GIF.",
+      });
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("avatar", file);
+
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarUrl(previewUrl);
+
+    startAvatarTransition(async () => {
+      const res = await uploadAvatar(fd);
+      if (res.error) {
+        setAvatarMessage({ type: "error", text: res.error });
+        setAvatarUrl(profile.avatar_url ?? "");
+        return;
+      }
+      if (res.url) setAvatarUrl(res.url);
+      setAvatarMessage({ type: "success", text: "Avatar updated." });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (res.url) URL.revokeObjectURL(previewUrl);
+    });
+  }
+
+  function onRemoveAvatar() {
+    setAvatarMessage(null);
+    startAvatarTransition(async () => {
+      const res = await removeAvatar();
+      if (res.error) {
+        setAvatarMessage({ type: "error", text: res.error });
+        return;
+      }
+      setAvatarUrl("");
+      setAvatarMessage({ type: "success", text: "Avatar removed." });
     });
   }
 
@@ -51,6 +123,80 @@ export function SettingsForm({ profile }: SettingsFormProps) {
           Manage your profile and preferences.
         </p>
       </header>
+
+      {/* Avatar */}
+      <section className="mb-6 rounded-2xl border border-border bg-bg p-6">
+        <h2 className="mb-4 text-base font-semibold text-fg">Profile picture</h2>
+        <div className="flex items-start gap-4">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-border bg-surface">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt="Profile preview"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-accent/10 text-accent">
+                <ImageIcon size={28} aria-hidden="true" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                id="avatarFile"
+                name="avatar"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={onAvatarChange}
+                disabled={avatarPending}
+                aria-label="Upload avatar image"
+                className="sr-only"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarPending}
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {avatarPending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Upload size={14} />
+                )}
+                Upload new
+              </button>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={onRemoveAvatar}
+                  disabled={avatarPending}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-bg px-3 text-sm font-medium text-text-muted transition-colors hover:border-sale hover:text-sale disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-text-muted">
+              JPEG, PNG, WebP, or GIF. Max 5 MB. Stored securely in your folder
+              on Supabase Storage.
+            </p>
+            {avatarMessage && (
+              <p
+                className={`text-xs ${
+                  avatarMessage.type === "success" ? "text-success" : "text-sale"
+                }`}
+              >
+                {avatarMessage.text}
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Username (read-only) */}
@@ -95,40 +241,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             placeholder="Tell people about yourself"
             className="w-full rounded-md border border-border bg-bg p-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none"
           />
-          <p className="mt-1 text-xs text-text-muted">
-            {bio.length}/500
-          </p>
-        </section>
-
-        {/* Avatar URL */}
-        <section className="rounded-2xl border border-border bg-bg p-6">
-          <h2 className="mb-4 text-base font-semibold text-fg">Avatar URL</h2>
-          <div className="relative">
-            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.png"
-              className="h-11 w-full rounded-md border border-border bg-bg pl-10 pr-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <p className="mt-1 text-xs text-text-muted">
-            Direct link to an image (PNG, JPG, WebP). We do not host uploads yet.
-          </p>
-          {avatarUrl && (
-            <div className="mt-3 flex items-center gap-3">
-              <img
-                src={avatarUrl}
-                alt="Current avatar preview"
-                className="h-12 w-12 rounded-full object-cover border border-border"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-              <span className="text-sm text-text-muted">Preview</span>
-            </div>
-          )}
+          <p className="mt-1 text-xs text-text-muted">{bio.length}/500</p>
         </section>
 
         {message && (
@@ -139,8 +252,16 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                 : "border-sale/30 bg-sale/10 text-sale"
             }`}
           >
-            {message.type === "success" ? <Check size={16} /> : (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {message.type === "success" ? (
+              <Check size={16} />
+            ) : (
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />

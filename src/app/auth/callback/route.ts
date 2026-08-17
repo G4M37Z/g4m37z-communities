@@ -67,10 +67,33 @@ export async function GET(request: NextRequest) {
           .slice(0, 30) || `user_${user.id.slice(0, 8)}`;
 
       const { error: insertErr } = await supabase.from("profiles").insert({
-        id: user.id,
-        username: safeUsername,
-        display_name: String(fallbackDisplay).slice(0, 80),
-      });
+              id: user.id,
+              username: safeUsername,
+              display_name: String(fallbackDisplay).slice(0, 80),
+              terms_version: typeof meta.terms_version === "string" ? meta.terms_version : null,
+              terms_accepted_at:
+                typeof meta.terms_accepted_at === "string" ? meta.terms_accepted_at : null,
+            });
+
+            // Audit log: every ToS acceptance is recorded.
+            if (
+              typeof meta.terms_version === "string" &&
+              typeof meta.terms_accepted_at === "string"
+            ) {
+              const headers = request.headers;
+              const ip =
+                headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+                headers.get("x-real-ip") ??
+                null;
+              const ua = headers.get("user-agent") ?? null;
+              await supabase.from("terms_acceptances").insert({
+                user_id: user.id,
+                terms_version: meta.terms_version,
+                accepted_at: meta.terms_accepted_at,
+                ip_address: ip,
+                user_agent: ua,
+              });
+            }
 
       if (insertErr) {
         // Most common cause: username collision (the user picked a name
