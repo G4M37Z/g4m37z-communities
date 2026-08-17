@@ -146,8 +146,8 @@ CREATE POLICY "Moderators/Admins can update reports" ON public.reports
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.create_notification(
   p_user_id UUID,
-  p_actor_id UUID DEFAULT NULL,
   p_type TEXT,
+  p_actor_id UUID DEFAULT NULL,
   p_reference_id UUID DEFAULT NULL
 ) RETURNS UUID
 LANGUAGE plpgsql
@@ -163,7 +163,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.create_notification(UUID, UUID, TEXT, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_notification(UUID, TEXT, UUID, UUID) TO authenticated;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -224,13 +224,13 @@ DECLARE post_author UUID; parent_author UUID;
 BEGIN
   SELECT author_id INTO post_author FROM public.posts WHERE id = NEW.post_id;
   IF post_author IS NOT NULL AND post_author <> NEW.author_id THEN
-    PERFORM public.create_notification(post_author, NEW.author_id, 'comment_on_post', NEW.id);
+    PERFORM public.create_notification(post_author, 'comment_on_post', NEW.author_id, NEW.id)
   END IF;
 
   IF NEW.parent_id IS NOT NULL THEN
     SELECT author_id INTO parent_author FROM public.comments WHERE id = NEW.parent_id;
     IF parent_author IS NOT NULL AND parent_author <> NEW.author_id THEN
-      PERFORM public.create_notification(parent_author, NEW.author_id, 'reply_to_comment', NEW.id);
+      PERFORM public.create_notification(parent_author, 'reply_to_comment', NEW.author_id, NEW.id)
     END IF;
   END IF;
   RETURN NEW;
@@ -254,7 +254,7 @@ BEGIN
   IF NEW.value = 1 THEN
     SELECT author_id INTO post_author FROM public.posts WHERE id = NEW.post_id;
     IF post_author IS NOT NULL AND post_author <> NEW.user_id THEN
-      PERFORM public.create_notification(post_author, NEW.user_id, 'post_vote', NEW.post_id);
+      PERFORM public.create_notification(post_author, 'post_vote', NEW.user_id, NEW.post_id)
     END IF;
   END IF;
   RETURN NEW;
@@ -279,7 +279,7 @@ BEGIN
   IF NEW.value = 1 THEN
     SELECT author_id INTO comment_author FROM public.comments WHERE id = NEW.comment_id;
     IF comment_author IS NOT NULL AND comment_author <> NEW.user_id THEN
-      PERFORM public.create_notification(comment_author, NEW.user_id, 'comment_vote', NEW.comment_id);
+      PERFORM public.create_notification(comment_author, 'comment_vote', NEW.user_id, NEW.comment_id)
     END IF;
   END IF;
   RETURN NEW;
@@ -301,7 +301,7 @@ SET search_path = public
 AS $$
 BEGIN
   IF (NEW.status = 'resolved' OR NEW.status = 'dismissed') AND OLD.status = 'open' THEN
-    PERFORM public.create_notification(NEW.reporter_id, NEW.resolved_by, 'report_resolved', NEW.id);
+    PERFORM public.create_notification(NEW.reporter_id, 'report_resolved', NEW.resolved_by, NEW.id)
   END IF;
   RETURN NEW;
 END;
