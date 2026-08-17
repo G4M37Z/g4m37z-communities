@@ -95,9 +95,13 @@ export async function uploadAvatar(formData: FormData) {
       data: { publicUrl },
     } = supabase.storage.from("avatars").getPublicUrl(path);
 
+    // Append a cache-busting token so the browser doesn't keep serving the
+    // previously cached image at the same URL. Each upload gets a fresh URL.
+    const versionedUrl = `${publicUrl}?v=${Date.now()}`;
+
     const { error: updateErr } = await supabase
       .from("profiles")
-      .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+      .update({ avatar_url: versionedUrl, updated_at: new Date().toISOString() })
       .eq("id", user.id);
 
     if (updateErr) {
@@ -105,10 +109,18 @@ export async function uploadAvatar(formData: FormData) {
       return { error: "Avatar uploaded but profile update failed." };
     }
 
+    // Revalidate everything that renders the avatar. Layout invalidation is
+    // required because Header/UserMenu live in the root layout and render
+    // on every page — without layout invalidation, the header avatar stays
+    // stale across navigations.
     revalidatePath("/settings");
-    revalidatePath("/profile", "page");
-    revalidatePath("/");
-    return { ok: true, url: publicUrl };
+    revalidatePath("/profile/[username]", "page");
+    revalidatePath("/", "layout");
+    revalidatePath("/home", "layout");
+    revalidatePath("/communities", "layout");
+    revalidatePath("/post", "layout");
+    revalidatePath("/notifications", "layout");
+    return { ok: true, url: versionedUrl };
   } catch (err) {
     console.error("uploadAvatar crashed:", err);
     return {
@@ -153,7 +165,12 @@ export async function removeAvatar() {
     }
 
     revalidatePath("/settings");
-    revalidatePath("/profile", "page");
+    revalidatePath("/profile/[username]", "page");
+    revalidatePath("/", "layout");
+    revalidatePath("/home", "layout");
+    revalidatePath("/communities", "layout");
+    revalidatePath("/post", "layout");
+    revalidatePath("/notifications", "layout");
     return { ok: true };
   } catch (err) {
     console.error("removeAvatar crashed:", err);

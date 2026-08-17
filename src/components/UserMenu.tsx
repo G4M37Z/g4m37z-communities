@@ -8,11 +8,12 @@ import { SignOutButton } from "./SignOutButton";
 
 interface UserMenuProps {
   username: string | null;
+  avatarUrl?: string | null;
   isModerator?: boolean;
   isAdmin?: boolean;
 }
 
-export function UserMenu({ username, isModerator, isAdmin }: UserMenuProps) {
+export function UserMenu({ username, avatarUrl, isModerator, isAdmin }: UserMenuProps) {
   // Fall back to "?" when no username is set yet.
   const initial = (username ?? "?").charAt(0).toUpperCase();
 
@@ -24,8 +25,17 @@ export function UserMenu({ username, isModerator, isAdmin }: UserMenuProps) {
         aria-haspopup="menu"
         className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-fg hover:bg-surface"
       >
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-xs font-bold text-white">
-          {initial}
+        <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-bold text-white">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span aria-hidden="true">{initial}</span>
+          )}
         </span>
         <ChevronDown size={14} className="hidden sm:inline" />
       </button>
