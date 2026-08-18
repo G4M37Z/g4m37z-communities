@@ -1,5 +1,5 @@
 // src/app/profile/[username]/page.tsx
-// Public profile page with activity feed.
+// Public profile page with activity feed. Mobile-first responsive.
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -141,20 +141,20 @@ export default async function ProfilePage({
   });
 
   return (
-    <main className="container-x py-12 max-w-3xl">
-      {/* Profile header */}
-      <section className="mb-8 flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
+    <main className="container-x py-8 pb-20">
+      {/* Profile header — stacked on mobile, side-by-side on ≥640px */}
+      <section className="mb-10 flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
         <div className="relative">
           {profileData.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profileData.avatar_url}
               alt={`${profileData.display_name ?? profileData.username}'s avatar`}
-              className="h-28 w-28 rounded-full border border-border object-cover"
+              className="h-28 w-28 rounded-full border-2 border-border object-cover"
             />
           ) : (
-            <div className="grid h-28 w-28 place-items-center rounded-full border border-border bg-surface">
-              <span className="text-3xl font-semibold text-accent">
+            <div className="grid h-28 w-28 place-items-center rounded-full border-2 border-border bg-surface">
+              <span className="text-4xl font-semibold text-accent">
                 {profileData.display_name?.[0]?.toUpperCase() ??
                   profileData.username[0].toUpperCase()}
               </span>
@@ -162,9 +162,9 @@ export default async function ProfilePage({
           )}
         </div>
 
-        <div className="flex-1">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="text-3xl font-bold text-fg">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-3 justify-center sm:justify-start">
+            <h1 className="text-2xl font-bold text-fg sm:text-3xl">
               {profileData.display_name ?? profileData.username}
             </h1>
             <span className="text-sm text-text-muted">
@@ -183,31 +183,35 @@ export default async function ProfilePage({
 
       {/* Bio */}
       {profileData.bio && (
-        <section className="mb-8 rounded-lg border border-border bg-surface p-6">
+        <section className="mb-10 rounded-lg border border-border bg-surface p-6">
           <p className="text-base leading-relaxed text-fg whitespace-pre-wrap">
             {profileData.bio}
           </p>
         </section>
       )}
 
-      {/* Posts */}
-      <section className="mb-6 rounded-lg border border-border bg-surface p-6">
-        <h2 className="mb-4 text-base font-semibold text-fg">
-          Posts ({posts.length})
-        </h2>
+      {/* Posts — full-width cards, generous touch targets */}
+      <section className="mb-10 rounded-lg border border-border bg-surface">
+        <header className="px-4 py-3 border-b border-border">
+          <h2 className="text-base font-semibold text-fg">
+            Posts ({posts.length})
+          </h2>
+        </header>
         {posts.length === 0 ? (
-          <p className="text-sm text-text-secondary">
-            @{profileData.username} hasn&apos;t posted yet.
-          </p>
+          <div className="p-10 text-center">
+            <p className="text-sm text-text-secondary">
+              @{profileData.username} hasn&apos;t posted yet.
+            </p>
+          </div>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-border" role="list">
             {posts.map((p) => (
-              <li key={p.id} className="py-3">
+              <li key={p.id}>
                 <Link
                   href={`/post/${p.id}`}
-                  className="press block transition-colors hover:text-accent"
+                  className="press block min-h-[48px] p-4 flex flex-col gap-1 transition-colors hover:bg-surface-subtle"
                 >
-                  <div className="mb-1 flex items-center gap-2 text-xs text-text-muted">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
                     {p.community && (
                       <>
                         <span className="font-medium text-fg">
@@ -223,7 +227,7 @@ export default async function ProfilePage({
                       {p.comment_count === 1 ? "comment" : "comments"}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-fg">{p.title}</p>
+                  <p className="text-sm font-medium text-fg line-clamp-1">{p.title}</p>
                 </Link>
               </li>
             ))}
@@ -231,35 +235,39 @@ export default async function ProfilePage({
         )}
       </section>
 
-      {/* Communities */}
-      <section className="rounded-lg border border-border bg-surface p-6">
-        <h2 className="mb-4 text-base font-semibold text-fg">
-          Communities ({memberships.length})
-        </h2>
+      {/* Communities — single column on mobile, two on tablet, touch-friendly cards */}
+      <section className="rounded-lg border border-border bg-surface">
+        <header className="px-4 py-3 border-b border-border">
+          <h2 className="text-base font-semibold text-fg">
+            Communities ({memberships.length})
+          </h2>
+        </header>
         {memberships.length === 0 ? (
-          <p className="text-sm text-text-secondary">
-            @{profileData.username} hasn&apos;t joined any communities yet.
-          </p>
+          <div className="p-10 text-center">
+            <p className="text-sm text-text-secondary">
+              @{profileData.username} hasn&apos;t joined any communities yet.
+            </p>
+          </div>
         ) : (
           <PageEnter stagger={0.04} y={8}>
-            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2" role="list">
               {memberships.map((m) => {
                 if (!m.community) return null;
                 return (
                   <li key={m.community_id}>
                     <Link
                       href={`/communities/${m.community.slug}`}
-                      className="press flex items-center gap-3 rounded-md border border-border bg-bg p-3 transition-colors hover:border-border-strong hover:bg-surface"
+                      className="press flex items-center gap-3 min-h-[52px] p-3 rounded-md border border-border bg-bg transition-colors hover:border-border-strong hover:bg-surface"
                     >
                       {m.community.icon_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={m.community.icon_url}
                           alt=""
-                          className="h-8 w-8 rounded-md object-cover"
+                          className="h-10 w-10 flex-shrink-0 rounded-md object-cover"
                         />
                       ) : (
-                        <span className="grid h-8 w-8 place-items-center rounded-md bg-accent-soft/40 text-sm font-semibold text-accent">
+                        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-accent-soft/40 text-base font-semibold text-accent">
                           {m.community.name.charAt(0).toUpperCase()}
                         </span>
                       )}
