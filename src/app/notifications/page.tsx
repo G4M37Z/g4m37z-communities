@@ -3,7 +3,7 @@
 // Protected route; shows user's notifications with mark-as-read actions.
 
 import { redirect } from "next/navigation";
-import { Bell, Check, CheckCheck, Loader2 } from "lucide-react";
+import { Bell, Check, CheckCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyNotifications, getUnreadNotificationCount } from "@/lib/notifications/queries";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/notifications/actions";
@@ -128,9 +128,9 @@ interface NotificationItemProps {
 }
 
 function NotificationItem({ notification }: NotificationItemProps) {
-  const { read, type, actor, created_at } = notification;
+  const { read, actor, created_at } = notification;
 
-  const { label, href, icon: Icon } = getNotificationMeta(notification);
+  const { label, icon: Icon } = getNotificationMeta(notification);
 
   return (
     <li
@@ -151,9 +151,9 @@ function NotificationItem({ notification }: NotificationItemProps) {
           )}
           {label}
           {notification.reference_id && (
-            <NotificationLink type={type} referenceId={notification.reference_id}>
+            <span className="ml-1 font-medium text-text-secondary hover:text-accent transition-colors">
               · View
-            </NotificationLink>
+            </span>
           )}
         </p>
 
@@ -178,101 +178,56 @@ function NotificationItem({ notification }: NotificationItemProps) {
 
 function getNotificationMeta(notification: NotificationWithActor): {
   label: string;
-  href: string | null;
   icon: React.ComponentType<{ size?: number }>;
 } {
-  const { type, reference_id } = notification;
+  const { type } = notification;
 
   switch (type) {
     case "comment_on_post":
       return {
         label: " commented on your post",
-        href: reference_id ? `/post/${reference_id}#comments` : null,
         icon: (props) => <MessageSquareIcon {...props} />,
       };
     case "reply_to_comment":
       return {
         label: " replied to your comment",
-        href: reference_id ? `/post/${reference_id}#comments` : null,
         icon: (props) => <ReplyIcon {...props} />,
       };
     case "post_vote":
       return {
         label: " upvoted your post",
-        href: reference_id ? `/post/${reference_id}` : null,
         icon: (props) => <ArrowUpIcon {...props} />,
       };
     case "comment_vote":
       return {
         label: " upvoted your comment",
-        href: reference_id ? `/post/${reference_id}#comments` : null,
         icon: (props) => <ArrowUpIcon {...props} />,
       };
     case "report_resolved":
       return {
         label: " resolved your report",
-        href: null,
         icon: (props) => <CheckCircleIcon {...props} />,
       };
     case "moderation_action":
       return {
         label: " took moderation action",
-        href: null,
         icon: (props) => <ShieldIcon {...props} />,
       };
     case "mention":
       return {
         label: " mentioned you",
-        href: null,
         icon: (props) => <AtSignIcon {...props} />,
       };
     case "community_invite":
       return {
         label: " invited you to a community",
-        href: null,
         icon: (props) => <UsersIcon {...props} />,
       };
     default:
       return {
         label: "",
-        href: null,
         icon: (props) => <BellIcon {...props} />,
       };
-  }
-}
-
-function NotificationLink({
-  type,
-  referenceId,
-  children,
-}: {
-  type: string;
-  referenceId: string;
-  children: React.ReactNode;
-}) {
-  const href = getHref(type, referenceId);
-  if (!href) return <span className="text-text-muted">{children}</span>;
-
-  return (
-    <a
-      href={href}
-      className="ml-1 font-medium text-accent hover:underline"
-    >
-      {children}
-    </a>
-  );
-}
-
-function getHref(type: string, referenceId: string): string | null {
-  switch (type) {
-    case "comment_on_post":
-    case "reply_to_comment":
-    case "post_vote":
-      return `/post/${referenceId}`;
-    case "comment_vote":
-      return `/post/${referenceId}#comments`;
-    default:
-      return null;
   }
 }
 
