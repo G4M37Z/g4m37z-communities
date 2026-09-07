@@ -46,7 +46,7 @@ export const metadata: Metadata = {
       "Discover gaming communities, share posts, and connect with players across every platform.",
     images: [
       {
-        url: "/icon.jpg",
+        url: "/icon.png",
         width: 1200,
         height: 630,
         alt: "G4M37Z Communities",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     title: "G4M37Z Communities — Where gamers gather",
     description:
       "Discover gaming communities, share posts, and connect with players across every platform.",
-    images: ["/icon.jpg"],
+    images: ["/icon.png"],
   },
   robots: {
     index: true,
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.jpg", type: "image/jpeg" },
+      { url: "/icon.png", type: "image/jpeg" },
     ],
   },
 };

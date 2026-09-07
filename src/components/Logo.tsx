@@ -12,7 +12,7 @@ export function Logo({ withWordmark = true, height = 32, ariaLabel = "G4M37Z Com
     <span className="inline-flex items-center gap-2" aria-label={ariaLabel} role="img">
       <span className="relative shrink-0 overflow-hidden rounded-md bg-bg" style={{ height, width: height * 1.2 }}>
         <img
-          src="/icon.jpg"
+          src="/icon.png"
           alt="G4M37Z Communities"
           className="h-full w-full object-contain"
           style={{ height: "100%", width: "100%", display: "block" }}
