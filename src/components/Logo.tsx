@@ -7,7 +7,7 @@ interface LogoProps {
   ariaLabel?: string;
 }
 
-export function Logo({ withWordmark = true, height = 32, ariaLabel = "G4M37Z Communities — home" }: LogoProps) {
+export function Logo({ withWordmark = true, height = 34, ariaLabel = "G4M37Z Communities — home" }: LogoProps) {
   return (
     <span className="inline-flex items-center gap-2" aria-label={ariaLabel} role="img">
       <span className="relative shrink-0 overflow-hidden rounded-md bg-bg" style={{ height, width: height * 1.2 }}>
