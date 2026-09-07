@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { UserMenu } from "@/components/UserMenu";
 import { NotificationBell } from "@/components/NotificationBell";
 import { HeaderScrollObserver } from "@/components/HeaderScrollObserver";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV = [
   { label: "Home", href: "/home" },
@@ -59,6 +60,7 @@ export async function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
+          <ThemeToggle />
           {user && <NotificationBell />}
           {user ? (
             <UserMenu
