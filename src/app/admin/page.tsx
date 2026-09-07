@@ -68,7 +68,7 @@ export default async function AdminDashboardPage() {
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-2xl font-black tracking-tight text-fg sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">
           Admin Dashboard
         </h1>
         <p className="mt-1 text-sm text-text-muted">
@@ -85,7 +85,7 @@ export default async function AdminDashboardPage() {
           return (
             <article
               key={card.label}
-              className="rounded-2xl border border-border bg-surface p-4"
+              className="rounded-lg border border-border bg-surface p-4"
             >
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
@@ -93,14 +93,14 @@ export default async function AdminDashboardPage() {
                 </span>
                 <Icon size={14} className="text-text-muted" />
               </div>
-              <p className="text-2xl font-black text-fg">{card.value}</p>
+              <p className="text-2xl font-bold text-fg">{card.value}</p>
             </article>
           );
         })}
       </section>
 
       <section className="mt-6" aria-labelledby="recent-reports-heading">
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-lg border border-border bg-surface p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2
               id="recent-reports-heading"

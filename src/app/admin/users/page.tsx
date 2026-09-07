@@ -50,7 +50,7 @@ export default async function AdminUsersPage({
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-2xl font-black tracking-tight text-fg sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">
           Users
         </h1>
         <p className="mt-1 text-sm text-text-muted">
@@ -75,7 +75,7 @@ export default async function AdminUsersPage({
       </form>
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-surface p-12 text-center">
+        <div className="rounded-lg border border-border bg-surface p-12 text-center">
           <Users size={36} className="mx-auto mb-4 text-text-muted" />
           <h2 className="mb-1 text-base font-bold text-fg">No users found</h2>
           <p className="text-sm text-text-muted">
@@ -83,7 +83,7 @@ export default async function AdminUsersPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="overflow-hidden rounded-lg border border-border bg-surface">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-bg text-xs uppercase tracking-wider text-text-muted">
               <tr>
