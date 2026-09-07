@@ -51,6 +51,7 @@ export function PostCard({ post }: Props) {
             </div>
           )}
           <footer className="mt-3 flex items-center gap-4 text-xs text-text-muted">
+            <button type="button" onClick={() => { navigator.clipboard?.writeText(window.location.origin + `/post/${post.id}`); }} className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-fg" aria-label="Copy link to share">Share</button>
             <Link href={`/post/${post.id}#comments`} className="inline-flex items-center gap-1 hover:text-fg"><MessageSquare size={12} />{post.comment_count} {post.comment_count === 1 ? "comment" : "comments"}</Link>
           </footer>
         </div>

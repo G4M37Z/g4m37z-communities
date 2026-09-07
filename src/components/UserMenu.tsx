@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { User as UserIcon, ChevronDown, Shield } from "lucide-react";
+import { PresenceIndicator } from "@/components/presence-indicator";
 import { SignOutButton } from "./SignOutButton";
 
 interface UserMenuProps {
