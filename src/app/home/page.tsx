@@ -113,7 +113,7 @@ export default async function HomePage({
 
       <FeedSortTabs current={sort} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_380px]">
         <div className="lg:col-span-2">
           <h2 className="mb-3 text-base font-semibold text-fg">
             {joined.length > 0 ? "Posts from your communities" : "Recent posts"}
