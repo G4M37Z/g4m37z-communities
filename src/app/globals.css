@@ -115,3 +115,8 @@
 
 /* Selection */
 ::selection { background: var(--color-accent-soft); color: var(--color-fg); }
+
+/* Theme support — light/dark via data-theme + prefers-color-scheme */
+:root { --theme-preference: dark; }
+[data-theme="light"] { --color-bg: #F5F5F3; --color-surface: #FFFFFF; --color-fg: #0B0C0E; --color-text-secondary: #4D5157; --color-text-muted: #6F737A; --color-border: #E5E7EB; --color-border-strong: #D1D5DB; --color-surface-elevated: #F0F0F4; --color-surface-subtle: #F8F8FA; }
+@media (prefers-color-scheme: light) { html:not([data-theme="dark"]) { --color-bg: #F5F5F3; --color-surface: #FFFFFF; --color-fg: #0B0C0E; --color-text-secondary: #4D5157; --color-text-muted: #6F737A; --color-border: #E5E7EB; --color-border-strong: #D1D5DB; --color-surface-elevated: #F0F0F4; --color-surface-subtle: #F8F8FA; } }
