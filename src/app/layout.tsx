@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -82,12 +83,19 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let username: string | undefined;
+  if (user) {
+    const { data: p } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
+    username = p?.username ?? undefined;
+  }
+
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="flex min-h-full flex-col bg-bg font-sans text-fg antialiased">
         <Header />
         <main className="flex-1">{children}</main>
         <Footer user={user} />
+        <BottomNav username={username} />
       </body>
     </html>
   );
