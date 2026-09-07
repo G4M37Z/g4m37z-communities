@@ -136,7 +136,7 @@ export default async function HomePage({
           ) : (
             <>
               <PageEnter stagger={0.04}>
-                <ul className="post-card-container space-y-3">
+                <ul className="post-card-container space-y-2 md:space-y-3">
                   {posts.map((p) => (
                     <li key={p.id}>
                       <PostCard post={p} />
