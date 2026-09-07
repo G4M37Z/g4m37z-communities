@@ -14,6 +14,7 @@ import { Pagination } from "@/components/Pagination";
 import { PageEnter } from "@/components/PageEnter";
 import { getCommunityPosts, type SortKey } from "@/lib/posts/queries";
 import { FeedSortTabs } from "./FeedSortTabs";
+import { DEFAULT_COMMUNITY_CAPABILITIES } from "@/lib/community-capability";
 
 const PAGE_LIMIT = 30;
 
@@ -230,6 +231,13 @@ export default async function CommunityPage({
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
               About
             </h3>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {DEFAULT_COMMUNITY_CAPABILITIES.filter(c => c.enabled && c.visible).map((c) => (
+                <span key={c.id} className="rounded-full border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-[0.04em] text-text-muted" title={c.description}>
+                  {c.label}
+                </span>
+              ))}
+            </div>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
                 <dt className="text-text-muted">Created</dt>
