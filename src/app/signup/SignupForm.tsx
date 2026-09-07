@@ -266,16 +266,17 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
               className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-bg p-3 text-sm text-fg transition-colors hover:border-accent has-[:focus-visible]:border-accent has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/30"
             >
               <input
-                id="acceptTerms"
-                name="acceptTerms"
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                required
-                aria-required="true"
-                aria-describedby="acceptTermsLabel"
-                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border bg-surface text-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-              />
+                              id="acceptTerms"
+                              name="acceptTerms"
+                              type="checkbox"
+                              value="true"
+                              checked={acceptedTerms}
+                              onChange={(e) => setAcceptedTerms(e.target.checked)}
+                              required
+                              aria-required="true"
+                              aria-describedby="acceptTermsLabel"
+                              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border bg-surface text-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+                            />
               <span id="acceptTermsLabel" className="text-xs leading-relaxed text-text-muted">
                 I have read and agree to the{" "}
                 <Link
