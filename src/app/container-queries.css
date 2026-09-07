@@ -1,0 +1,10 @@
+/* Responsive card composition — container queries respond to parent width */
+@layer components {
+  .post-card-container { container-type: inline-size; container-name: postcard; }
+  @container postcard (min-width: 400px) {
+    .post-card-inner { grid-template-columns: auto 1fr; gap: 0.75rem; }
+  }
+  @container postcard (min-width: 640px) {
+    .post-card-inner { padding: 1.25rem; }
+  }
+}
