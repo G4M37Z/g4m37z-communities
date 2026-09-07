@@ -4,6 +4,7 @@ import { MessageSquare, Image as ImageIcon } from "lucide-react";
 import type { Post } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
 import { PostVoteControl } from "@/components/voting/PostVoteControl";
+import { EmojiPicker } from "@/components/emoji-picker";
 
 export interface PostCardData extends Post {
   author: { username: string; display_name: string | null; avatar_url: string | null } | null;
