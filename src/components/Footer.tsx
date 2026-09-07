@@ -64,7 +64,7 @@ export function Footer({ user }: { user: User | null }) {
 
       <div className="border-t border-border">
         <div className="container-x flex flex-col items-start justify-between gap-2 py-5 text-xs text-text-muted sm:flex-row sm:items-center">
-          <p>© {year} G4M37Z Communities.</p>
+          <p>© {year} G4M37Z.</p>
           <p>Built for gamers. Powered by Supabase &amp; Next.js.</p>
         </div>
       </div>
