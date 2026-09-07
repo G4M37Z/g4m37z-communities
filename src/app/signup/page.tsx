@@ -35,7 +35,7 @@ export default async function SignupPage({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-bg p-6 sm:p-8">
+        <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
           <SignupForm next={next ?? "/"} initialError={error} />
         </div>
       </div>
