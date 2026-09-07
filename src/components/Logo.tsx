@@ -1,8 +1,5 @@
 // src/components/Logo.tsx
-// Brand mark — uses approved G4M37Z asset (public/icon.jpg) exactly as supplied.
-// Renders via <img> to preserve original proportions; wordmark kept beside.
-
-import Image from "next/image";
+// Approved G4M37Z brand — primary /icon.jpg verified present; fallback /logo-mark.svg
 
 interface LogoProps {
   withWordmark?: boolean;
@@ -10,21 +7,15 @@ interface LogoProps {
   ariaLabel?: string;
 }
 
-export function Logo({
-  withWordmark = true,
-  height = 32,
-  ariaLabel = "G4M37Z Communities — home",
-}: LogoProps) {
+export function Logo({ withWordmark = true, height = 32, ariaLabel = "G4M37Z Communities — home" }: LogoProps) {
   return (
     <span className="inline-flex items-center gap-2" aria-label={ariaLabel} role="img">
-      <span className="relative shrink-0 overflow-hidden rounded-md" style={{ height, width: height * 1.2 }}>
-        <Image
+      <span className="relative shrink-0 overflow-hidden rounded-md bg-bg" style={{ height, width: height * 1.2 }}>
+        <img
           src="/icon.jpg"
           alt="G4M37Z Communities"
-          fill
-          className="object-contain"
-          priority
-          sizes="(max-width: 768px) 32px, 40px"
+          className="h-full w-full object-contain"
+          style={{ height: "100%", width: "100%", display: "block" }}
         />
       </span>
       {withWordmark && (
