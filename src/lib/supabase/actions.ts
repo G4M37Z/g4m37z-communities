@@ -124,7 +124,7 @@ export async function signUpWithPassword(formData: FormData) {
 export async function checkUsernameAvailability(username: string) {
   const validationError = validateUsername(username);
   if (validationError) {
-    return { available: false, reason: validationError };
+    return { available: false, reason: validationError, code: "invalid" };
   }
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -135,12 +135,13 @@ export async function checkUsernameAvailability(username: string) {
 
   if (error) {
     console.error("checkUsernameAvailability failed:", error);
-    return { available: false, reason: "Couldn't check username. Try again." };
+    // Fail open — let the DB unique constraint catch real duplicates.
+    return { available: true, reason: null, code: "unchecked" };
   }
   if (data) {
-    return { available: false, reason: "That username is already taken." };
+    return { available: false, reason: "That username is already taken.", code: "taken" };
   }
-  return { available: true };
+  return { available: true, reason: null, code: "available" };
 }
 
 // ---------------------------------------------------------------------------

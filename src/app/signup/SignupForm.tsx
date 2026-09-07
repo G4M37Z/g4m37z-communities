@@ -33,37 +33,43 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
 
   // Live username availability check
   const [username, setUsername] = useState("");
-  const [usernameStatus, setUsernameStatus] = useState<
-    "idle" | "checking" | "ok" | "taken" | "invalid"
-  >("idle");
+    const [usernameStatus, setUsernameStatus] = useState<
+      "idle" | "checking" | "ok" | "taken" | "invalid" | "unchecked"
+    >("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const u = username.trim();
-    // Defer setState to avoid lint rule against synchronous setState-in-effect.
-    // The updates are intentional and harmless — they only update UI state.
-    const queue = (next: typeof usernameStatus) => {
-      queueMicrotask(() => setUsernameStatus(next));
-    };
-    if (u.length === 0) {
-      queue("idle");
-      return;
-    }
-    if (!USERNAME_RULE.test(u) || /^_|_$/.test(u)) {
-      queue("invalid");
-      return;
-    }
-    queue("checking");
-    debounceRef.current = setTimeout(async () => {
-      const res = await checkUsernameAvailability(u);
-      if (res.available) setUsernameStatus("ok");
-      else setUsernameStatus("taken");
-    }, 400);
-    return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [username]);
+      const u = username.trim();
+      const queue = (next: typeof usernameStatus) => {
+        queueMicrotask(() => setUsernameStatus(next));
+      };
+      if (u.length === 0) {
+        queue("idle");
+        return;
+      }
+      if (!USERNAME_RULE.test(u) || /^_|_$/.test(u)) {
+        queue("invalid");
+        return;
+      }
+      queue("checking");
+      debounceRef.current = setTimeout(async () => {
+        const res = await checkUsernameAvailability(u);
+        if (res.available) {
+          setUsernameStatus("ok");
+        } else if (res.code === "invalid") {
+          setUsernameStatus("invalid");
+        } else if (res.code === "taken") {
+          setUsernameStatus("taken");
+        } else {
+          // unchecked / fail-open
+          setUsernameStatus("ok");
+        }
+      }, 400);
+      return () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+      };
+    }, [username]);
 
   function onSubmit(formData: FormData) {
       setError(null);
