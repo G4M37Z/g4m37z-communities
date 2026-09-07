@@ -48,13 +48,13 @@ export async function generateMetadata({
       description: c.description ?? `Join ${c.name} on G4M37Z Communities.`,
       type: "website",
       siteName: "G4M37Z Communities",
-      images: [c.banner_url ?? "/icon.svg"],
+      images: [c.banner_url ?? "/icon.jpg"],
     },
     twitter: {
       card: "summary_large_image",
       title: c.name,
       description: c.description ?? `Join ${c.name} on G4M37Z Communities.`,
-      images: [c.banner_url ?? "/icon.svg"],
+      images: [c.banner_url ?? "/icon.jpg"],
     },
   };
 }
