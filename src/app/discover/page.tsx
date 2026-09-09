@@ -1,16 +1,17 @@
-/*
-  Phase 1 Week 3 — Game Discovery foundation
-  Renders a list of games with basic filtering.
-  Uses the games / genres / platforms tables created by Phase 1 SQL.
-*/
-
+import { createClient } from "@/lib/supabase/server";
 export default async function DiscoverPage() {
+  const supabase = await createClient();
+  const { data: games } = await supabase.from("games").select("*").limit(12);
   return (
     <main className="container-x py-10">
       <h1 className="text-3xl font-bold tracking-tight">Discover Games</h1>
-      <p className="mt-2 text-sm text-text-secondary">Browse by genre, platform, or trending.</p>
-      <section className="mt-8 rounded-xl border border-border bg-surface p-8">
-        <p className="text-sm text-text-secondary">Game cards will render here using the gaming graph (Phase 2).</p>
+      <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {(games ?? []).map((g: any) => (
+          <a key={g.id} href={`/game/${g.slug}`} className="block rounded-xl border border-border bg-surface p-4 transition hover:border-border-strong">
+            <h3 className="font-semibold text-fg">{g.name}</h3>
+            <p className="text-xs text-text-secondary">{g.description}</p>
+          </a>
+        ))}
       </section>
     </main>
   );
