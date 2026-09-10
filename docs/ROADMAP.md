@@ -19,6 +19,7 @@
 | 5 | V3.5 Events | COMPLETE | `662452c` |
 | 6 | V3.6 Tournaments | COMPLETE | `ea3c598` |
 | 7 | V3.7 Creators | COMPLETE | `7d36d93` |
+| 8 | V3.8 Messaging | COMPLETE | `19e862f` |
 
 P0 is a security gate, not a feature milestone. Do not reorder the
 sequence: V3.1 / V3.2 / P0 / V3.3 / V3.4 / V3.5 / V3.6 / V3.7 / V3.8 /
@@ -37,31 +38,20 @@ V3.9 / Launch Hardening.
   - `src/lib/creators/service.ts`, `/creators`, `/creators/[id]`, tests.
   - Milestone commit `7d36d93 feat: implement v3.7 creators`.
 
-### V3.8 — Messaging (NEXT, NOT STARTED)
-
-- Tables: `creator_profiles`, `creator_content`, `creator_followers`
-  (defined in `master_v3.sql`, RLS-enabled but currently 0 policies).
-- Expected work:
-  - `019_creators_policies.sql` migration.
-  - `src/lib/creators/service.ts` with discover / detail / follow /
-    content listing operations.
-  - UI: `/creators`, `/creators/[id]`, possibly `/creators/new` (admin or
-    self-promotion path TBD).
-  - Tests + one milestone commit.
-
-### V3.8 — Messaging
+### V3.8 — Messaging (COMPLETE — `19e862f`)
 
 - Tables: `conversations`, `conversation_members`, `messages`
-  (currently RLS-enabled with 0 policies — inaccessible until V3.8).
-- Expected work:
-  - `020_messaging_policies.sql` migration.
-  - `src/lib/messaging/service.ts` with conversation CRUD, message send /
-    list (cursor-paginated per V3 guidance).
-  - UI: `/messages`, `/messages/[conversationId]` with realtime
-    subscription.
-  - Tests + one milestone commit.
+  (verified live DB: RLS enabled, previously 0 policies; policies applied
+  via `020_messaging_policies.sql`).
+- Completed:
+  - Migration `docs/database/020_messaging_policies.sql` (10 RLS policies;
+    SELECT/INSERT member-scoped, messages immutable via `USING false` /
+    `WITH CHECK false`).
+  - `src/lib/messaging/service.ts` (conversation list, cursor-paginated
+    message list), `/messages`, `/messages/[conversationId]`, tests.
+  - Milestone commit `19e862f feat: implement v3.8 messaging`.
 
-### V3.9 — Social Graph + Notifications
+### V3.9 — Social Graph + Notifications (NEXT, NOT STARTED)
 
 - Tables: `follows`, `blocks`, `mutes`, `notification_events`
   (currently 0 policies).
