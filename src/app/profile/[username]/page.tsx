@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
 import { PageEnter } from "@/components/PageEnter";
+import { getUserReputation, getUserReputationEventCount } from "@/lib/reputation/service";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,8 @@ export default async function ProfilePage({
   const [
     { data: postsData },
     { data: membershipsData },
+    reputationScore,
+    reputationEventCount,
   ] = await Promise.all([
     supabase
       .from("posts")
@@ -104,6 +107,8 @@ export default async function ProfilePage({
       .eq("user_id", profileData.id)
       .order("joined_at", { ascending: false })
       .limit(20),
+    getUserReputation(supabase, profileData.id),
+    getUserReputationEventCount(supabase, profileData.id),
   ]);
 
   const posts: PostRow[] = ((postsData ?? []) as Array<{
@@ -178,6 +183,27 @@ export default async function ProfilePage({
               year: "numeric",
             })}
           </p>
+          <dl
+            className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-text-secondary sm:justify-start"
+            aria-label="Reputation and activity stats"
+          >
+            <div className="flex items-baseline gap-1">
+              <dt className="text-text-muted uppercase tracking-wider">
+                Reputation
+              </dt>
+              <dd className="font-semibold text-fg" data-testid="profile-reputation-score">
+                {reputationScore}
+              </dd>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <dt className="text-text-muted uppercase tracking-wider">
+                Events
+              </dt>
+              <dd className="font-semibold text-fg">
+                {reputationEventCount}
+              </dd>
+            </div>
+          </dl>
         </div>
       </section>
 
