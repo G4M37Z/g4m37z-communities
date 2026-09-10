@@ -23,9 +23,9 @@
 
 ## Current Checkpoint
 
-**V3.8 Messaging — PASS, committed (`19e862f`).** V3.9 Social Graph is NEXT (NOT started).
+**V3.9 Social Graph — PASS at `8460b32`; Launch Hardening P1–P2 PARTIAL (P1.4 / P2.3 / P3 BLOCKED by environment).** V3.9 verified complete.
 
-- HEAD commit: `ea3c598 feat: implement v3 tournaments`
+- HEAD commit: `3a7267b` (docs: V3.9 + hardening audit status — no push; clean)
 - Working tree: clean (only pre-existing untracked dev logs: `dev.log`, `dev2.log`, `dev3.log`, `nul`).
 - All V3.1–V3.6 milestones + P0 security containment + Phase 0.5/0.6 gates
   are at HEAD on `main` and on `origin/main`.
@@ -47,6 +47,9 @@
 | 6 | V3.6 Tournaments | `ea3c598` | PASS |
 | 7 | V3.7 Creators | `7d36d93` | PASS |
 | 8 | V3.8 Messaging | `19e862f` | PASS |
+| 9 | V3.9 Social Graph | `8460b32` | PASS |
+
+Launch Hardening status: P1.1 PARTIAL (audit done, subagents 400/429); P1.2 NONE APPLY; P1.3 PASS; P1.4 BLOCKED (no benchmark); P2 PASS; P2.3 BLOCKED (static OK, no browser); P3 PARTIAL/BLOCKED.
 
 Each milestone had:
 - One migration under `docs/database/NNN_*.sql` (executed via `run-sql`).
@@ -177,7 +180,10 @@ See `ROADMAP.md` for the full sequence. Do not skip ahead.
   `tournaments`) route mutations through `createAdminClient` and resolve
   `auth.uid()` server-side. Client components never see the service role.
 
-### P1 / P2 / P3 Security — DEFERRED (Launch Hardening)
+### P1 / P2 / P3 Launch Hardening — PARTIAL / BLOCKED (NOT CLAIMED COMPLETE, per master rules)
+
+Audit completed honestly (manual + partial subagent; environment failures 400/429 recorded, not fabricated).
+P1.1 PARTIAL (DB verified; auth manual; no middleware). P1.3 PASS (indexes present). P1.4 BLOCKED (no benchmark environment). P2 PASS (106 vitest; 0 TS errors; lint binary missing — pre-existing). P2.3 BLOCKED (UI static OK; no mobile/browser verification). P3 PARTIAL (security/DB/test verified; build full not executed; performance blocked; UI/mobile blocked). No false PASS claims. Deferred items (rate, CAPTCHA, MIME, advanced search/IP, telemetry, P3 CSP/MFA/rotation) remain deferred.
 
 Per the explicit "build surface first, harden before launch" strategy, the
 following remain tracked but **not implemented**:
