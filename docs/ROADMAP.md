@@ -18,6 +18,7 @@
 | 4 | V3.4 LFG | COMPLETE | `a578663` |
 | 5 | V3.5 Events | COMPLETE | `662452c` |
 | 6 | V3.6 Tournaments | COMPLETE | `ea3c598` |
+| 7 | V3.7 Creators | COMPLETE | `7d36d93` |
 
 P0 is a security gate, not a feature milestone. Do not reorder the
 sequence: V3.1 / V3.2 / P0 / V3.3 / V3.4 / V3.5 / V3.6 / V3.7 / V3.8 /
@@ -27,7 +28,16 @@ V3.9 / Launch Hardening.
 
 ## Forward roadmap
 
-### V3.7 — Creators (NEXT after V3.6 PASS)
+### V3.7 — Creators (COMPLETE — `7d36d93`)
+
+- Tables: `creator_profiles`, `creator_content`, `creator_followers`
+  (verified live DB; RLS policies applied via `019_creators_policies.sql`).
+- Completed:
+  - Migration `docs/database/019_creators_policies.sql` (10 RLS policies).
+  - `src/lib/creators/service.ts`, `/creators`, `/creators/[id]`, tests.
+  - Milestone commit `7d36d93 feat: implement v3.7 creators`.
+
+### V3.8 — Messaging (NEXT, NOT STARTED)
 
 - Tables: `creator_profiles`, `creator_content`, `creator_followers`
   (defined in `master_v3.sql`, RLS-enabled but currently 0 policies).
