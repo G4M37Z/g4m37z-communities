@@ -51,7 +51,11 @@ export function staggerIn(
   options: { stagger?: number; y?: number } = {},
 ): void {
   if (!container || prefersReducedMotion()) return;
-  const children = container.querySelectorAll(childSelector);
+  let effectiveSelector = childSelector.trim();
+  if (effectiveSelector.startsWith('>') || effectiveSelector.startsWith('+') || effectiveSelector.startsWith('~')) {
+      effectiveSelector = ':scope ' + effectiveSelector;
+  }
+  const children = container.querySelectorAll(effectiveSelector);
   if (children.length === 0) return;
   void import("gsap").then(({ gsap }) => {
     gsap.fromTo(
