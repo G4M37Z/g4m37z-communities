@@ -20,6 +20,7 @@
 | 6 | V3.6 Tournaments | COMPLETE | `ea3c598` |
 | 7 | V3.7 Creators | COMPLETE | `7d36d93` |
 | 8 | V3.8 Messaging | COMPLETE | `19e862f` |
+| 9 | V3.9 Social Graph | COMPLETE | `8460b32` |
 
 P0 is a security gate, not a feature milestone. Do not reorder the
 sequence: V3.1 / V3.2 / P0 / V3.3 / V3.4 / V3.5 / V3.6 / V3.7 / V3.8 /
@@ -51,18 +52,11 @@ V3.9 / Launch Hardening.
     message list), `/messages`, `/messages/[conversationId]`, tests.
   - Milestone commit `19e862f feat: implement v3.8 messaging`.
 
-### V3.9 — Social Graph + Notifications (NEXT, NOT STARTED)
+### V3.9 — Social Graph + Notifications (COMPLETE — `8460b32`)
 
 - Tables: `follows`, `blocks`, `mutes`, `notification_events`
-  (currently 0 policies).
-- Expected work:
-  - `021_social_graph_policies.sql` migration.
-  - `src/lib/social/service.ts` with follow / block / mute.
-  - Wire notifications into V3 events (reputation, achievement unlocks,
-  RSVP changes, message events) — service-level helper functions,
-  consistent status enum.
-  - UI: profile follow buttons, notification centre enhancements.
-  - Tests + one milestone commit.
+  (RLS verified live: 13 policies via `021_social_graph_policies.sql`).
+- Completed: `021_*.sql`, `src/lib/social/service.ts`, `/social`, tests, commit.
 
 ### Launch Hardening (post-V3, NOT a feature milestone)
 
