@@ -1,0 +1,1 @@
+export default async function MessageThreadPage({ params }: { params: Promise<{ conversationId: string }> }) { const { conversationId }=await params; return <main><h1>Thread {conversationId}</h1></main>; }
