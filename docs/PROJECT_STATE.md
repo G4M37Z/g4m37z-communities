@@ -13,7 +13,7 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `ea3c598` |
+| Last verified HEAD | `7d36d93` |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
 | Documentation version | 1 (this commit) |
@@ -23,7 +23,7 @@
 
 ## Current Checkpoint
 
-**V3.6 Tournaments — PASS, committed and pushed.**
+**V3.7 Creators — PASS, committed (`7d36d93`).** V3.8 Messaging is NEXT (NOT started).
 
 - HEAD commit: `ea3c598 feat: implement v3 tournaments`
 - Working tree: clean (only pre-existing untracked dev logs: `dev.log`, `dev2.log`, `dev3.log`, `nul`).
@@ -45,6 +45,7 @@
 | 4 | V3.4 LFG | `a578663` | PASS |
 | 5 | V3.5 Events | `662452c` | PASS |
 | 6 | V3.6 Tournaments | `ea3c598` | PASS |
+| 7 | V3.7 Creators | `7d36d93` | PASS |
 
 Each milestone had:
 - One migration under `docs/database/NNN_*.sql` (executed via `run-sql`).
@@ -84,9 +85,29 @@ Each milestone had:
 
 ---
 
+## Current Milestone Detail: V3.7 Creators
+
+| Field | Value |
+|---|---|
+| Starting commit | `7d36d93` |
+| Final commit | `7d36d93` |
+| Commit message | `feat: implement v3.7 creators` |
+| Migration | `docs/database/019_creators_policies.sql` (10 RLS policies on `creator_profiles`, `creator_content`, `creator_followers`) |
+| Service | `src/lib/creators/service.ts` |
+| UI pages | `/creators`, `/creators/[id]` |
+| Tests | `tests/creators-service.test.ts` (2 deterministic tests) |
+| Validation | vitest PASS (2 tests); TS clean (0 errors); live RLS inspection verified via `run-sql` |
+| Live mutation happy path | NOT performed (as with prior milestones) |
+| Browser verification | NOT performed (consistent with dev environment) |
+
 ## Next Milestone
 
-**V3.7 — Creators** (the next authorised feature milestone after V3.6 PASS).
+**V3.8 — Messaging** (the next authorised feature milestone after V3.7 PASS).
+
+- Tables: `conversations`, `conversation_members`, `messages`
+  (RLS-enabled with 0 policies — inaccessible until V3.8).
+- Migration `020_messaging_policies.sql`, `src/lib/messaging/service.ts` (cursor-paginated),
+  UI `/messages`, `/messages/[conversationId]` with realtime subscription, tests.
 
 See `ROADMAP.md` for the full sequence. Do not skip ahead.
 
@@ -192,8 +213,8 @@ The repository does NOT commit `.env.local`. Local secrets live in
 ## NEXT AGENT ACTION
 
 **Read `docs/AGENT_HANDOFF.md`, reconcile this document against `git log` and
-the actual repository state, then begin V3.7 Creators only — assuming V3.6 is
-verified PASS at the current HEAD.**
+the actual repository state, then begin V3.8 Messaging only — assuming V3.7 is
+verified PASS at the current HEAD (`7d36d93`).**
 
 If any verification has changed (broken build, lint errors, missing migration,
 DB regression), STOP at the failed checkpoint and update `PROJECT_STATE.md`
