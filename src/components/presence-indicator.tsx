@@ -3,7 +3,9 @@
 // Uses existing profile/auth; no new DB table required for V1 presence
 // States: online / away / busy / offline / invisible (per spec §8)
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
+
+type PresenceStatus = "online" | "away" | "busy" | "offline" | "invisible";
 
 interface PresenceProps {
   userId?: string;
@@ -12,16 +14,16 @@ interface PresenceProps {
   className?: string;
 }
 
-export function PresenceIndicator({ userId, username, size = 10, className = "" }: PresenceProps) {
-  const [status, setStatus] = useState<"online" | "away" | "busy" | "offline" | "invisible">("offline");
+// V2 extension hook: for now, presence is derived deterministically from the
+// supplied userId (presence values are not yet persisted; V3 will replace this
+// with realtime subscription). Returning a memoized value avoids setState in
+// useEffect and the cascading-render warning.
+function resolveStatus(_userId: string | undefined): PresenceStatus {
+  return _userId ? "online" : "offline";
+}
 
-  useEffect(() => {
-    // V1 foundation: presence derived from activity; V2 extends to realtime
-    // For V1, show online if profile active; else default to offline
-    setStatus("online");
-    const t = setTimeout(() => setStatus("online"), 3000);
-    return () => clearTimeout(t);
-  }, [userId]);
+export function PresenceIndicator({ userId, username, size = 10, className = "" }: PresenceProps) {
+  const status = useMemo(() => resolveStatus(userId), [userId]);
 
   const color = {
     online: "bg-success",
