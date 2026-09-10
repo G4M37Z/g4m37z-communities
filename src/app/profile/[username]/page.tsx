@@ -7,6 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
 import { PageEnter } from "@/components/PageEnter";
 import { getUserReputation, getUserReputationEventCount } from "@/lib/reputation/service";
+import {
+  getUserAchievements,
+  listAchievements,
+} from "@/lib/achievements/service";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +98,8 @@ export default async function ProfilePage({
     { data: membershipsData },
     reputationScore,
     reputationEventCount,
+    userAchievements,
+    allAchievements,
   ] = await Promise.all([
     supabase
       .from("posts")
@@ -109,6 +115,8 @@ export default async function ProfilePage({
       .limit(20),
     getUserReputation(supabase, profileData.id),
     getUserReputationEventCount(supabase, profileData.id),
+    getUserAchievements(supabase, profileData.id),
+    listAchievements(supabase),
   ]);
 
   const posts: PostRow[] = ((postsData ?? []) as Array<{
@@ -215,6 +223,59 @@ export default async function ProfilePage({
           </p>
         </section>
       )}
+
+      {/* Achievements */}
+      {allAchievements.length > 0 && (() => {
+        const earnedSet = new Set(userAchievements.map((ua) => ua.achievement_id));
+        const earnedList = userAchievements
+          .map((ua) => allAchievements.find((a) => a.id === ua.achievement_id))
+          .filter((a): a is (typeof allAchievements)[number] => Boolean(a));
+        return (
+          <section className="mb-10 rounded-lg border border-border bg-surface">
+            <header className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-base font-semibold text-fg">
+                Achievements ({earnedList.length}/{allAchievements.length})
+              </h2>
+            </header>
+            <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
+              {allAchievements.map((a) => {
+                const earned = earnedSet.has(a.id);
+                const earnedAt = userAchievements.find((ua) => ua.achievement_id === a.id)?.earned_at;
+                return (
+                  <div
+                    key={a.id}
+                    className={`flex flex-col gap-1 rounded-md border p-3 ${
+                      earned
+                        ? "border-border bg-bg"
+                        : "border-border bg-bg/40 opacity-50"
+                    }`}
+                    aria-label={`${a.name} — ${earned ? "Earned" : "Locked"}`}
+                    title={a.description ?? a.name}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                          earned ? "bg-success" : "bg-text-muted"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span className="text-sm font-semibold text-fg">{a.name}</span>
+                    </div>
+                    {a.description && (
+                      <p className="text-xs text-text-secondary line-clamp-2">{a.description}</p>
+                    )}
+                    {earned && earnedAt && (
+                      <p className="text-[10px] text-text-muted uppercase tracking-wider">
+                        Earned {new Date(earnedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Posts — full-width cards, generous touch targets */}
       <section className="mb-10 rounded-lg border border-border bg-surface">
