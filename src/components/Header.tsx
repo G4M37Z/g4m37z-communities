@@ -13,6 +13,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 const NAV = [
   { label: "Home", href: "/home" },
   { label: "Communities", href: "/communities" },
+  { label: "Games", href: "/discover" },
+  { label: "Tournaments", href: "/tournaments" },
   { label: "Create", href: "/create" },
 ];
 
