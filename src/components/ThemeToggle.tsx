@@ -2,21 +2,36 @@
 import { Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(true);
+const STORAGE_KEY = "g4m37z-theme";
 
+// V1 foundation: derive initial theme synchronously from localStorage so we
+// avoid a useEffect that synchronously calls setState (which triggers cascading
+// renders per react-hooks/set-state-in-effect).
+function readInitialDark(): boolean {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === "light" ? false : true;
+}
+
+export function ThemeToggle() {
+  // Lazy initializer runs only once on mount; no cascading re-render.
+  const [isDark, setIsDark] = useState<boolean>(readInitialDark);
+
+  // Sync the DOM attribute whenever isDark changes (no setState in body).
   useEffect(() => {
-    const stored = localStorage.getItem("g4m37z-theme");
-    const dark = stored === "light" ? false : true;
-    setIsDark(dark);
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  }, []);
+    document.documentElement.setAttribute(
+      "data-theme",
+      isDark ? "dark" : "light",
+    );
+  }, [isDark]);
 
   function toggle() {
     const next = !isDark;
     setIsDark(next);
-    document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
-    localStorage.setItem("g4m37z-theme", next ? "dark" : "light");
+    // Persist immediately; safe to call on every toggle.
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_KEY, next ? "dark" : "light");
+    }
   }
 
   return (

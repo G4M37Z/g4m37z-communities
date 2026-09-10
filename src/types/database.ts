@@ -157,3 +157,17 @@ export interface CommunityCategory {
   name: string;
   created_at: string;
 }
+
+// ----------------------------------------------------------------------------
+// games (live DB table — referenced from master_v3.sql; columns inferred
+// from code usage in src/app/discover/page.tsx and src/app/game/[slug]/page.tsx)
+// ----------------------------------------------------------------------------
+
+export interface Game {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  cover_url: string | null;
+  created_at: string;
+}
