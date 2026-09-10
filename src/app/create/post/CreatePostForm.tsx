@@ -45,7 +45,10 @@ export function CreatePostForm({ communities, defaultCommunityId }: Props) {
   function onSubmit(formData: FormData) {
     setError(null);
     if (imageUrl) formData.set("imageUrl", imageUrl);
-    startTransition(async () => {
+    // Returning the transition promise lets React 19's form-action plumbing
+    // observe the redirect throw from createPost and perform the navigation
+    // instead of treating it as an unhandled error.
+    return startTransition(async () => {
       const res = await createPost(formData);
       if (res?.error) setError(res.error);
     });

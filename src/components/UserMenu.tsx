@@ -1,9 +1,16 @@
 // src/components/UserMenu.tsx
 // Avatar + dropdown for signed-in users. Shows display name and links
-// to the user's profile, settings, notifications, and a sign-out action.
+// to the user's profile, V3 surface destinations (Games, Tournaments),
+// notifications, settings, and a sign-out action.
 
 import Link from "next/link";
-import { User as UserIcon, ChevronDown, Shield } from "lucide-react";
+import {
+  User as UserIcon,
+  ChevronDown,
+  Shield,
+  Gamepad2,
+  Trophy,
+} from "lucide-react";
 import { PresenceIndicator } from "@/components/presence-indicator";
 import { SignOutButton } from "./SignOutButton";
 
@@ -59,6 +66,24 @@ export function UserMenu({ username, avatarUrl, isModerator, isAdmin }: UserMenu
           )}
           <li>
             <Link
+              href="/discover"
+              className="flex items-center gap-2 px-4 py-2 text-fg hover:bg-surface"
+            >
+              <Gamepad2 size={14} />
+              Games
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/tournaments"
+              className="flex items-center gap-2 px-4 py-2 text-fg hover:bg-surface"
+            >
+              <Trophy size={14} />
+              Tournaments
+            </Link>
+          </li>
+          <li>
+            <Link
               href="/notifications"
               className="block px-4 py-2 text-fg hover:bg-surface"
             >
@@ -66,25 +91,25 @@ export function UserMenu({ username, avatarUrl, isModerator, isAdmin }: UserMenu
             </Link>
           </li>
           <li>
-                      <Link
-                        href="/settings"
-                        className="block px-4 py-2 text-fg hover:bg-surface"
-                      >
-                        Settings
-                      </Link>
-                    </li>
-                    {(isAdmin || isModerator) && (
-                      <li>
-                        <Link
-                          href="/admin"
-                          className="flex items-center gap-2 px-4 py-2 text-fg hover:bg-surface"
-                        >
-                          <Shield size={14} />
-                          Admin
-                        </Link>
-                      </li>
-                    )}
-                  </ul>
+            <Link
+              href="/settings"
+              className="block px-4 py-2 text-fg hover:bg-surface"
+            >
+              Settings
+            </Link>
+          </li>
+          {(isAdmin || isModerator) && (
+            <li>
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-4 py-2 text-fg hover:bg-surface"
+              >
+                <Shield size={14} />
+                Admin
+              </Link>
+            </li>
+          )}
+        </ul>
         <div className="border-t border-border p-1">
           <SignOutButton />
         </div>

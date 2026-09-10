@@ -22,6 +22,23 @@ const BODY_MAX = 20000;
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+/**
+ * Build a unique upload path for a post image. Uses crypto.randomUUID when
+ * available; falls back to a timestamped random string so server-action
+ * bundlers that strip the `crypto` global still produce a unique path.
+ */
+function uniqueId(): string {
+  try {
+    const c =
+      (typeof globalThis !== "undefined" && (globalThis as { crypto?: Crypto }).crypto) ||
+      (typeof crypto !== "undefined" ? crypto : undefined);
+    if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  } catch {
+    // fall through to fallback
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function validateTitle(title: string): string | null {
   const t = title.trim();
   if (t.length < TITLE_MIN) return `Title must be at least ${TITLE_MIN} characters.`;
@@ -49,40 +66,54 @@ function validateImage(file: File): string | null {
 // uploadPostImage
 // Uploads an image to the `post-images` bucket under the user's folder.
 // Returns the public URL or { error }.
+//
+// Security:
+//   - MIME is constrained to {image/jpeg, image/png, image/webp, image/gif}
+//   - Size is capped at 5 MB
+//   - Path prefix is the authenticated user's id (RLS enforces folder match)
+//   - Storage bucket policies permit authenticated users to INSERT into
+//     their own folder and SELECT/UPDATE/DELETE only their own objects
+//     (see docs/database/003_posts.sql and 005_full_sync.sql).
+//   - File extensions are sanitised to [a-z0-9] to avoid path traversal.
 // ---------------------------------------------------------------------------
 
 export async function uploadPostImage(file: File) {
   const imageErr = validateImage(file);
   if (imageErr) return { error: imageErr };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in to upload an image." };
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "You must be signed in to upload an image." };
 
-  const ext = file.type.split("/")[1] ?? "jpg";
-  const safeExt = ext.replace(/[^a-z0-9]/g, "");
-  const path = `${user.id}/${crypto.randomUUID()}.${safeExt}`;
+    const ext = file.type.split("/")[1] ?? "jpg";
+    const safeExt = ext.replace(/[^a-z0-9]/g, "");
+    const path = `${user.id}/${uniqueId()}.${safeExt}`;
 
-  const { error } = await supabase.storage
-    .from("post-images")
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
+    const { error } = await supabase.storage
+      .from("post-images")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
 
-  if (error) {
-    console.error("uploadPostImage failed:", error);
+    if (error) {
+      console.error("uploadPostImage failed:", error);
+      return { error: "Couldn't upload the image. Try again." };
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("post-images").getPublicUrl(path);
+
+    return { url: publicUrl, path };
+  } catch (err) {
+    console.error("uploadPostImage unexpected error:", err);
     return { error: "Couldn't upload the image. Try again." };
   }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("post-images").getPublicUrl(path);
-
-  return { url: publicUrl, path };
 }
 
 // ---------------------------------------------------------------------------
