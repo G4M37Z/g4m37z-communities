@@ -13,7 +13,7 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `19e862f` |
+| Last verified HEAD | `8975d55` (browser smoke tests) — release-finalized |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
 | Documentation version | 1 (this commit) |
@@ -49,7 +49,7 @@
 | 8 | V3.8 Messaging | `19e862f` | PASS |
 | 9 | V3.9 Social Graph | `8460b32` | PASS |
 
-Launch Hardening status: P1.1 PARTIAL (audit done, subagents 400/429 env); P1.2 NONE REQUIRED; P1.3 PASS; P1.4 PARTIAL (static OK, runtime benchmark external); P2 PASS; P2.3 BLOCKED (static OK, no browser — external env); P3 PASS (webpack build 34 routes, TS 0, vitest 106/106, security pass, DB pass, lint skipped — binary missing).
+Launch Hardening status: P1.1 PARTIAL (audit done, subagents 400/429 env); P1.2 NONE REQUIRED; P1.3 PASS; P1.4 PARTIAL (static OK, runtime benchmark external); P2 PASS; P2.3 VERIFIED (browser harness added — `tests/browser/smoke.spec.ts`, real Chromium 149 / ChromeDriver 149 session, mobile 375×812, all smoke routes PASS); P3 PASS (webpack build 34 routes, TS 0, vitest 106/106, security pass, DB pass, lint skipped — binary missing).
 
 Each milestone had:
 - One migration under `docs/database/NNN_*.sql` (executed via `run-sql`).
