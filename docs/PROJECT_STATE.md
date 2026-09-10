@@ -243,3 +243,4 @@ executed against the live DB (deferred during V3.8 due to environment flakiness)
 If any verification has changed (broken build, lint errors, missing migration,
 DB regression), STOP at the failed checkpoint and update `PROJECT_STATE.md`
 before any further work.
+V4 Milestones complete (gaming profiles 022, LFG session 023, events lifecycle 024, presence 025). Service: src/lib/profiles/service-v4.ts + test passed. Security: service_role isolated (acknowledged, no exposure). Build: webpack verified. Browser: Chromium 149 session verified (prior session). Limitations preserved: P1.4 benchmark BLOCKED external, auth E2E config-blocked, desktop skipped.
