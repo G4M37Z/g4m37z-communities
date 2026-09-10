@@ -1,8 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 
-export default async function GameDetailPage({ params }: { params: { slug: string } }) {
+export default async function GameDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   const supabase = await createClient();
-  const { data: game } = await supabase.from("games").select("*").eq("slug", params.slug).maybeSingle();
+  const { data: game } = await supabase.from("games").select("*").eq("slug", slug).maybeSingle();
   if (!game) return <main className="container-x py-10"><h1 className="text-3xl font-bold">Game not found</h1></main>;
   return (
     <main className="container-x py-10">
