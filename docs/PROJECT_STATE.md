@@ -107,12 +107,11 @@ Each milestone had:
 |---|---|
 | Final commit | `19e862f` |
 | Commit message | `feat: implement v3.8 messaging` |
-| Migration | `docs/database/020_messaging_policies.sql` (10 RLS policies; SELECT/INSERT member-scoped, messages immutable via `USING false`/`WITH CHECK false`) |
+| Migration | `docs/database/020_messaging_policies.sql` (11 RLS policies; SELECT/INSERT member-scoped, messages immutable) — APPLIED live via `run-sql`, fix `dadaf6e` corrected invalid `WITH CHECK` on DELETE + added `DROP IF EXISTS` idempotency; 11 policies verified present in live DB query |
 | Service | `src/lib/messaging/service.ts` |
 | UI pages | `/messages`, `/messages/[conversationId]` |
 | Tests | `tests/messaging-service.test.ts` (3 deterministic tests) |
-| Validation | vitest PASS (3 tests); TS clean (0 errors); live RLS inspection verified via `run-sql` |
-| Escape-hatch note | `run-sql docs/database/020_messaging_policies.sql` execution was temporarily deferred due to environment classifier flakiness — migration file itself is complete and SQL-valid |
+| Validation | vitest PASS (3 tests); TS clean (0 errors); live RLS confirmed — 11 policies present on `conversations` / `conversation_members` / `messages` |
 | Live mutation happy path | NOT performed (consistent with prior milestones) |
 | Browser verification | NOT performed (consistent with dev environment) |
 
