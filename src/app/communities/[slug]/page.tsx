@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Users, ArrowLeft } from "lucide-react";
+import { Users, ArrowLeft, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Community, CommunityCategory } from "@/types/database";
 import { JoinLeaveButton } from "./JoinLeaveButton";
@@ -49,13 +49,13 @@ export async function generateMetadata({
       description: c.description ?? `Join ${c.name} on G4M37Z Communities.`,
       type: "website",
       siteName: "G4M37Z Communities",
-      images: [c.banner_url ?? "/icon.jpg"],
+      images: [c.banner_url ?? "/icon.png"],
     },
     twitter: {
       card: "summary_large_image",
       title: c.name,
       description: c.description ?? `Join ${c.name} on G4M37Z Communities.`,
-      images: [c.banner_url ?? "/icon.jpg"],
+      images: [c.banner_url ?? "/icon.png"],
     },
   };
 }
@@ -65,10 +65,10 @@ export default async function CommunityPage({
   searchParams,
 }: {
   params: Promise<Params>;
-  searchParams: Promise<{ sort?: string; page?: string }>;
+  searchParams: Promise<{ sort?: string; page?: string; error?: string }>;
 }) {
   const { slug } = await params;
-  const { sort: sortParam, page: pageParam } = await searchParams;
+  const { sort: sortParam, page: pageParam, error: errorParam } = await searchParams;
   const sort: SortKey =
     sortParam === "popular" || sortParam === "trending"
       ? sortParam
@@ -123,6 +123,11 @@ export default async function CommunityPage({
     currentRole = (myMembership as { role: typeof currentRole } | null)?.role ?? null;
   }
 
+  const canModerate =
+    currentRole === "moderator" ||
+    currentRole === "admin" ||
+    community.creator_id === user?.id;
+
   const catById = new Map<string, CommunityCategory>();
   for (const c of (categoriesRaw ?? []) as CommunityCategory[]) {
     catById.set(c.id, c);
@@ -141,6 +146,15 @@ export default async function CommunityPage({
         All communities
       </Link>
 
+      {errorParam === "settings_moderators_only" && (
+        <div
+          role="alert"
+          className="mb-6 rounded-lg border border-sale bg-sale/5 px-4 py-3 text-sm text-fg"
+        >
+          Settings are restricted to moderators and admins.
+        </div>
+      )}
+
       <header className="mb-6 overflow-hidden rounded-lg border border-border bg-surface">
         <Banner url={community.banner_url} name={community.name} />
         <div className="flex flex-wrap items-start justify-between gap-4 p-6">
@@ -156,6 +170,15 @@ export default async function CommunityPage({
             )}
           </div>
           <div className="flex items-center gap-3">
+            {canModerate && (
+              <Link
+                href={`/communities/${community.slug}/settings`}
+                className="press inline-flex h-10 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-sm font-semibold text-fg hover:border-border-strong"
+              >
+                <Settings size={14} />
+                Settings
+              </Link>
+            )}
             <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg px-3 py-2 text-sm text-text-secondary">
               <Users size={14} />
               {memberCount ?? 0} members

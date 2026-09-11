@@ -1,5 +1,5 @@
 // src/components/Logo.tsx
-// Approved G4M37Z brand — primary /icon.jpg verified present; fallback /logo-mark.svg
+// Approved G4M37Z brand — primary /icon.png; fallback /logo-mark.svg
 
 interface LogoProps {
   withWordmark?: boolean;

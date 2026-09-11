@@ -8,5 +8,7 @@ CREATE TABLE IF NOT EXISTS user_presence (
 );
 CREATE INDEX IF NOT EXISTS idx_presence_status ON user_presence(status) WHERE status = 'online';
 ALTER TABLE user_presence ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS presence_select_own ON user_presence FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS presence_update_own ON user_presence FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS presence_select_own ON user_presence;
+CREATE POLICY presence_select_own ON user_presence FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS presence_update_own ON user_presence;
+CREATE POLICY presence_update_own ON user_presence FOR UPDATE USING (auth.uid() = user_id);

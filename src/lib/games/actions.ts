@@ -6,11 +6,28 @@
 import {
   followGame as followGameService,
   unfollowGame as unfollowGameService,
+  createGameReview as svcCreateReview,
+  updateGameReview as svcUpdateReview,
+  deleteGameReview as svcDeleteReview,
+  type CreateReviewInput,
+  type UpdateReviewInput,
+  type ReviewResult,
 } from "@/lib/games/service";
 
 export interface ActionResult {
   ok: boolean;
   error?: string;
+}
+
+export interface ReviewActionResult extends ActionResult {
+  status: ReviewResult["status"];
+  reviewId?: string;
+}
+
+function reviewToAction(r: ReviewResult): ReviewActionResult {
+  return r.ok
+    ? { ok: true, status: r.status, reviewId: r.reviewId }
+    : { ok: false, status: r.status, error: r.error ?? "Review action failed" };
 }
 
 export async function followGameAction(
@@ -27,4 +44,22 @@ export async function unfollowGameAction(
   const res = await unfollowGameService(gameId);
   if (res.ok) return { ok: true };
   return { ok: false, error: res.error ?? "Unfollow failed" };
+}
+
+export async function createReviewAction(
+  input: CreateReviewInput,
+): Promise<ReviewActionResult> {
+  return reviewToAction(await svcCreateReview(input));
+}
+
+export async function updateReviewAction(
+  input: UpdateReviewInput,
+): Promise<ReviewActionResult> {
+  return reviewToAction(await svcUpdateReview(input));
+}
+
+export async function deleteReviewAction(
+  reviewId: string,
+): Promise<ReviewActionResult> {
+  return reviewToAction(await svcDeleteReview(reviewId));
 }

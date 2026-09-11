@@ -3,6 +3,7 @@
 // Protected route; shows user's notifications with mark-as-read actions.
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyNotifications, getUnreadNotificationCount } from "@/lib/notifications/queries";
@@ -79,6 +80,30 @@ export default async function NotificationsPage() {
     actor: n.actor_id ? actorProfiles.get(n.actor_id) ?? null : null,
   }));
 
+  // Resolve navigation targets for notifications whose reference_id is a
+  // comment (comment_on_post / reply_to_comment / comment_vote). The post id
+  // is needed to build the /post/[id] URL, so map comment ids -> post ids.
+  const commentRefIds = Array.from(
+    new Set(
+      notifications
+        .filter((n) =>
+          ["comment_on_post", "reply_to_comment", "comment_vote"].includes(n.type),
+        )
+        .map((n) => n.reference_id)
+        .filter(Boolean) as string[],
+    ),
+  );
+  const commentTargets = new Map<string, string>();
+  if (commentRefIds.length > 0) {
+    const { data: comments } = await supabase
+      .from("comments")
+      .select("id, post_id")
+      .in("id", commentRefIds);
+    for (const c of comments ?? []) {
+      commentTargets.set(c.id, c.post_id);
+    }
+  }
+
   return (
     <main className="container-x py-8 sm:py-10">
       <header className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -115,7 +140,11 @@ export default async function NotificationsPage() {
       ) : (
         <ul className="space-y-3" role="list" aria-label="Notifications">
           {notifications.map((n) => (
-            <NotificationItem key={n.id} notification={n} />
+            <NotificationItem
+              key={n.id}
+              notification={n}
+              commentTargets={commentTargets}
+            />
           ))}
         </ul>
       )}
@@ -125,12 +154,17 @@ export default async function NotificationsPage() {
 
 interface NotificationItemProps {
   notification: NotificationWithActor;
+  commentTargets: Map<string, string>;
 }
 
-function NotificationItem({ notification }: NotificationItemProps) {
+function NotificationItem({
+  notification,
+  commentTargets,
+}: NotificationItemProps) {
   const { read, actor, created_at } = notification;
 
   const { label, icon: Icon } = getNotificationMeta(notification);
+  const href = getNotificationHref(notification, commentTargets);
 
   return (
     <li
@@ -142,18 +176,27 @@ function NotificationItem({ notification }: NotificationItemProps) {
         <Icon size={16} />
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className={href ? "min-w-0 flex-1" : "min-w-0 flex-1"}>
         <p className="text-sm text-fg">
-          {actor && (
-            <span className="font-semibold hover:text-accent">
-              @{actor.username}
-            </span>
-          )}
-          {label}
-          {notification.reference_id && (
-            <span className="ml-1 font-medium text-text-secondary hover:text-accent transition-colors">
-              · View
-            </span>
+          {href ? (
+            <Link href={href} className="hover:text-accent">
+              {actor && (
+                <span className="font-semibold">@{actor.username}</span>
+              )}
+              {label}
+              {notification.reference_id && (
+                <span className="ml-1 font-medium text-text-secondary">
+                  · View
+                </span>
+              )}
+            </Link>
+          ) : (
+            <>
+              {actor && (
+                <span className="font-semibold">@{actor.username}</span>
+              )}
+              {label}
+            </>
           )}
         </p>
 
@@ -174,6 +217,29 @@ function NotificationItem({ notification }: NotificationItemProps) {
       )}
     </li>
   );
+}
+
+function getNotificationHref(
+  notification: NotificationWithActor,
+  commentTargets: Map<string, string>,
+): string | null {
+  const { type, reference_id } = notification;
+  if (!reference_id) return null;
+
+  switch (type) {
+    case "post_vote":
+      return `/post/${reference_id}`;
+    case "comment_on_post":
+    case "reply_to_comment":
+    case "comment_vote": {
+      const postId = commentTargets.get(reference_id);
+      return postId ? `/post/${postId}` : null;
+    }
+    case "report_resolved":
+      return null;
+    default:
+      return null;
+  }
 }
 
 function getNotificationMeta(notification: NotificationWithActor): {
