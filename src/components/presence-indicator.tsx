@@ -1,29 +1,73 @@
 "use client";
-// Presence indicator — V2 identity layer extension
-// Uses existing profile/auth; no new DB table required for V1 presence
-// States: online / away / busy / offline / invisible (per spec §8)
+// Presence indicator — lives from the user_presence table (025) via realtime.
+// States map: online -> online, away -> away, in_voice -> busy, offline/unk -> offline
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type PresenceStatus = "online" | "away" | "busy" | "offline" | "invisible";
 
 interface PresenceProps {
-  userId?: string;
+  userId: string;
   username?: string;
   size?: number;
   className?: string;
 }
 
-// V2 extension hook: for now, presence is derived deterministically from the
-// supplied userId (presence values are not yet persisted; V3 will replace this
-// with realtime subscription). Returning a memoized value avoids setState in
-// useEffect and the cascading-render warning.
-function resolveStatus(_userId: string | undefined): PresenceStatus {
-  return _userId ? "online" : "offline";
+function mapStatus(db: string | null | undefined): PresenceStatus {
+  switch (db) {
+    case "online":
+      return "online";
+    case "away":
+      return "away";
+    case "in_voice":
+      return "busy";
+    default:
+      return "offline";
+  }
 }
 
 export function PresenceIndicator({ userId, username, size = 10, className = "" }: PresenceProps) {
-  const status = useMemo(() => resolveStatus(userId), [userId]);
+  const [dbStatus, setDbStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    supabase
+      .from("user_presence")
+      .select("status")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active && data) setDbStatus((data as { status: string }).status);
+      });
+
+    const channel = supabase
+      .channel(`presence:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_presence",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          if (!active) return;
+          const row = payload.new as { status?: string } | null;
+          setDbStatus(row?.status ?? null);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  const status = useMemo(() => mapStatus(dbStatus), [dbStatus]);
 
   const color = {
     online: "bg-success",

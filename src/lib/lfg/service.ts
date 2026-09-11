@@ -440,6 +440,35 @@ export async function deleteLfgSession(
   return { ok: true, status: "deleted", sessionId };
 }
 
+export type JoinVerdict = "unavailable" | "full" | "forbidden" | "joinable";
+
+/**
+ * Pure gate for joining an LFG session. Encapsulates the documented
+ * lifecycle + capacity + self-join rules so they are unit-testable without
+ * a live DB. Returns the intended LfgResult status.
+ */
+export function joinVerdict(input: {
+  status: SessionStatus;
+  playersRequired: number;
+  hostId: string | null;
+  userId: string;
+  currentCount: number;
+}): JoinVerdict {
+  const { status, playersRequired, hostId, userId, currentCount } = input;
+  if (
+    status === "CLOSED" ||
+    status === "CANCELLED" ||
+    status === "COMPLETED" ||
+    status === "EXPIRED"
+  ) {
+    return "unavailable";
+  }
+  if (status === "FULL") return "full";
+  if (hostId === userId) return "forbidden";
+  if (currentCount >= playersRequired) return "full";
+  return "joinable";
+}
+
 export async function joinLfgSession(
   sessionId: string,
 ): Promise<LfgResult> {
@@ -459,20 +488,6 @@ export async function joinLfgSession(
   if (!target) return { ok: false, status: "not_found", error: "Session not found" };
 
   const t = target as { status: SessionStatus; players_required: number; host_id: string };
-  if (
-    t.status === "CLOSED" ||
-    t.status === "CANCELLED" ||
-    t.status === "COMPLETED" ||
-    t.status === "EXPIRED"
-  ) {
-    return { ok: false, status: "unavailable", error: `Session is ${t.status}` };
-  }
-  if (t.status === "FULL") {
-    return { ok: false, status: "full", error: "Session is full" };
-  }
-  if (t.host_id === userId) {
-    return { ok: false, status: "forbidden", error: "Hosts cannot join their own session" };
-  }
 
   // Capacity check: count current participants.
   const { count, error: cerr } = await session
@@ -482,8 +497,22 @@ export async function joinLfgSession(
   if (cerr || typeof count !== "number") {
     return { ok: false, status: "error", error: cerr?.message ?? "Count failed" };
   }
-  if (count >= t.players_required) {
+
+  const verdict = joinVerdict({
+    status: t.status,
+    playersRequired: t.players_required,
+    hostId: t.host_id,
+    userId,
+    currentCount: count,
+  });
+  if (verdict === "unavailable") {
+    return { ok: false, status: "unavailable", error: `Session is ${t.status}` };
+  }
+  if (verdict === "full") {
     return { ok: false, status: "full", error: "Session is full" };
+  }
+  if (verdict === "forbidden") {
+    return { ok: false, status: "forbidden", error: "Hosts cannot join their own session" };
   }
 
   const { error } = await session
@@ -519,4 +548,5 @@ export const __test = {
   MAX_QUERY_LEN,
   MAX_PAGE,
   MAX_TITLE_LEN,
+  joinVerdict,
 };

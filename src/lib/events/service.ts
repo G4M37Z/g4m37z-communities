@@ -71,6 +71,11 @@ export interface EventRecord {
   end_time: string | null;
   capacity: number | null;
   status: EventStatus;
+  lifecycle_state: "draft" | "published" | "live" | "completed" | "cancelled";
+  max_attendees: number | null;
+  reminder_minutes: number | null;
+  is_pinned: boolean;
+  event_image_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +100,10 @@ export interface CreateEventInput {
   startTime?: string | null;
   endTime?: string | null;
   capacity?: number | null;
+  maxAttendees?: number | null;
+  reminderMinutes?: number | null;
+  isPinned?: boolean | null;
+  eventImageUrl?: string | null;
 }
 
 export interface UpdateEventInput {
@@ -104,8 +113,23 @@ export interface UpdateEventInput {
   startTime?: string | null;
   endTime?: string | null;
   capacity?: number | null;
+  maxAttendees?: number | null;
+  reminderMinutes?: number | null;
+  isPinned?: boolean | null;
+  eventImageUrl?: string | null;
   status?: EventStatus;
 }
+
+export type LifecycleState = EventRecord["lifecycle_state"];
+
+const LIFECYCLE_BY_STATUS: Record<EventStatus, LifecycleState> = {
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  FULL: "published",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+  EXPIRED: "completed",
+};
 
 export interface EventResult {
   ok: boolean;
@@ -222,8 +246,9 @@ export async function listEvents(
   let q = supabase
     .from("events")
     .select(
-      "id, community_id, title, description, event_type, start_time, end_time, capacity, status, created_at, updated_at, communities:communities!events_community_id_fkey ( name, slug )",
+      "id, community_id, title, description, event_type, start_time, end_time, capacity, status, lifecycle_state, max_attendees, reminder_minutes, is_pinned, event_image_url, created_at, updated_at, communities:communities!events_community_id_fkey ( name, slug )",
     )
+    .order("is_pinned", { ascending: false })
     .order("start_time", { ascending: true, nullsFirst: false })
     .limit(clamp(options.limit ?? 24, 1, MAX_PAGE));
 
@@ -270,7 +295,7 @@ export async function getEvent(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, community_id, title, description, event_type, start_time, end_time, capacity, status, created_at, updated_at, communities:communities!events_community_id_fkey ( name, slug )",
+      "id, community_id, title, description, event_type, start_time, end_time, capacity, status, lifecycle_state, max_attendees, reminder_minutes, is_pinned, event_image_url, created_at, updated_at, communities:communities!events_community_id_fkey ( name, slug )",
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -355,6 +380,24 @@ export async function createEvent(
     }
     capacity = input.capacity;
   }
+  // max_attendees (V4) mirrors capacity as the UI-facing cap. When explicitly
+  // null, the event is unlimited.
+  let maxAttendees: number | null = null;
+  if (input.maxAttendees !== undefined && input.maxAttendees !== null) {
+    if (!Number.isInteger(input.maxAttendees) || input.maxAttendees < 1 || input.maxAttendees > 1000) {
+      return { ok: false, status: "error", error: "Invalid max attendees (1..1000)" };
+    }
+    maxAttendees = input.maxAttendees;
+  } else if (capacity !== null) {
+    maxAttendees = capacity;
+  }
+  let reminderMinutes: number | null = 15;
+  if (input.reminderMinutes !== undefined && input.reminderMinutes !== null) {
+    if (!Number.isInteger(input.reminderMinutes) || input.reminderMinutes < 0 || input.reminderMinutes > 10080) {
+      return { ok: false, status: "error", error: "Invalid reminder minutes" };
+    }
+    reminderMinutes = input.reminderMinutes;
+  }
   if (input.startTime && input.endTime && new Date(input.endTime) < new Date(input.startTime)) {
     return { ok: false, status: "error", error: "end_time must be >= start_time" };
   }
@@ -368,7 +411,12 @@ export async function createEvent(
     start_time: input.startTime ?? null,
     end_time: input.endTime ?? null,
     capacity,
+    max_attendees: maxAttendees,
+    reminder_minutes: reminderMinutes,
+    is_pinned: input.isPinned ?? false,
+    event_image_url: input.eventImageUrl?.trim().slice(0, 2000) || null,
     status: "DRAFT" as EventStatus,
+    lifecycle_state: "draft" as LifecycleState,
   };
   const { data, error } = await session
     .from("events")
@@ -416,11 +464,32 @@ export async function updateEvent(
       return { ok: false, status: "error", error: "Invalid capacity (1..1000)" };
     }
   }
+  if (input.maxAttendees !== undefined) {
+    if (input.maxAttendees === null) {
+      update.max_attendees = null;
+    } else if (Number.isInteger(input.maxAttendees) && input.maxAttendees >= 1 && input.maxAttendees <= 1000) {
+      update.max_attendees = input.maxAttendees;
+    } else {
+      return { ok: false, status: "error", error: "Invalid max attendees (1..1000)" };
+    }
+  }
+  if (input.reminderMinutes !== undefined) {
+    if (input.reminderMinutes === null) {
+      update.reminder_minutes = null;
+    } else if (Number.isInteger(input.reminderMinutes) && input.reminderMinutes >= 0 && input.reminderMinutes <= 10080) {
+      update.reminder_minutes = input.reminderMinutes;
+    } else {
+      return { ok: false, status: "error", error: "Invalid reminder minutes" };
+    }
+  }
+  if (input.isPinned !== undefined) update.is_pinned = Boolean(input.isPinned);
+  if (input.eventImageUrl !== undefined) update.event_image_url = input.eventImageUrl?.trim().slice(0, 2000) || null;
   if (input.status !== undefined) {
     if (!EVENT_STATUSES.includes(input.status)) {
       return { ok: false, status: "error", error: "Invalid status" };
     }
     update.status = input.status;
+    update.lifecycle_state = LIFECYCLE_BY_STATUS[input.status];
   }
 
   // Re-validate time sanity on UPDATE.
@@ -492,6 +561,36 @@ export async function rsvpEvent(eventId: string): Promise<EventResult> {
   return rsvpEventBestEffort(eventId, userId);
 }
 
+export type RsvpVerdict = "unavailable" | "full" | "joinable";
+
+/**
+ * Pure gate for RSVPing against an event. Encapsulates the documented
+ * lifecycle + capacity rules (V4 effective capacity = capacity ?? max_attendees)
+ * so they are unit-testable without a live DB.
+ */
+export function rsvpVerdict(input: {
+  status: string;
+  capacity: number | null;
+  maxAttendees: number | null;
+  currentCount: number;
+}): RsvpVerdict {
+  const { status, capacity, maxAttendees, currentCount } = input;
+  if (
+    status === "CANCELLED" ||
+    status === "COMPLETED" ||
+    status === "EXPIRED"
+  ) {
+    return "unavailable";
+  }
+  if (status === "FULL") return "full";
+  if (status === "DRAFT") return "unavailable";
+  const effectiveCapacity = capacity ?? maxAttendees;
+  if (effectiveCapacity !== null && currentCount >= effectiveCapacity) {
+    return "full";
+  }
+  return "joinable";
+}
+
 /**
  * Best-effort fallback used when the try_rsvp_event RPC is not installed.
  * This performs lifecycle + capacity checks sequentially; two simultaneous
@@ -506,26 +605,28 @@ async function rsvpEventBestEffort(
   const session = createAdminClient();
   const { data: target, error: terr } = await session
     .from("events")
-    .select("status, capacity")
+    .select("status, capacity, max_attendees")
     .eq("id", eventId)
     .maybeSingle();
   if (terr) return { ok: false, status: "error", error: terr.message };
   if (!target) return { ok: false, status: "not_found", error: "Event not found" };
-  const t = target as { status: EventStatus; capacity: number | null };
-  if (
-    t.status === "CANCELLED" ||
-    t.status === "COMPLETED" ||
-    t.status === "EXPIRED"
-  ) {
-    return { ok: false, status: "unavailable", error: `Event is ${t.status}` };
-  }
-  if (t.status === "FULL") {
-    return { ok: false, status: "full", error: "Event is full" };
-  }
-  if (t.status === "DRAFT") {
-    return { ok: false, status: "unavailable", error: "Event is not published" };
-  }
-  if (t.capacity !== null) {
+  const t = target as {
+    status: EventStatus;
+    capacity: number | null;
+    max_attendees: number | null;
+  };
+
+  let currentCount = 0;
+  const effectiveCapacity = t.capacity ?? t.max_attendees;
+  // Only count participants when a capacity limit applies and the event is
+  // still joinable on lifecycle grounds.
+  const lifecycleOpen =
+    t.status !== "CANCELLED" &&
+    t.status !== "COMPLETED" &&
+    t.status !== "EXPIRED" &&
+    t.status !== "FULL" &&
+    t.status !== "DRAFT";
+  if (lifecycleOpen && effectiveCapacity !== null) {
     const { count, error: cerr } = await session
       .from("event_participants")
       .select("event_id", { count: "exact", head: true })
@@ -533,10 +634,29 @@ async function rsvpEventBestEffort(
     if (cerr || typeof count !== "number") {
       return { ok: false, status: "error", error: cerr?.message ?? "Count failed" };
     }
-    if (count >= t.capacity) {
-      return { ok: false, status: "full", error: "Event is full" };
-    }
+    currentCount = count;
   }
+
+  const verdict = rsvpVerdict({
+    status: t.status,
+    capacity: t.capacity,
+    maxAttendees: t.max_attendees,
+    currentCount,
+  });
+  if (verdict === "unavailable") {
+    return {
+      ok: false,
+      status: "unavailable",
+      error:
+        t.status === "DRAFT"
+          ? "Event is not published"
+          : `Event is ${t.status}`,
+    };
+  }
+  if (verdict === "full") {
+    return { ok: false, status: "full", error: "Event is full" };
+  }
+
   const { error } = await session
     .from("event_participants")
     .insert({ event_id: eventId, user_id: userId });
@@ -570,4 +690,5 @@ export const __test = {
   MAX_DESCRIPTION_LEN,
   hashUuidForLock,
   lockKeyInt4,
+  rsvpVerdict,
 };

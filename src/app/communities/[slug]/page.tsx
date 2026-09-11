@@ -80,7 +80,7 @@ export default async function CommunityPage({
   const { data: communityRaw } = await supabase
     .from("communities")
     .select(
-      "id, name, slug, description, icon_url, banner_url, creator_id, created_at, updated_at"
+      "id, name, slug, description, icon_url, banner_url, creator_id, created_at, updated_at, capabilities"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -255,7 +255,7 @@ export default async function CommunityPage({
               About
             </h3>
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {DEFAULT_COMMUNITY_CAPABILITIES.filter(c => c.enabled && c.visible).map((c) => (
+              {DEFAULT_COMMUNITY_CAPABILITIES.filter(c => (community.capabilities?.includes(c.id) ?? c.enabled) && c.visible).map((c) => (
                 <span key={c.id} className="rounded-full border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-[0.04em] text-text-muted" title={c.description}>
                   {c.label}
                 </span>
@@ -276,6 +276,18 @@ export default async function CommunityPage({
               </div>
             </dl>
           </div>
+
+          {(community.capabilities?.includes("voice") ?? true) && (
+            <Link
+              href={`/communities/${community.slug}/voice`}
+              className="block rounded-lg border border-border bg-surface p-5 transition-colors hover:border-accent"
+            >
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                Voice rooms
+              </h3>
+              <p className="text-sm text-fg">Join a live audio room</p>
+            </Link>
+          )}
 
           {categoryNames.length > 0 && (
             <div className="rounded-lg border border-border bg-surface p-5">

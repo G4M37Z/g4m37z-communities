@@ -17,9 +17,16 @@
 // for the live verification output.
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const UUID_A = "00000000-0000-4000-8000-000000000001";
 const UUID_B = "00000000-0000-4000-8000-000000000002";
+
+const P0_SQL = readFileSync(
+  join(process.cwd(), "docs/database/014_p0_security_containment.sql"),
+  "utf8",
+);
 
 /**
  * Replicates the trigger's decision logic so we can exercise the security
@@ -158,9 +165,11 @@ describe("P1.3 — admin_set_user_role grant model", () => {
   });
 
   it("function remains intact and still requires internal admin check", () => {
-    // The function body still checks `caller_role = 'admin'` from profiles.
-    // We do not execute the SQL here; the function is unchanged.
-    // Verified live via pg_proc.
-    expect(true).toBe(true);
+    // migration 014 still REVOKEs EXECUTE from anon/authenticated and keeps
+    // service_role only; the function body's caller-role check is documented
+    // in the same file. This guards against a future migration dropping the
+    // revoke lines.
+    expect(P0_SQL).toContain("REVOKE EXECUTE ON FUNCTION public.admin_set_user_role");
+    expect(P0_SQL).toMatch(/service_role/i);
   });
 });

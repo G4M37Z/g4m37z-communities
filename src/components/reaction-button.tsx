@@ -1,8 +1,9 @@
 "use client";
 // Reaction button — V1 reactions (like/love/laugh/wow/sad/angry)
-// Extensible (add new types to DB CHECK without redesign)
+// Persisted via the setReaction server action (reactions table, RLS-guarded).
 
 import { useState, useTransition } from "react";
+import { setReaction } from "@/lib/reactions/actions";
 
 interface Props {
   postId: string;
@@ -20,20 +21,23 @@ const REACTION_TYPES = [
 ];
 
 export function ReactionButton({ postId, initialReaction = null, initialCount = 0 }: Props) {
-  const [reaction, setReaction] = useState<string | null>(initialReaction);
+  const [reaction, setReactionState] = useState<string | null>(initialReaction);
   const [count, setCount] = useState(initialCount);
   const [pending, startTransition] = useTransition();
 
   function onClick(type: string) {
     const was = reaction;
     const willBe = was === type ? null : type;
-    setReaction(willBe);
-    setCount((c) => (willBe === null ? Math.max(0, c - 1) : (was === null ? c + 1 : c)));
+    setReactionState(willBe);
+    setCount((c) => (willBe === null ? Math.max(0, c - 1) : was === null ? c + 1 : c));
 
     startTransition(async () => {
-      // Response insert/remove via server action (verified DB table reactions exists)
-      // Actual server action not yet implemented — UI reflects desired state
-      // For V1 demonstration, show intended state; full integration requires server action
+      const res = await setReaction(postId, willBe);
+      if (!res.ok) {
+        // Roll back to the previously reflected state on server failure.
+        setReactionState(was);
+        setCount((c) => (willBe === null ? c + 1 : was === null ? Math.max(0, c - 1) : c));
+      }
     });
   }
 

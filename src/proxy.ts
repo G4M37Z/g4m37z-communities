@@ -1,40 +1,27 @@
 // ============================================================================
 // src/proxy.ts
-// Refresh the Supabase session cookie on every request and gate the
-// authenticated routes to signed-in users.
+// Next.js 16 request proxy (formerly middleware). Refreshes the Supabase
+// session cookie on eligible requests — the pattern referenced by
+// src/lib/supabase/server.ts ("session refresh is handled by middleware").
 //
-// Next.js 16 renamed `middleware.ts` → `proxy.ts` and the exported
-// function name from `middleware` → `proxy`. See:
-// https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+// Note: this proxy previously didn't exist; the session was only refreshed
+// lazily inside createClient(). With this file, tokens that are close to
+// expiring are refreshed centrally and no protected page blacks out.
 // ============================================================================
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_PREFIXES = [
-  "/home",
-  "/create",
-  "/settings",
-  "/notifications",
-  "/admin",
-];
-
-function isProtected(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
-}
-
 export async function proxy(request: NextRequest) {
-  // If Supabase env vars aren't configured, short-circuit. Without this
-  // guard the proxy throws on every request.
+  let response = NextResponse.next({ request });
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
-    return NextResponse.next({ request });
+    // Not configured — let every page render; the stub client already
+    // returns empty data.
+    return response;
   }
-
-  const response = NextResponse.next({ request });
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {
@@ -42,32 +29,31 @@ export async function proxy(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
+        for (const { name, value } of cookiesToSet) {
+          request.cookies.set(name, value);
+        }
+        response = NextResponse.next({ request });
+        for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
-        });
+        }
       },
     },
   });
 
-  // Refresh the session — must be called in proxy to keep cookies alive.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && isProtected(request.nextUrl.pathname)) {
-    const next = encodeURIComponent(request.nextUrl.pathname);
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    redirectUrl.search = `?next=${next}`;
-    return NextResponse.redirect(redirectUrl);
-  }
+  // Refresh the session (no-op when valid) so cookies stay fresh.
+  await supabase.auth.getUser();
 
   return response;
 }
 
 export const config = {
   matcher: [
-    // Skip static assets and Next internals.
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * Refresh the session on all routes except static assets and API internals:
+     * - Next.js internals: _next/static, _next/image
+     * - public files
+     * - favicon.ico
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

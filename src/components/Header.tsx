@@ -66,6 +66,7 @@ export async function Header() {
           {user && <NotificationBell />}
           {user ? (
             <UserMenu
+              userId={user.id}
               username={username}
               avatarUrl={avatarUrl}
               isAdmin={role === "admin"}

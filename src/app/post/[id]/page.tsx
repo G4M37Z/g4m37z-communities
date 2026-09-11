@@ -12,6 +12,7 @@ import { PostVoteControl } from "@/components/voting/PostVoteControl";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { ReportButton } from "@/components/ReportButton";
 import { RealtimeComments } from "@/components/comments/RealtimeComments";
+import { ReactionButton } from "@/components/reaction-button";
 import { getCommentThread } from "@/lib/comments/queries";
 import type { Post } from "@/types/database";
 
@@ -93,17 +94,33 @@ export default async function PostPage({
   if (!postRaw) notFound();
   const post = postRaw as unknown as JoinedPost;
 
-  // Fetch score, current user's vote, and the comment thread in parallel.
+  // Fetch score, current user's vote, reactions, and the comment thread in parallel.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [
-    { data: { user } },
     { data: votes },
+    { count: reactionCount },
+    { data: myReactionRow },
     thread,
   ] = await Promise.all([
-    supabase.auth.getUser(),
     supabase
       .from("post_votes")
       .select("value")
       .eq("post_id", id),
+    supabase
+      .from("reactions")
+      .select("user_id", { count: "exact", head: true })
+      .eq("post_id", id),
+    user
+      ? supabase
+          .from("reactions")
+          .select("reaction_type")
+          .eq("post_id", id)
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
     getCommentThread(id, null),
   ]);
 
@@ -218,7 +235,7 @@ export default async function PostPage({
             )}
 
             <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-              <div className="flex items-center gap-4 text-sm text-text-muted">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted">
                 <span id="comments" className="inline-flex items-center gap-1">
                   <MessageSquare size={14} />
                   {post.comment_count ?? 0}{" "}
@@ -228,6 +245,13 @@ export default async function PostPage({
                   <ReportButton targetType="post" targetId={post.id} />
                 )}
               </div>
+              <ReactionButton
+                postId={post.id}
+                initialReaction={
+                  (myReactionRow as { reaction_type: string } | null)?.reaction_type ?? null
+                }
+                initialCount={reactionCount ?? 0}
+              />
               {isOwner && <PostActions post={post} />}
             </footer>
           </div>

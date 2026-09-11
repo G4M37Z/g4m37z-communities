@@ -86,6 +86,8 @@ export interface Community {
   created_at: string;
   updated_at: string;
   category_id: string | null;
+  capabilities?: string[];
+  is_private?: boolean;
 }
 
 export interface CommunityMember {
@@ -175,7 +177,9 @@ export type NotificationType =
   | "moderation_action"
   | "report_resolved"
   | "mention"
-  | "community_invite";
+  | "community_invite"
+  | "follow"
+  | "event_rsvp";
 
 export interface Notification {
   id: string;
