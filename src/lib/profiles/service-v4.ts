@@ -10,7 +10,7 @@
 // ============================================================================
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface GamingProfile {
@@ -75,7 +75,7 @@ export async function updateGamingProfile(
 export async function getGamingProfile(
   userId: string
 ): Promise<GamingProfile | null> {
-  const client = await createServerClient();
+  const client = await createClient();
   const { data, error } = await client
     .from("profiles")
     .select("id, gaming_handle, platforms, favorite_games, play_style, lfg_available, presence_state")
