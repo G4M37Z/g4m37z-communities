@@ -287,3 +287,9 @@ This document is a navigation aid. **Before any database work, run live
 inspection queries via `run-sql.cmd`** and confirm column names, types,
 indexes, constraints, and policy expressions match the current state of
 the database. The schema evolves; this document may be stale.
+
+## Termux interface (this session)
+- Authorised SQL interface: `psql` via `~/.supabase_env`; file-only SQL execution.
+- Windows `run-sql.cmd` is for Hermes only; Termux does NOT use it.
+- SQL file inspection ≠ live DB application; verify with SELECT / information_schema only.
+- Credentials: `.env.local` untouched; never expose DATABASE_URL or service role.
