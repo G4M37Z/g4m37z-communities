@@ -33,6 +33,17 @@
 | 016 | `016_lfg_policies.sql` | LFG domain |
 | 017 | `017_events_policies.sql` | events domain |
 | 018 | `018_tournaments_policies.sql` | tournaments domain |
+| 019 | `019_creators_policies.sql` | creators domain |
+| 020 | `020_messaging_policies.sql` | conversations + messages + RLS |
+| 021 | `021_social_graph_policies.sql` | follows / profiles:followed_by feeds |
+| 022 | `022_v4_gaming_profiles.sql` | V4 gaming columns on `profiles` |
+| 023 | `023_v4_lfg_session.sql` | V4 LFG session enrichment |
+| 024 | `024_v4_events_lifecycle.sql` | V4 events lifecycle (`lifecycle_state`, `max_attendees`, `reminder_minutes`, `is_pinned`, `event_image_url`) |
+| 025 | `025_v4_presence_state.sql` | `user_presence` table + realtime publication + RLS |
+| 026 | `026_v4_community_capabilities.sql` | `communities.capabilities` TEXT[] + moderator update policy |
+| 027 | `027_v4_notification_triggers.sql` | follow / @mention / event-RSVP notification triggers + `notifications.type` CHECK extension |
+| 028 | `028_v4_private_communities.sql` | `communities.is_private` + private posts/communities RLS |
+| 029 | `029_v4_notification_preferences.sql` | `profiles.notification_prefs` JSONB + `notification_enabled()` helper (honored by V4 triggers) |
 
 The migrations are designed to be idempotent (use `IF NOT EXISTS`,
 `DROP POLICY IF EXISTS`, `DO $$ ... EXCEPTION WHEN duplicate_object`,

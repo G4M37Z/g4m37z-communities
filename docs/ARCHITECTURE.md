@@ -233,20 +233,34 @@
 
 ### Framework
 - **Vitest** for unit tests (Node environment, jsdom not configured).
-- Each V3 service exports a `__test` namespace with the pure / deterministic
-  helpers so unit tests can exercise the contract without a live Supabase.
-- 91 tests across 9 files at V3.6.
+- Each V3/V4 service exports a `__test` namespace with the pure / deterministic
+  helpers so unit tests can exercise the contract without a live Supabase
+  (e.g. `joinVerdict` in LFG, `rsvpVerdict` in Events, input validators).
+- RLS / DB-level contracts are guarded by static regression tests that read
+  the migration files under `docs/database/` and assert the policy text.
+- 120 tests across 15 files at HEAD (V4; includes the browser suite below).
 
 ### Commands
 ```
 npx eslint .                # 0 errors expected (warnings allowed)
 npx tsc --noEmit            # 0 errors expected
-npm run build               # PASS expected
+npx next build --webpack    # PASS expected (Turbopack is WASM-only on this host)
 npx vitest run              # all tests pass expected
 ```
 
+### Browser smoke tests (`tests/browser/smoke.spec.ts`)
+- Uses the **native WebDriver HTTP protocol** (no Playwright) against a real
+  Chromium 149 / ChromeDriver 149 headless session, mobile viewport 375×812.
+- **Prerequisites** (both must be running before `npx vitest run`):
+  ```
+  chromedriver --port=9515 &   # WebDriver endpoint @ 127.0.0.1:9515
+  npx next start -p 3000 &     # or next dev; override with TEST_BASE_URL
+  ```
+- The `source` check accepts `<html` without a leading `<!DOCTYPE html>`
+  because Chromium's page-source serialization can omit the DOCTYPE.
+
 ### DB-layer testing
-- Live DB inspection via `run-sql.cmd <path-to-sql-file>`.
+- Live DB inspection via `run-sql <path-to-sql-file>`.
 - Migrations are applied via `run-sql <migration>` and verified with read-only
   queries immediately after.
 - DB-layer happy paths for V3 services are NOT exercised from the test
