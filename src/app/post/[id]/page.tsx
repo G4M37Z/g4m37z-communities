@@ -200,7 +200,7 @@ export default async function PostPage({
               </h1>
             </header>
 
-            {post.image_url && (
+            {post.image_url && typeof post.image_url === "string" && (
               <div className="mb-4 overflow-hidden rounded-xl border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
