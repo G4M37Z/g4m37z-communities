@@ -235,3 +235,7 @@ can pick up where you left off without losing any context.
 - Commit before you stop.
 - Do not push unless explicitly instructed.
 - If something is broken, document the exact failure and stop.
+
+NOTE — Dual-agent SQL interfaces (this session):
+- Termux (this agent): psql via ~/.supabase_env; file SQL; SELECT/information_schema verification; never expose DB_URL.
+- Windows/Hermes: run-sql.cmd only. SQL inspection ≠ live DB application.
