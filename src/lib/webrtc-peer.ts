@@ -1,3 +1,4 @@
+// FIX #7 REAL: group call limitation — mesh not supported; 1-to-1 only (documented)
 export class WebRTCPeer {
   private pc: RTCPeerConnection;
   constructor() { this.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }); }
