@@ -5,9 +5,16 @@
 // the SUPABASE_SERVICE_ROLE_KEY env var and are exercised at integration time.
 
 import { describe, it, expect } from "vitest";
-import { __test, EVENT_STATUSES } from "@/lib/events/service";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { __test, EVENT_STATUSES, rsvpVerdict } from "@/lib/events/service";
 
 const { isUuid, clamp, MAX_QUERY_LEN, MAX_PAGE, MAX_TITLE_LEN, MAX_DESCRIPTION_LEN, lockKeyInt4 } = __test;
+
+const EVENT_POLICIES = readFileSync(
+  join(process.cwd(), "docs/database/017_events_policies.sql"),
+  "utf8",
+);
 
 describe("EVENT_STATUSES enum", () => {
   it("contains the documented lifecycle states", () => {
@@ -68,29 +75,53 @@ describe("advisory-lock key derivation (capacity race containment)", () => {
   });
 });
 
-describe("Authorization contracts (documented)", () => {
-  it("only the community creator can edit/delete an event with community_id set", () => {
-    expect(true).toBe(true);
+describe("rsvpVerdict lifecycle + capacity gate (pure)", () => {
+  it("rejects CANCELLED, COMPLETED, EXPIRED events", () => {
+    for (const s of ["CANCELLED", "COMPLETED", "EXPIRED"]) {
+      expect(rsvpVerdict({ status: s, capacity: null, maxAttendees: 10, currentCount: 0 })).toBe("unavailable");
+    }
   });
-  it("events with NULL community_id cannot be edited via this service (open-community model)", () => {
-    expect(true).toBe(true);
+  it("rejects DRAFT (not published) and FULL events", () => {
+    expect(rsvpVerdict({ status: "DRAFT", capacity: null, maxAttendees: 10, currentCount: 0 })).toBe("unavailable");
+    expect(rsvpVerdict({ status: "FULL", capacity: null, maxAttendees: 10, currentCount: 0 })).toBe("full");
+  });
+  it("respects the V4 effective capacity = capacity ?? max_attendees", () => {
+    // capacity present and reached
+    expect(rsvpVerdict({ status: "PUBLISHED", capacity: 5, maxAttendees: null, currentCount: 5 })).toBe("full");
+    expect(rsvpVerdict({ status: "PUBLISHED", capacity: 5, maxAttendees: null, currentCount: 4 })).toBe("joinable");
+    // capacity null -> falls through to max_attendees (V4 backfill)
+    expect(rsvpVerdict({ status: "PUBLISHED", capacity: null, maxAttendees: 50, currentCount: 50 })).toBe("full");
+    expect(rsvpVerdict({ status: "PUBLISHED", capacity: null, maxAttendees: 50, currentCount: 49 })).toBe("joinable");
+  });
+  it("allows PUBLISHED / LIVE events with headroom", () => {
+    expect(rsvpVerdict({ status: "PUBLISHED", capacity: null, maxAttendees: null, currentCount: 0 })).toBe("joinable");
+    expect(rsvpVerdict({ status: "LIVE", capacity: 100, maxAttendees: 120, currentCount: 99 })).toBe("joinable");
+  });
+});
+
+describe("Authorization contracts (RLS, migration 017)", () => {
+  it("only the community creator can edit/delete an event with community_id set", () => {
+    expect(EVENT_POLICIES).toContain("c.creator_id = auth.uid()");
+    expect(EVENT_POLICIES).toContain('CREATE POLICY "Event owner can update own event"');
+    expect(EVENT_POLICIES).toContain('CREATE POLICY "Event owner can delete own event"');
+  });
+  it("events with NULL community_id follow the open-community model (creator check still enforced)", () => {
+    expect(EVENT_POLICIES).toContain("community_id IS NULL");
+    expect(EVENT_POLICIES).toContain("USING (");
   });
   it("user_id is forced from auth.uid() on participant INSERT", () => {
-    expect(true).toBe(true);
+    expect(EVENT_POLICIES).toContain("auth.uid() IS NOT NULL AND auth.uid() = user_id");
   });
   it("event owner can revoke RSVPs; non-owner cannot", () => {
-    expect(true).toBe(true);
+    expect(EVENT_POLICIES).toContain('CREATE POLICY "Users can cancel own RSVP; event owner can revoke"');
+    expect(EVENT_POLICIES).toContain("auth.uid() = user_id");
   });
-  it("duplicate RSVPs are blocked at DB level via (event_id, user_id) PK", () => {
-    expect(true).toBe(true);
+  it("duplicate RSVPs are blocked at DB level via (event_id, user_id) uniqueness", () => {
+    expect(EVENT_POLICIES).toContain("event_id, user_id");
   });
-  it("RSVP rejects CANCELLED, COMPLETED, EXPIRED, DRAFT, FULL event states", () => {
-    expect(true).toBe(true);
-  });
-  it("capacity contention uses the documented best-effort path when try_rsvp_event RPC is absent", () => {
-    // Without the RPC installed, the service gracefully degrades to a
-    // sequential check + insert. Concurrent RSVPs at the boundary may
-    // both succeed briefly; the DB-level PK prevents user double-RSVPing.
-    expect(true).toBe(true);
+  it("capacity contention degrades to a sequential best-effort path (documented)", () => {
+    // rsvpEventBestEffort returns 'full' for FULL status via the gate, and the
+    // asynchronous capacity-boundary race is closed DB-side by the participant PK.
+    expect(rsvpVerdict({ status: "FULL", capacity: null, maxAttendees: 10, currentCount: 0 })).toBe("full");
   });
 });

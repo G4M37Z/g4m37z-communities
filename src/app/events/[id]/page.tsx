@@ -76,12 +76,13 @@ export default async function EventDetailPage({
     getMyRsvp(supabase, event.id, userId),
   ]);
 
+  const effectiveCapacity = event.capacity ?? event.max_attendees;
   const isUnavailable =
     event.status === "CANCELLED" ||
     event.status === "COMPLETED" ||
     event.status === "EXPIRED" ||
     event.status === "DRAFT";
-  const isFull = event.capacity !== null && participantCount >= event.capacity;
+  const isFull = effectiveCapacity !== null && participantCount >= effectiveCapacity;
 
   return (
     <main className="container-x py-8 pb-20">
@@ -99,11 +100,24 @@ export default async function EventDetailPage({
           <span className="rounded-md border border-border bg-surface px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
             {STATUS_LABEL[event.status] ?? event.status}
           </span>
+          {event.is_pinned && (
+            <span className="rounded-md border border-accent bg-accent/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-accent">
+              Pinned
+            </span>
+          )}
         </div>
         {event.description && (
           <p className="whitespace-pre-wrap text-base text-text-secondary">
             {event.description}
           </p>
+        )}
+        {event.event_image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.event_image_url}
+            alt={`${event.title} image`}
+            className="mt-2 w-full max-w-md rounded-xl border border-border object-cover"
+          />
         )}
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
           {event.community_name && (
@@ -148,7 +162,7 @@ export default async function EventDetailPage({
               Capacity
             </dt>
             <dd className="text-fg" data-testid="event-participant-count">
-              {participantCount} / {event.capacity ?? "∞"}
+              {participantCount} / {effectiveCapacity ?? "∞"}
             </dd>
           </div>
         </dl>

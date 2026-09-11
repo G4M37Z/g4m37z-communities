@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CommunityCapabilitiesForm } from "@/components/community-capabilities-form";
+import { PrivacyToggle } from "@/components/privacy-toggle";
 import { getCommunityContext } from "@/lib/community-service";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,16 @@ export default async function CommunitySettingsPage({
         Manage capabilities for {ctx.community.name}. Only moderators and
         admins can change these.
       </p>
-      <CommunityCapabilitiesForm />
+      <div className="mb-4 space-y-4">
+        <PrivacyToggle
+          communityId={ctx.community.id}
+          isPrivate={ctx.community.is_private}
+        />
+        <CommunityCapabilitiesForm
+          communityId={ctx.community.id}
+          initialEnabled={ctx.community.capabilities ?? []}
+        />
+      </div>
     </main>
   );
 }

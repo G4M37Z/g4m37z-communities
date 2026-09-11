@@ -6,6 +6,7 @@ import "./container-queries.css";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
+import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 import { createClient } from "@/lib/supabase/server";
 
 const inter = Inter({
@@ -94,6 +95,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="flex min-h-full flex-col bg-bg font-sans text-fg antialiased">
         <Header />
+        {user && <PresenceHeartbeat />}
         <main className="flex-1">{children}</main>
         <Footer user={user} />
         <BottomNav username={username} />

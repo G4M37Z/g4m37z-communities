@@ -224,3 +224,97 @@ export async function checkSlugAvailability(slug: string) {
   if (data) return { available: false, reason: "That slug is already taken." };
   return { available: true };
 }
+// ============================================================================
+// saveCapabilities
+// V4: persists the community capabilities[] toggle set from the settings page.
+// RLS "Moderators can update community settings" (026) gates the update.
+// ============================================================================
+
+const ALLOWED_CAPABILITY_IDS = new Set([
+  "discussions",
+  "media",
+  "members",
+  "voice",
+  "events",
+  "polls",
+]);
+
+export type SaveCapabilitiesResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function saveCapabilities(
+  communityId: string,
+  enabled: string[],
+): Promise<SaveCapabilitiesResult> {
+  if (!Array.isArray(enabled) || enabled.some((id) => !ALLOWED_CAPABILITY_IDS.has(id))) {
+    return { ok: false, error: "Invalid capabilities." };
+  }
+  if (new Set(enabled).size !== enabled.length) {
+    return { ok: false, error: "Duplicate capabilities." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("communities")
+    .update({ capabilities: enabled, updated_at: new Date().toISOString() })
+    .eq("id", communityId);
+  if (error) return { ok: false, error: "Could not save capabilities." };
+
+  const { data: community } = await supabase
+    .from("communities")
+    .select("slug")
+    .eq("id", communityId)
+    .maybeSingle();
+  const slug = (community as { slug: string } | null)?.slug;
+  if (slug) {
+    revalidatePath(`/communities/${slug}/settings`);
+    revalidatePath(`/communities/${slug}`);
+  }
+  return { ok: true };
+}
+// ---------------------------------------------------------------------------
+// togglePrivacy
+// Toggles the is_private flag on a community. Only moderators/admins may do
+// this. RLS "Moderators can update community settings" (026) already gates
+// row-level updates to the creator or moderators/admins.
+// ---------------------------------------------------------------------------
+
+export type TogglePrivacyResult = { ok: true; is_private: boolean } | { ok: false; error: string };
+
+export async function togglePrivacy(
+  communityId: string,
+): Promise<TogglePrivacyResult> {
+  if (!communityId) return { ok: false, error: "Invalid community." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: existing } = await supabase
+    .from("communities")
+    .select("is_private, slug")
+    .eq("id", communityId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Community not found." };
+
+  const current = Boolean((existing as { is_private: boolean }).is_private);
+  const next = !current;
+
+  const { error } = await supabase
+    .from("communities")
+    .update({ is_private: next, updated_at: new Date().toISOString() })
+    .eq("id", communityId);
+  if (error) return { ok: false, error: "Could not update privacy." };
+
+  const slug = (existing as { slug: string }).slug;
+  revalidatePath(`/communities/${slug}/settings`);
+  revalidatePath(`/communities/${slug}`);
+  return { ok: true, is_private: next };
+}

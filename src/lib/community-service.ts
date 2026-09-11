@@ -15,6 +15,8 @@ export interface CommunityContext {
     description: string | null;
     category_id: string | null;
     creator_id: string;
+    capabilities: string[];
+    is_private: boolean;
   } | null;
   capabilities: string[];
   role: string | null;
@@ -27,7 +29,7 @@ export async function getCommunityContext(slug: string, userId?: string): Promis
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, name, slug, description, icon_url, banner_url, creator_id, category_id")
+    .select("id, name, slug, description, icon_url, banner_url, creator_id, category_id, capabilities, is_private")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -49,11 +51,10 @@ export async function getCommunityContext(slug: string, userId?: string): Promis
     canModerate = role === "moderator" || role === "admin" || community.creator_id === userId;
   }
 
-  // Capability states — exists/enabled/visible/restricted (V2 spec §2)
-  const capabilities = ["discussions", "media", "members", "voice"];
-  if (community) {
-    capabilities.push("events"); // V2 foundation, disabled by default until configured
-  }
+  // Capability states — persisted per-community via 026 (capabilities[] column).
+  const capabilities: string[] = (community as { capabilities?: unknown } | null)?.capabilities && Array.isArray((community as { capabilities?: unknown }).capabilities)
+    ? ((community as { capabilities: string[] }).capabilities)
+    : ["discussions", "media", "members", "voice"];
 
   return {
     community: community as CommunityContext["community"],

@@ -6,9 +6,16 @@
 // exercised against the live DB at integration time.
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { __test } from "@/lib/games/service";
 
 const { sanitizeScore, isValidSlug, clamp } = __test;
+
+const GAMES_POLICIES = readFileSync(
+  join(process.cwd(), "docs/database/015_games_policies.sql"),
+  "utf8",
+);
 
 describe("clamp", () => {
   it("returns the input when in range", () => {
@@ -77,13 +84,19 @@ describe("Game UUID acceptance (static)", () => {
   });
 });
 
-describe("Review authorization shape (static)", () => {
+describe("Review authorization shape (static regression)", () => {
   // The service derives the actor from auth.uid() via the admin client and
-  // never trusts a client-supplied user_id. The shape of the contract is
-  // documented here: updateGameReview / deleteGameReview fetch the existing
-  // row and compare its user_id to the resolved authenticated user.
-  it("service forbids reviewId without authentication (documented behavior)", () => {
-    // Cannot call without env in this harness; the path is documented.
-    expect(true).toBe(true);
+  // never trusts a client-supplied user_id. In the absence of credentials we
+  // lock the contract with two static guardians instead of a no-op assertion:
+  it("review ownership is enforced in RLS (015): users write reviews for themselves", () => {
+    expect(GAMES_POLICIES).toMatch(/auth\.uid\(\)\s*=\s*user_id/i);
+  });
+  it("service forbids updating a review owned by another user (documented behavior)", () => {
+    // updateGameReview/deleteGameReview compare existing.user_id to the
+    // resolved auth user and return { status: "forbidden" } on mismatch.
+    const ownershipRule = /user_id\s*!==\s*userId/;
+    const serviceSource = readFileSync(join(process.cwd(), "src/lib/games/service.ts"), "utf8");
+    expect(ownershipRule.test(serviceSource)).toBe(true);
+    expect(serviceSource).toContain('status: "forbidden"');
   });
 });

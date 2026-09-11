@@ -15,13 +15,14 @@ import { PresenceIndicator } from "@/components/presence-indicator";
 import { SignOutButton } from "./SignOutButton";
 
 interface UserMenuProps {
+  userId: string;
   username: string | null;
   avatarUrl?: string | null;
   isModerator?: boolean;
   isAdmin?: boolean;
 }
 
-export function UserMenu({ username, avatarUrl, isModerator, isAdmin }: UserMenuProps) {
+export function UserMenu({ userId, username, avatarUrl, isModerator, isAdmin }: UserMenuProps) {
   // Fall back to "?" when no username is set yet.
   const initial = (username ?? "?").charAt(0).toUpperCase();
 
@@ -33,7 +34,7 @@ export function UserMenu({ username, avatarUrl, isModerator, isAdmin }: UserMenu
         aria-haspopup="menu"
         className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-fg hover:bg-surface"
       >
-        <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-bold text-white">
+        <span className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-bold text-white">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -44,6 +45,12 @@ export function UserMenu({ username, avatarUrl, isModerator, isAdmin }: UserMenu
           ) : (
             <span aria-hidden="true">{initial}</span>
           )}
+          <PresenceIndicator
+            userId={userId}
+            username={username ?? undefined}
+            size={10}
+            className="absolute -bottom-0.5 -right-0.5"
+          />
         </span>
         <ChevronDown size={14} className="hidden sm:inline" />
       </button>
