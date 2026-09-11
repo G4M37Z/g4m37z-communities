@@ -74,8 +74,8 @@ When implementing a milestone:
   ```
   npx eslint .
   npx tsc --noEmit
-  npm run build
-  npx vitest run
+  npx next build --webpack    # DO NOT use `npm run build` — Turbopack is WASM-only on this host
+  npx vitest run              # 120/120 expected (incl. browser smoke; requires Chromedriver + app running — see ARCHITECTURE.md)
   ```
 - **Update documentation in the same checkpoint** as the milestone work.
   This is non-negotiable: PROJECT_STATE.md must be updated to reflect the
@@ -154,7 +154,7 @@ custody.
 ## DATABASE EXECUTION PROTOCOL
 
 - The **only** authorised SQL execution interface is
-  `C:/Users/KKF/bin/run-sql.cmd <path-to-sql-file>`.
+  `~/.local/bin/run-sql <path-to-sql-file>` (Termux/Android host).
 - Credentials are read from `~/.supabase_env`. **Never** read or print the
   contents of that file.
 - **Never** directly invoke `psql` from terminal with credentials on the
@@ -196,7 +196,7 @@ When the agent updates documentation:
 
 - Use **exact commit hashes**. Never guess.
 - Use **exact migration filenames**. Never abbreviate.
-- Use **exact test counts** when verified (e.g. "91 passed across 9
+- Use **exact test counts** when verified (e.g. "120 passed across 15
   files"). Do not estimate.
 - Distinguish **PASS / PARTIAL / BLOCKED / NOT VERIFIED / PLANNED** —
   do not convert "not tested" into "working."
@@ -220,8 +220,9 @@ When the agent finds documentation is wrong:
 | "What migrations exist?" | `ls docs/database/` + `docs/DATABASE.md` |
 | "What services exist?" | `ls src/lib/*/service.ts` + `docs/ARCHITECTURE.md` |
 | "What tests exist?" | `ls tests/` |
+| "Browser smoke tests failing?" | ChromeDriver @ 9515 + app @ :3000 must be running first (see docs/ARCHITECTURE.md → Testing) |
 | "What's the security state?" | `docs/PROJECT_STATE.md` (Security State section) |
-| "What's the build status?" | `git log -1` + run `npm run build` |
+| "What's the build status?" | `git log -1` + run `npx next build --webpack` |
 | "What's the live DB state?" | Run a `run-sql` read-only inspection |
 
 ---
@@ -236,6 +237,6 @@ can pick up where you left off without losing any context.
 - Do not push unless explicitly instructed.
 - If something is broken, document the exact failure and stop.
 
-NOTE — Dual-agent SQL interfaces (this session):
-- Termux (this agent): psql via ~/.supabase_env; file SQL; SELECT/information_schema verification; never expose DB_URL.
-- Windows/Hermes: run-sql.cmd only. SQL inspection ≠ live DB application.
+NOTE — SQL interface (this host):
+- Termux (current agent): `run-sql <file>` sources `~/.supabase_env` (NEVER printed/committed). SELECT/information_schema verification. Never expose DB credentials.
+- Migrations 022–029 are applied to the live DB and are the source of truth. `docs/database/` files are the canonical migration log.
