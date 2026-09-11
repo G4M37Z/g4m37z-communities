@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "./container-queries.css";
 
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -72,7 +73,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/jpeg" },
+      { url: "/icon.png", type: "image/png" },
     ],
   },
 };

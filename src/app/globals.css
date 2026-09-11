@@ -59,13 +59,7 @@
   }
 }
 
-/* Container queries — components respond to parent, not viewport */
-@container (min-width: 400px) {
-  .cq-card { grid-template-columns: auto 1fr; }
-}
-@container (min-width: 640px) {
-  .cq-card { grid-template-columns: 1fr 1fr; }
-}
+/* Container queries live in container-queries.css (imported in layout.tsx). */
 
 /* Responsive spacing scale — 4px multiples */
 :root {

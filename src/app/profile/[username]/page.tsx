@@ -61,13 +61,13 @@ export async function generateMetadata({
       description,
       type: "profile",
       siteName: "G4M37Z Communities",
-      images: [p.avatar_url ?? "/icon.jpg"],
+      images: [p.avatar_url ?? "/icon.png"],
     },
     twitter: {
       card: "summary",
       title: `${name} (@${p.username})`,
       description,
-      images: [p.avatar_url ?? "/icon.jpg"],
+      images: [p.avatar_url ?? "/icon.png"],
     },
   };
 }

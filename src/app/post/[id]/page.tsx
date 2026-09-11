@@ -52,7 +52,7 @@ export async function generateMetadata({
   const description =
     p.body?.slice(0, 160) ??
     `Post on G4M37Z Communities${communityName ? ` in ${communityName}` : ""}.`;
-  const ogImage = p.image_url ?? "/icon.jpg";
+  const ogImage = p.image_url ?? "/icon.png";
   return {
     title: p.title,
     description,

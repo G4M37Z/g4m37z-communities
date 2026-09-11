@@ -1,25 +1,31 @@
--- V4 LFG Session Table
-CREATE TABLE IF NOT EXISTS lfg_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_by UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  game_slug TEXT NOT NULL,
-  platform TEXT,
-  region TEXT,
-  language TEXT DEFAULT 'en',
-  session_type TEXT DEFAULT 'casual',
-  skill_rank TEXT,
-  party_size INTEGER DEFAULT 2,
-  voice_required BOOLEAN DEFAULT FALSE,
-  scheduled_at TIMESTAMPTZ,
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft','published','live','completed','cancelled')),
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_lfg_game ON lfg_sessions(game_slug);
-CREATE INDEX IF NOT EXISTS idx_lfg_status ON lfg_sessions(status) WHERE status IN ('published','live');
-CREATE INDEX IF NOT EXISTS idx_lfg_scheduled ON lfg_sessions(scheduled_at);
--- RLS: owners + members can manage
-ALTER TABLE lfg_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS lfg_owner_select ON lfg_sessions FOR SELECT USING (auth.uid() = created_by);
-CREATE POLICY IF NOT EXISTS lfg_owner_all ON lfg_sessions FOR ALL USING (auth.uid() = created_by) WITH CHECK (auth.uid() = created_by);
+-- ============================================================================
+-- 023_v4_lfg_session.sql
+-- V4 LFG Session table — REVISED (additive).
+--
+-- History:
+--   The original V4 file defined a brand-new, incompatible `lfg_sessions`
+--   table (game_slug / created_by / status in the draft-live-cancelled enum).
+--   That definition was never applied: the live DB already holds the V3
+--   lfg_sessions table (016_lfg_policies.sql) with its own columns
+--   (game_id, host_id, platform_id, ...) and its own status enum
+--   (CREATED/OPEN/FULL/CLOSED/CANCELLED/COMPLETED/EXPIRED). Because
+--   CREATE TABLE IF NOT EXISTS would silently no-op against the existing
+--   table and the old policy bodies referenced columns that do not exist,
+--   the original file would (a) change nothing and then (b) error out.
+--
+--   This revision is additive and non-destructive. It keeps the V3 table
+--   intact and only:
+--     1. adds a `description` column (nullable, no default) that the
+--        original V4 shape carried and V3 lacks,
+--     2. re-enables RLS idempotently (policies live in 016_lfg_policies.sql).
+--   It does NOT alter `status`/`privacy` enums nor any V3 columns, so the
+--   existing LFG service and UI keep working unchanged.
+-- ============================================================================
+
+-- 1. Additive column from the original V4 design that V3 was missing.
+ALTER TABLE public.lfg_sessions
+  ADD COLUMN IF NOT EXISTS description TEXT;
+
+-- 2. RLS re-assertion (idempotent). The full policy set is defined in
+--    016_lfg_policies.sql; this only guards against RLS being disabled.
+ALTER TABLE public.lfg_sessions ENABLE ROW LEVEL SECURITY;
