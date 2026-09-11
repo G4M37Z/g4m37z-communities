@@ -6,6 +6,13 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 const CHROMEDRIVER = "http://127.0.0.1:9515";
 const BASE = process.env.TEST_BASE_URL || "http://localhost:3000";
 
+// Chromium's "get page source" can serialize the document starting at <html>
+// without the leading DOCTYPE, so assert on either form rather than the raw
+// bytes we send over the wire.
+function isHtml(source: string): boolean {
+  return /^<!DOCTYPE html>|<html/i.test(source);
+}
+
 async function session(path: string) {
   // Create session
   const sessionRes = await fetch(CHROMEDRIVER + "/session", {
@@ -68,37 +75,37 @@ describe("Smoke: production routes", () => {
     const res = await session("/");
     expect(res.source).toContain("G4M37Z");
     expect(res.title.length).toBeGreaterThan(0);
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("discover loads", async () => {
     const res = await session("/discover");
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("login renders", async () => {
     const res = await session("/login");
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("signup renders", async () => {
     const res = await session("/signup");
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("social graph loads", async () => {
     const res = await session("/social");
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("messages loads", async () => {
     const res = await session("/messages");
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("notifications loads", async () => {
     const res = await session("/notifications");
-    expect(res.source).toContain("<!DOCTYPE html>");
+    expect(isHtml(res.source)).toBe(true);
   }, 15000);
 
   it("create post route loads (404 investigation)", async () => {
