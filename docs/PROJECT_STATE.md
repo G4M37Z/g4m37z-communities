@@ -13,22 +13,22 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `8975d55` (browser smoke tests) — release-finalized |
+| Last verified HEAD | `5539aff` (browser smoke suite green) — V4 audit finished, 120/120 tests |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
 | Documentation version | 1 (this commit) |
-| Last verified date | 2026-09-10 (session) |
+| Last verified date | 2026-09-11 (session) |
 
 ---
 
 ## Current Checkpoint
 
-**V3.9 Social Graph — PASS at `8460b32`; Launch Hardening P1–P2 PARTIAL (P1.4 / P2.3 / P3 BLOCKED by environment).** V3.9 verified complete.
+**Launch Hardening audit findings + V4 gap work — ALL COMPLETE and pushed at `5539aff`.** Every Phase 0 audit / finish-the-unfinished-work item resolved; 120/120 tests green.
 
-- HEAD commit: `3a7267b` (docs: V3.9 + hardening audit status — no push; clean)
-- Working tree: clean (only pre-existing untracked dev logs: `dev.log`, `dev2.log`, `dev3.log`, `nul`).
-- All V3.1–V3.6 milestones + P0 security containment + Phase 0.5/0.6 gates
-  are at HEAD on `main` and on `origin/main`.
+- HEAD commit: `5539aff` (test: fix smoke spec — browser suite green; pushed)
+- Working tree: clean.
+- All V3.1–V3.9 milestones + P0 security containment + V4 gap items are at
+  HEAD on `main` and on `origin/main`.
 
 ---
 
@@ -48,8 +48,12 @@
 | 7 | V3.7 Creators | `7d36d93` | PASS |
 | 8 | V3.8 Messaging | `19e862f` | PASS |
 | 9 | V3.9 Social Graph | `8460b32` | PASS |
+| 10 | V4 gap — presence, reactions, capabilities, voice, events lifecycle, notifications, private communities, proxy/middleware, feed/mod services, gaming profile + notification prefs UI, real tests | `6f18852` | PASS |
+| 10a | Browser smoke spec fix (Chromedriver/DOCTYPE assertion) | `5539aff` | PASS |
 
-Launch Hardening status: P1.1 PARTIAL (audit done, subagents 400/429 env); P1.2 NONE REQUIRED; P1.3 PASS; P1.4 PARTIAL (static OK, runtime benchmark external); P2 PASS; P2.3 VERIFIED (browser harness added — `tests/browser/smoke.spec.ts`, real Chromium 149 / ChromeDriver 149 session, mobile 375×812, all smoke routes PASS); P3 PASS (webpack build 34 routes, TS 0, vitest 106/106, security pass, DB pass, lint skipped — binary missing).
+Launch Hardening status: P1.1 PARTIAL (audit done, subagents 400/429 env); P1.2 NONE REQUIRED; P1.3 PASS; P1.4 PARTIAL (static OK, runtime benchmark external); P2 PASS; P2.3 VERIFIED (browser harness added — `tests/browser/smoke.spec.ts`, real Chromium 149 / ChromeDriver 149 session, mobile 375×812, all smoke routes PASS); P3 PASS (webpack build 34 routes, TS 0, vitest 120/120 incl. browser smoke, security pass, DB pass, lint 0 errors).
+
+V4 gap work (audit fixes): all item tracked in `docs/PHASE_0_AUDIT.md` completed at `6f18852` — presence (025 + heartbeat/realtime indicator), reactions (setReaction + button), community capabilities (026 + persist UI), voice rooms (full create/join/leave + mesh transport), events lifecycle fields (024 wired end-to-end), notification triggers (027, incl. follow/mention/RSVP, honored via 029 prefs), private communities (028 + toggle), Next 16 proxy session refresh (`src/proxy.ts`), feed + moderation services implemented, gaming profile + notification prefs settings UI, placeholder tests replaced with real verdict + RLS regression assertions.
 
 Each milestone had:
 - One migration under `docs/database/NNN_*.sql` (executed via `run-sql`).

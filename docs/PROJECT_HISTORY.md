@@ -225,6 +225,46 @@ commit.
 - Tests: `tests/tournaments-service.test.ts` (16 tests).
 - Validation: lint 0 errors / 9 warnings, tsc PASS, build PASS, vitest 91 passed.
 
+### V4 — Close all Phase 0 audit / unfinished-work items
+- Commits: `9deb4c1` (schema + stub pages + types), `6f18852` (feature wiring),
+  `5539aff` (smoke-spec fix).
+- Database (all applied via `run-sql`, idempotent):
+  - `022_v4_gaming_profiles.sql`, `023_v4_lfg_session.sql`,
+    `024_v4_events_lifecycle.sql` (from V4 backlog).
+  - NEW this milestone: `025_v4_presence_state.sql` (user_presence + realtime),
+    `026_v4_community_capabilities.sql`, `027_v4_notification_triggers.sql`,
+    `028_v4_private_communities.sql`, `029_v4_notification_preferences.sql`.
+- Features wired end-to-end:
+  - **Presence** — `user_presence` realtime; heartbeat in root layout;
+    live indicator + avatar dot (Header/UserMenu).
+  - **Reactions** — `setReaction` server action + optimistic reaction button
+    on post detail.
+  - **Community capabilities** — `capabilities TEXT[]` persisted via
+    `saveCapabilities` / `togglePrivacy`; settings + community chips.
+  - **Voice rooms** — create/join/leave + 1-to-1 mesh transport
+    (`webrtc_signals`), Go Live mic via getUserMedia, participant list.
+  - **Events lifecycle** — `lifecycle_state`, `max_attendees`,
+    `reminder_minutes`, `is_pinned`, `event_image_url` wired through service,
+    forms, detail page; effective capacity = `capacity ?? max_attendees`.
+  - **Notifications** — DB triggers for follows, @mentions (deduped),
+    event RSVPs; `notification_enabled()` respects per-user JSONB prefs;
+    notifications page renders all types.
+  - **Private communities** — `is_private` column + RLS + settings toggle.
+  - **Next 16 proxy** — `src/proxy.ts` refreshes the Supabase session
+    (middleware renamed to proxy in Next 16).
+  - **Services** — `feed-service.ts` (trending/recommended) and
+    `moderation-service.ts` implemented (no longer stubs).
+  - **Settings** — gaming profile form (022 columns) + notification
+    preferences toggles (029).
+- Tests: placeholder `expect(true).toBe(true)` assertions replaced with real
+  unit tests (pure `joinVerdict` / `rsvpVerdict` gates extracted into the
+  services) and static RLS regression guards that read the migration files.
+  Total: 120 tests across 15 files, all green (incl. browser smoke suite).
+- Browser smoke: `tests/browser/smoke.spec.ts` needs ChromeDriver @ 9515 and
+  the app @ :3000 running; DOCTYPE assertion tolerant of Chromium serialization.
+- Validation: tsc 0 errors, eslint 0 errors, `npx next build --webpack` PASS,
+  vitest 120/120 PASS.
+
 ---
 
 ## What is NOT recoverable

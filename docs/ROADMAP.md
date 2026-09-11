@@ -60,7 +60,7 @@ V3.9 / Launch Hardening.
 
 ### Launch Hardening (post-V3, NOT a feature milestone)
 
-Status (verified 2026-09-10 session): PARTIAL / BLOCKED for external items only. Not COMPLETE. P1.1 PARTIAL; P1.2 NONE; P1.3 PASS; P1.4 BLOCKED (benchmark — external); P2 PASS; P2.3 VERIFIED (browser harness `tests/browser/smoke.spec.ts`, Chromium 149 session, mobile 375×812, all routes PASS); P3 PARTIAL (security/DB/test verified; full build + mobile verified via webpack; perf external). Deferred: rate limit (P1.1), CAPTCHA (P1.2), upload MIME (P1.5), telemetry/anomaly (P2), CSP/MFA/rotation (P3).
+Status (verified 2026-09-11 session): PARTIAL for external items only. Not COMPLETE. P1.1 PARTIAL; P1.2 NONE; P1.3 PASS; P1.4 BLOCKED (benchmark — external); P2 PASS; P2.3 VERIFIED (browser harness `tests/browser/smoke.spec.ts`, Chromium 149 + ChromeDriver session, mobile 375×812, all routes PASS — needs ChromeDriver @ 9515 and app @ :3000 running); P3 VERIFIED (webpack build passes, TS 0, lint 0, vitest 120/120 incl. browser smoke, security/DB pass). Deferred: rate limit (P1.1), CAPTCHA (P1.2), upload MIME (P1.5), telemetry/anomaly (P2), CSP/MFA/rotation (P3).
 
 Strictly after all V3 milestones (1–9) are PASS on `main`. This is a
 **separate, gated phase** that should not be conflated with V3 surface
