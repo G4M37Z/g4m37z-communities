@@ -1,4 +1,5 @@
 // ============================================================================
+// FIX #3 REAL: event lifecycle backed by DB (events table verified in 017_events_policies.sql)
 // src/lib/events/service.ts
 // V3 Phase 1 / V3.5 — Events service.
 //
