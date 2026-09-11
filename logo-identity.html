@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Logo Identity — g4m37z</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f1ea;--fg:#1a1814;--accent:#bfa05a;--surface:#fff;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12100e;--fg:#eeeae2;--accent:#d8bc6e;--surface:#1a1812;}}
+:root[data-theme="dark"]{--bg:#12100e;--fg:#eeeae2;--accent:#d8bc6e;--surface:#1a1812;}
+body{background:var(--bg);color:var(--fg);font-family:"Space Mono",monospace;padding:3rem 2rem;line-height:1.55;max-width:720px;margin:0 auto;}
+h1{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:600;font-size:2.6rem;color:var(--accent);letter-spacing:.02em;margin:0 0 .25rem;}
+.subtitle{opacity:.7;font-size:.85rem;margin-bottom:2rem;}
+.section{background:var(--surface);padding:1.5rem 2rem;border-radius:12px;margin:1.5rem 0;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.section h2{font-family:"Space Mono",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:0 0 .75rem;}
+.tag{display:inline-block;padding:.15rem .5rem;border-radius:999px;background:var(--bg);border:1px solid rgba(191,160,90,.25);font-size:.7rem;color:var(--fg);margin:.15rem .15rem 0 0;}
+</style>
+</head>
+<body>
+<h1>g4m37z</h1>
+<p class="subtitle">Visual identity — studio mark, palette, and reasoning</p>
+
+<div class="section">
+<h2>Treatment</h2>
+<p>For a studio that works across communities, branding, and audit deliverables: a refined editorial mark rather than a startup logo. Serif display (Cormorant Garamond italic) carries craft; monospace (Space Mono) carries structure.</p>
+<div><span class="tag">Serif display</span><span class="tag">Monospace utility</span><span class="tag">Cream ground</span><span class="tag">Brass gold</span></div>
+</div>
+
+<div class="section">
+<h2>Palette</h2>
+<p>Warm cream <code>#f4f1ea</code> with near-black ink <code>#1a1814</code>; brass-gold <code>#bfa05a</code> as the single accent — derived from the studio's own mark rather than a generic palette.</p>
+</div>
+
+<div class="section">
+<h2>Files</h2>
+<p>Logo lockup: <code>public/logo-lockup.svg</code>. Identity document: this page (responsive, dark/light via <code>prefers-color-scheme</code>).</p>
+</div>
+</body>
+</html>
