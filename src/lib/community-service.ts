@@ -27,11 +27,18 @@ export interface CommunityContext {
 
 export async function getCommunityContext(slug: string, userId?: string): Promise<CommunityContext> {
   const supabase = await createClient();
-  const { data: community } = await supabase
+  const { data: community, error: communityError } = await supabase
     .from("communities")
     .select("id, name, slug, description, icon_url, banner_url, creator_id, category_id, capabilities, is_private")
     .eq("slug", slug)
     .maybeSingle();
+
+  if (!community && communityError && communityError.code !== "PGRST116") {
+    // A real query failure (not a hidden/absent community) must not be
+    // masked as a 404 by callers that notFound() on a null community.
+    console.error(`[community-service] query failed for ${slug}:`, communityError);
+    throw new Error(`Failed to load community: ${communityError.message}`);
+  }
 
   let role: string | null = null;
   let isMember = false;

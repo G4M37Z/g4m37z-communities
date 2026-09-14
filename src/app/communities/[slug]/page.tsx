@@ -77,7 +77,7 @@ export default async function CommunityPage({
   const offset = (page - 1) * PAGE_LIMIT;
   const supabase = await createClient();
 
-  const { data: communityRaw } = await supabase
+  const { data: communityRaw, error: communityError } = await supabase
     .from("communities")
     .select(
       "id, name, slug, description, icon_url, banner_url, creator_id, created_at, updated_at, capabilities"
@@ -85,6 +85,10 @@ export default async function CommunityPage({
     .eq("slug", slug)
     .maybeSingle();
 
+  if (!communityRaw && communityError && communityError.code !== "PGRST116") {
+    console.error(`[community] query failed for ${slug}:`, communityError);
+    throw new Error(`Failed to load community: ${communityError.message}`);
+  }
   if (!communityRaw) notFound();
   const community = communityRaw as Community;
 

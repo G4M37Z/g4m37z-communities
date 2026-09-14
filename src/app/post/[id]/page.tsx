@@ -81,7 +81,7 @@ export default async function PostPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: postRaw } = await supabase
+  const { data: postRaw, error: postError } = await supabase
     .from("posts")
     .select(
       `id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count,
@@ -91,7 +91,18 @@ export default async function PostPage({
     .eq("id", id)
     .maybeSingle();
 
-  if (!postRaw) notFound();
+  if (!postRaw) {
+    if (postError && postError.code !== "PGRST116") {
+      // A real query failure, not an invisible post. Surface it so the
+      // global error boundary renders instead of a fake 404, and so the
+      // underlying PostgREST error is visible in the server logs.
+      console.error(`[post] query failed for ${id}:`, postError);
+      throw new Error(`Failed to load post: ${postError.message}`);
+    }
+    // PGRST116 (0 rows) or a row filtered out by RLS — legitimately not
+    // visible to this viewer, so 404.
+    notFound();
+  }
   const post = postRaw as unknown as JoinedPost;
 
   // Fetch score, current user's vote, reactions, and the comment thread in parallel.
