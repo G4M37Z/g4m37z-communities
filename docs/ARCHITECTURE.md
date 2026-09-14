@@ -1,6 +1,6 @@
 # G4M37Z Communities — Architecture
 
-> Reference architecture for the current `main` branch (HEAD `ea3c598`).
+> Reference architecture for the current `main` branch (HEAD `72c34e9`).
 > Verified against the live source tree, package.json, and migration history.
 
 ---
@@ -17,7 +17,8 @@
 ### Routing
 - App Router under `src/app/`. Each route has either a `page.tsx` (server
   component by default) or a `route.ts` (Route Handler).
-- 35 verified routes on V3.6 (see `PROJECT_STATE.md` for the count).
+- 45 verified routes on this checkpoint (44 listed + root; see
+  `PROJECT_STATE.md`).
 - The Next.js 16 `proxy.ts` middleware replaces the legacy `middleware.ts`;
   it refreshes the Supabase session cookie and gates protected routes
   (`/home`, `/create`, `/settings`, `/notifications`, `/admin`).
@@ -107,9 +108,10 @@
 ## Database
 
 ### Supabase / Postgres architecture
-- Hosted Supabase Postgres; accessed via `run-sql.cmd` from this machine
-  (uses a service connection string stored in `~/.supabase_env`, never
-  committed).
+- Hosted Supabase Postgres; accessed via `~/.local/bin/run-sql <file>` on the
+  current Termux host (sources the service connection string stored in
+  `~/.supabase_env`, never committed; a legacy Windows `run-sql.cmd` existed
+  for the prior Hermes environment).
 - 35 public tables (verified via `pg_tables`), all RLS-enabled.
 - Realtime: `supabase_realtime` publication includes `notifications`,
   `profiles`, `reactions`, `reports`, `voice_room_participants`,
@@ -238,7 +240,8 @@
   (e.g. `joinVerdict` in LFG, `rsvpVerdict` in Events, input validators).
 - RLS / DB-level contracts are guarded by static regression tests that read
   the migration files under `docs/database/` and assert the policy text.
-- 120 tests across 15 files at HEAD (V4; includes the browser suite below).
+- 145 tests across 14 files at this checkpoint (unit; the browser smoke suite
+  is excluded on the Termux host).
 
 ### Commands
 ```

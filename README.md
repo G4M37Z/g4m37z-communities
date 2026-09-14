@@ -2,9 +2,13 @@
 
 The foundational social/community layer of the G4M37Z gaming platform.
 
-This is **v0.1**: signup/login, profiles, communities, posts, comments, voting,
-search, notifications, and moderation. Games, mini-apps, and the developer SDK
-arrive in later phases.
+Current surface (post-`v0.1.0` tag): signup/login, profiles, communities,
+posts, comments, voting, search, notifications, moderation — plus the V3/V4
+milestones: reputation, achievements, game discovery, LFG, events,
+tournaments, creators, messaging, and the social graph (follows/blocks/mutes
++ notification events), gaming profiles, presence, reactions, voice rooms,
+and community capabilities. Games, mini-apps, and the developer SDK arrive in
+later phases.
 
 ## Stack
 

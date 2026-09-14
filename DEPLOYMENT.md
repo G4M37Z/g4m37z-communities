@@ -116,9 +116,9 @@ After every deploy, verify this user journey works in production:
 - [ ] Cards stack into single column
 
 ### Build & lint
-- [ ] `npm run build` exits 0 with all 21 routes
-- [ ] `npm run lint` exits 0 with no errors
-- [ ] TypeScript `tsc --noEmit` exits 0
+- [ ] `npx next build --webpack` exits 0 — 45 routes verified (44 listed + root) at the repo-completeness checkpoint, count grows with V3/V4 pages (`npm run build` uses Turbopack, which is not available on the Android/Termux host)
+- [ ] `npx eslint .` exits 0 with no errors
+- [ ] TypeScript `npx tsc --noEmit` exits 0
 
 ---
 
@@ -179,7 +179,7 @@ g4m37z-communities/
 ├── src/
 │   ├── app/                  — Next.js App Router
 │   │   ├── admin/            — Admin dashboard (admin-only layout)
-│   │   ├── api/              — Route handlers
+│   │   │   └── (no `src/app/api/` routine handlers exist yet — auth/callback + proxy cover session/auth)
 │   │   ├── auth/callback/    — OAuth/email-callback handler
 │   │   ├── communities/      — Browse + single community view
 │   │   ├── create/           — Create community / post forms

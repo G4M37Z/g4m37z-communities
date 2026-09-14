@@ -54,9 +54,12 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
 ## Live database connection
 
 - Credentials live in `~/.supabase_env` on this machine (NEVER committed).
-- `C:/Users/KKF/bin/run-sql.cmd <path-to-sql-file>` is the only authorised
-  SQL execution interface.
-- The script invokes `psql` from `C:/Program Files/PostgreSQL/17/bin/psql.exe`.
+- `~/.local/bin/run-sql <path-to-sql-file>` is the only authorised SQL
+  execution interface on the current Termux host.
+- The script sources `~/.supabase_env` and invokes `psql`; never invoke
+  `psql` directly with credentials on the command line.
+- Legacy Windows host used `C:/Users/KKF/bin/run-sql.cmd` (Hermes only);
+  Termux does NOT use it.
 
 ---
 
@@ -295,7 +298,7 @@ task.
 ## Important: live verification required before assuming anything
 
 This document is a navigation aid. **Before any database work, run live
-inspection queries via `run-sql.cmd`** and confirm column names, types,
+inspection queries via `run-sql`** and confirm column names, types,
 indexes, constraints, and policy expressions match the current state of
 the database. The schema evolves; this document may be stale.
 

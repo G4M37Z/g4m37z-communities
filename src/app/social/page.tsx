@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { listFollowers } from "@/lib/social/service";
 import { PageEnter } from "@/components/PageEnter";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function SocialPage() {
 
   const [
     { data: following },
-    { data: followers },
+    followers,
     { data: blocked },
     { data: notificationEvents },
   ] = await Promise.all([
@@ -38,12 +39,7 @@ export default async function SocialPage() {
       .eq("follower_id", user.id)
       .order("followed_at", { ascending: false })
       .limit(50),
-    supabase
-      .from("follows")
-      .select("follower_id, followed_at")
-      .eq("followed_id", user.id)
-      .order("followed_at", { ascending: false })
-      .limit(50),
+    listFollowers({ limit: 50 }),
     supabase
       .from("blocks")
       .select("blocked_id, blocked_at")
@@ -61,7 +57,7 @@ export default async function SocialPage() {
   const allIds = [
     ...new Set([
       ...((following ?? []).map((f: { followed_id: string }) => f.followed_id) as string[]),
-      ...((followers ?? []).map((f: { follower_id: string }) => f.follower_id) as string[]),
+      ...((followers ?? []).map((f: { user_id: string }) => f.user_id)),
       ...((blocked ?? []).map((b: { blocked_id: string }) => b.blocked_id) as string[]),
     ]),
   ];
@@ -106,13 +102,13 @@ export default async function SocialPage() {
           <h2 className="text-lg font-semibold text-fg mb-2">Followers</h2>
           {followers && followers.length > 0 ? (
             <ul className="flex flex-wrap gap-2">
-              {followers.map((f: { follower_id: string; followed_at: string }) => (
-                <li key={f.follower_id}>
+              {followers.map((f: { user_id: string; created_at: string | null }) => (
+                <li key={f.user_id}>
                   <Link
-                    href={`/profile/${profileMap.get(f.follower_id)?.username}`}
+                    href={`/profile/${profileMap.get(f.user_id)?.username}`}
                     className="rounded-md border border-border bg-surface px-3 py-1 text-xs text-fg hover:border-border-strong"
                   >
-                    {profileMap.get(f.follower_id)?.username ?? "Unknown"}
+                    {profileMap.get(f.user_id)?.username ?? "Unknown"}
                   </Link>
                 </li>
               ))}

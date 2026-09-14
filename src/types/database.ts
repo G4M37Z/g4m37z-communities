@@ -266,12 +266,13 @@ export interface GameReview {
   id: string;
   game_id: string;
   user_id: string;
-  gameplay: number;
-  graphics: number;
-  performance: number;
-  story: number;
-  audio: number;
-  overall_score: number;
+  gameplay_score: number | null;
+  graphics_score: number | null;
+  performance_score: number | null;
+  story_score: number | null;
+  audio_score: number | null;
+  value_score: number | null;
+  overall_score: number | null;
   body: string | null;
   created_at: string;
 }
@@ -399,7 +400,7 @@ export interface WebRtcSignal {
   id: string;
   room_id: string;
   from_user: string;
-  to_user: string;
+  to_user: string | null;
   type: WebRtcSignalType;
   payload: Record<string, unknown> | null;
   created_at: string;
@@ -438,8 +439,8 @@ export interface UserAchievement {
 // LFG sessions (live DB = V3 shape) + participants
 // ----------------------------------------------------------------------------
 
-export type LfgSessionStatus = "CREATED" | "OPEN" | "CLOSED" | "COMPLETED";
-export type LfgSessionPrivacy = "public" | "friends";
+export type LfgSessionStatus = "CREATED" | "OPEN" | "FULL" | "CLOSED" | "CANCELLED" | "COMPLETED" | "EXPIRED";
+export type LfgSessionPrivacy = "public" | "private";
 
 export interface LfgSession {
   id: string;
@@ -470,14 +471,13 @@ export interface LfgParticipant {
 // events (V3 + V4 lifecycle from 024_v4_events_lifecycle.sql)
 // ----------------------------------------------------------------------------
 
-export type EventType = "TOURNAMENT" | "LFG" | "VOICE" | "MEET";
-
+// event_type is free-form TEXT, length-capped at 64 (017_events_policies.sql).
 export interface CommunityEvent {
   id: string;
   community_id: string;
   title: string;
   description: string | null;
-  event_type: EventType;
+  event_type: string | null;
   start_time: string;
   end_time: string | null;
   capacity: number | null;

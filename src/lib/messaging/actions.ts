@@ -1,11 +1,19 @@
+// ============================================================================
+// src/lib/messaging/actions.ts
+// Server Actions for messaging — thin wrappers that delegate the actual work
+// (validation, RLS-scoped writes) to the messaging service. Action result
+// shape is preserved for the existing forms/pages.
+// ============================================================================
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createDirectConversation, sendMessage as sendMessageService } from "@/lib/messaging/service";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_BODY = 4000;
+const MAX_USERNAME = 32;
+const MIN_USERNAME = 2;
 
 export type MessageActionState =
   | { ok: true }
@@ -28,11 +36,11 @@ export async function createConversation(
   if (!user) return { ok: false, error: "Sign in to send messages." };
 
   const recipientUsername = (formData.get("recipient") as string)?.trim();
-  if (!recipientUsername || recipientUsername.length < 2 || recipientUsername.length > 32) {
+  if (!recipientUsername || recipientUsername.length < MIN_USERNAME || recipientUsername.length > MAX_USERNAME) {
     return { ok: false, error: "Enter a valid username." };
   }
 
-  // Look up recipient
+  // Look up recipient by username.
   const { data: recipient, error: lookupErr } = await supabase
     .from("profiles")
     .select("id, username")
@@ -45,62 +53,20 @@ export async function createConversation(
     return { ok: false, error: "You cannot message yourself." };
   }
 
-  const initialMessage = (formData.get("message") as string)?.trim();
-  if (!initialMessage || initialMessage.length > MAX_BODY) {
-    return { ok: false, error: "Message must be 1–4000 characters." };
-  }
-
-  // Create conversation
-  const { data: conv, error: convErr } = await supabase
-    .from("conversations")
-    .insert({ type: "direct" })
-    .select("id")
-    .single();
-  if (convErr || !conv) {
-    return { ok: false, error: "Could not start conversation." };
-  }
-
-  // Add members (sender via user_id = auth.uid(); invitee via direct type)
-  await supabase.from("conversation_members").insert([
-    { conversation_id: conv.id, user_id: user.id },
-    { conversation_id: conv.id, user_id: recipient.id },
-  ]);
-
-  // Send initial message
-  const { error: msgErr } = await supabase.from("messages").insert({
-    conversation_id: conv.id,
-    sender_id: user.id,
-    body: initialMessage,
-  });
-  if (msgErr) {
-    return { ok: false, error: "Failed to send message." };
-  }
+  const initialMessage = (formData.get("message") as string) ?? "";
+  const result = await createDirectConversation(recipient.id, initialMessage);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/messages");
-  redirect(`/messages/${conv.id}`);
+  redirect(`/messages/${result.conversation_id}`);
 }
 
 export async function sendMessage(
   conversationId: string,
   body: string,
 ): Promise<MessageActionState> {
-  if (!UUID_RE.test(conversationId)) return { ok: false, error: "Invalid conversation." };
-  const trimmed = body.trim();
-  if (!trimmed) return { ok: false, error: "Message cannot be empty." };
-  if (trimmed.length > MAX_BODY) return { ok: false, error: `Message must be ${MAX_BODY} characters or fewer.` };
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Sign in to send messages." };
-
-  const { error } = await supabase.from("messages").insert({
-    conversation_id: conversationId,
-    sender_id: user.id,
-    body: trimmed,
-  });
-  if (error) return { ok: false, error: "Failed to send message." };
+  const result = await sendMessageService(conversationId, body);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/messages/${conversationId}`);
   return { ok: true };

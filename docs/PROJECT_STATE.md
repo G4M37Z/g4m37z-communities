@@ -13,22 +13,47 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `5539aff` (browser smoke suite green) — V4 audit finished, 120/120 tests |
+| Last verified HEAD | `72c34e9` = `origin/main` (verified via `git ls-remote` 2026-09-14; prior certified `5539aff`) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
-| Documentation version | 1 (this commit) |
-| Last verified date | 2026-09-11 (session) |
+| Documentation version | 2 (this commit) |
+| Last verified date | 2026-09-14 (session) |
 
 ---
 
 ## Current Checkpoint
 
-**Launch Hardening audit findings + V4 gap work — ALL COMPLETE and pushed at `5539aff`.** Every Phase 0 audit / finish-the-unfinished-work item resolved; 120/120 tests green.
+**Repo-completeness pass (2026-09-14) — PASS, gate green.**
 
-- HEAD commit: `5539aff` (test: fix smoke spec — browser suite green; pushed)
-- Working tree: clean.
-- All V3.1–V3.9 milestones + P0 security containment + V4 gap items are at
-  HEAD on `main` and on `origin/main`.
+Prior certified checkpoint: `5539aff` (browser suite green, 120/120 tests,
+V4 audit finished). HEAD was `72c34e9` = `origin/main` (97 commits;
+tag `v0.1.0` untouched). All prior milestones (Phase 0 → V4 gap work) remain
+at HEAD on `main`.
+
+This pass closed: the three tail services (`creators`, `social`, `messaging`)
+deepened with full methods, server-resolved `auth.uid()`, `createAdminClient`
+ownership re-checks where RLS requires a privileged path (creators writes;
+followers feed; direct-thread dedup), and rewritten deterministic tests; new
+`src/lib/creators/actions.ts` + `src/lib/social/actions.ts`;
+`src/lib/messaging/actions.ts` now delegates to the service; `social/page.tsx`
+followers feed served via `listFollowers` (a direct RLS query would always
+return an empty list — see 021); `types/database.ts` drift fixed vs live
+schema (`GameReview` `*_score` incl. nullable `value_score`,
+`LfgSessionStatus` incl. `FULL/CANCELLED/EXPIRED`,
+`LfgSessionPrivacy` = `public|private`, `WebRtcSignal.to_user` nullable,
+`CommunityEvent.event_type` = `string | null`); removed committed `sql/`
+auth-fixture files that contained auth-table mutations and password hashes
+(`sql/master_v3.sql` and `sql/tables_check.sql` retained).
+
+Validation gate result (this checkpoint):
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | PASS (0 errors) |
+| `npx eslint .` | 0 errors, 10 warnings (all pre-existing V2 debt) |
+| `npx next build --webpack` | PASS — 45 routes (44 listed + root) |
+| `npx vitest run` (browser suite excluded on this host) | PASS — 145 tests across 14 files |
+| Browser smoke suite | NOT run on this host (requires ChromeDriver @9515 + app @:3000) |
 
 ---
 
@@ -122,16 +147,13 @@ Each milestone had:
 | Live mutation happy path | NOT performed (consistent with prior milestones) |
 | Browser verification | NOT performed (consistent with dev environment) |
 
-## Next Milestone
+## In-Progress / Next Work
 
-**V3.9 — Social Graph + Notifications** (the next authorised feature milestone after V3.8 PASS).
-
-- Tables: `follows`, `blocks`, `mutes`, `notification_events`
-  (currently 0 policies).
-- Migration `021_social_graph_policies.sql`, `src/lib/social/service.ts` (follow/block/mute),
-  notifications wiring, UI follow buttons + notification centre enhancements, tests.
-
-See `ROADMAP.md` for the full sequence. Do not skip ahead.
+Repo-completeness pass is **PASS and committed** (this checkpoint). The gate
+is green: tsc 0 errors, eslint 0 errors (10 pre-existing warnings), webpack
+build 45 routes, vitest 145/145 (unit; browser suite not run on this host).
+Launch hardening is the explicit next phase (see `ROADMAP.md` — do not
+intermix).
 
 ---
 
@@ -207,17 +229,18 @@ post-V3 phase.
 
 ---
 
-## Validation State (last verified at V3.6 commit)
+## Validation State (last verified at repo-completeness checkpoint)
 
 | Check | Result |
 |---|---|
-| `npx eslint .` | 0 errors, 9 warnings (all pre-existing V2 debt; no new warnings) |
+| `npx eslint .` | 0 errors, 10 warnings (all pre-existing V2 debt; no new warnings) |
 | `npx tsc --noEmit` | PASS (0 errors) |
-| `npm run build` | PASS (34 routes listed + root; 35 total) |
-| `npx vitest run` | PASS (91 tests across 9 files) |
-| Live DB inspection | PASS via `run-sql` (queries executed and removed post-verification) |
+| `npx next build --webpack` | PASS — 45 routes (44 listed + root); proxy present |
+| `npx vitest run` | PASS — 145 tests across 14 files (browser suite excluded on this host) |
+| Live DB inspection | PASS via `run-sql` (previous sessions; no DB change in this pass) |
 
-Manual / browser verification: NOT performed in the dev environment.
+Browser smoke suite (tests/browser): requires ChromeDriver @9515 + app @:3000
+— not run on this host in this pass.
 
 ---
 
@@ -231,20 +254,17 @@ Manual / browser verification: NOT performed in the dev environment.
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only (`createAdminClient`) | YES — server-only |
 
 The repository does NOT commit `.env.local`. Local secrets live in
-`~/.supabase_env` (read by `run-sql.cmd` only).
+`~/.supabase_env` (read by the authorised `run-sql` interface only).
 
 ---
 
 ## NEXT AGENT ACTION
 
-**Read `docs/AGENT_HANDOFF.md`, reconcile this document against `git log` and
-the actual repository state, then begin V3.9 Social Graph only — assuming V3.8 is
-verified PASS at the current HEAD (`19e862f`).**
+**Read `docs/AGENT_HANDOFF.md`, reconcile this document against `git status`
+and `git log`, then begin Launch Hardening (see `ROADMAP.md`). The
+repo-completeness pass is committed; do not re-run it unless the gate has
+regressed.**
 
-Note: apply `run-sql docs/database/020_messaging_policies.sql` if not yet
-executed against the live DB (deferred during V3.8 due to environment flakiness).
-
-If any verification has changed (broken build, lint errors, missing migration,
-DB regression), STOP at the failed checkpoint and update `PROJECT_STATE.md`
-before any further work.
+Do not run `run-sql` against the live DB unless the task explicitly requires
+it, and never read or print `~/.supabase_env`.
 V4 Milestones complete (gaming profiles 022, LFG session 023, events lifecycle 024, presence 025). Service: src/lib/profiles/service-v4.ts + test passed. Security: service_role isolated (acknowledged, no exposure). Build: webpack verified. Browser: Chromium 149 session verified (prior session). Limitations preserved: P1.4 benchmark BLOCKED external, auth E2E config-blocked, desktop skipped.
