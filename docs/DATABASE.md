@@ -44,6 +44,19 @@
 | 027 | `027_v4_notification_triggers.sql` | follow / @mention / event-RSVP notification triggers + `notifications.type` CHECK extension |
 | 028 | `028_v4_private_communities.sql` | `communities.is_private` + private posts/communities RLS |
 | 029 | `029_v4_notification_preferences.sql` | `profiles.notification_prefs` JSONB + `notification_enabled()` helper (honored by V4 triggers) |
+| 030 | `030_fix_posts_profiles_relationship.sql` | renames `auth.users` FKs to `*_auth_users_fkey`; adds same-named FKs to `profiles(id)` for `posts.author_id`, `comments.author_id`, `reports.reporter_id`, `voice_room_participants.user_id` (fixes PostgREST embed hints `author:profiles!posts_author_id_fkey` et al.) |
+
+### PostgREST embed-relationship warning (root cause of migration 030)
+
+The app embeds related rows through foreign-key hints such as
+`?select=*,author:profiles!posts_author_id_fkey`. PostgREST only honours a
+hint if a foreign key **with exactly that name** exists pointing at the
+embedded table. A bare inline `REFERENCES auth.users(id)`
+silently auto-names the constraint after the column (`posts_author_id_fkey`)
+but targets `auth.users`, not `public.profiles` — so the hint mismatches and
+every such query fails with `PGRST200` ("Could not find a relationship … no
+matches were found"). Keep user-facing FKs pointed at `public.profiles(id)`
+(with `ON DELETE CASCADE`; `profiles.id` itself references `auth.users`).
 
 The migrations are designed to be idempotent (use `IF NOT EXISTS`,
 `DROP POLICY IF EXISTS`, `DO $$ ... EXCEPTION WHEN duplicate_object`,

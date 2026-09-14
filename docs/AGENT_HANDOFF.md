@@ -239,4 +239,5 @@ can pick up where you left off without losing any context.
 
 NOTE — SQL interface (this host):
 - Termux (current agent): `run-sql <file>` sources `~/.supabase_env` (NEVER printed/committed). SELECT/information_schema verification. Never expose DB credentials.
-- Migrations 022–029 are applied to the live DB and are the source of truth. `docs/database/` files are the canonical migration log.
+- Migrations 022–030 are applied to the live DB and are the source of truth. `docs/database/` files are the canonical migration log.
+- **PostgREST embeds** (`?select=...,author:profiles!posts_author_id_fkey`): the FK hint name must match a real FK that targets the embedded table. Do not add bare inline `REFERENCES auth.users(id)` on user columns — see `docs/DATABASE.md` warning and `030_fix_posts_profiles_relationship.sql`.

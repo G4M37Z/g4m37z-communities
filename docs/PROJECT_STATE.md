@@ -13,15 +13,50 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `f2ded26` (repo-completeness checkpoint; prior certified `5539aff`, prior HEAD `72c34e9`) |
+| Last verified HEAD | `a1f2838` (production PostgREST embed-FK fix; prior `f2ded26` repo-completeness checkpoint, prior certified `5539aff`) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
-| Documentation version | 2 (this commit) |
+| Documentation version | 3 (this commit) |
 | Last verified date | 2026-09-14 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Production PostgREST embed-FK fix (2026-09-14) — APPLIED & VERIFIED.**
+
+After the repo-completeness checkpoint (`f2ded26`) a live production
+regression surfaced: feed pages showed "No posts yet", post pages 404'd
+("We couldn't find that page"), and voice/community-create flows threw a
+shared Next.js error digest (`2226326061`). All Vercel app queries targeted
+Supabase project `zpirpbivhkscixbokpbt` (anon key in the built JS chunk),
+which is the same DB `run-sql` reaches.
+
+Root cause: every query embeds the author via FK hints
+(`author:profiles!posts_author_id_fkey`, etc.), but the schema created the
+user columns with a bare inline `REFERENCES auth.users(id)`, so the
+auto-named constraint (`posts_author_id_fkey`) pointed at `auth.users`, not
+`public.profiles`. PostgREST therefore failed EVERY such query — anonymous
+and authenticated alike — with `PGRST200` ("Could not find a relationship").
+Covered embeds: `posts.author_id`, `comments.author_id`,
+`reports.reporter_id`, `voice_room_participants.user_id`.
+
+Fix (two commits, both pushed):
+
+| Commit | Content |
+|---|---|
+| `fb4bb23` | app code: `post/[id]/page.tsx`, `communities/[slug]/page.tsx`, `community-service.ts` no longer mask non-PGRST116 query errors as 404 — they log + throw (defensive; keeps unexplained 404s from hiding DB failures) |
+| `a1f2838` | DB migration `docs/database/030_fix_posts_profiles_relationship.sql` — renames the auth.users FKs to `*_auth_users_fkey` and adds same-named FKs to `public.profiles(id) ON DELETE CASCADE` for the four tables above |
+
+Validated: full gate at `fb4bb23` (tsc 0, eslint 0/10, webpack build 45
+routes, vitest 145/145); migration re-run is a clean no-op; every app embed
+replayed via the SDK returns status 200 (err=none); live pages
+`/post/<uuid>`, `/communities/efootball`, `/communities/efootball/voice`,
+`/create`, `/communities`, `/home` now render with no server error digests.
+
+---
+
+## Checkpoint held from previous session
 
 **Repo-completeness pass (2026-09-14) — PASS, gate green.**
 
@@ -75,6 +110,7 @@ Validation gate result (this checkpoint):
 | 9 | V3.9 Social Graph | `8460b32` | PASS |
 | 10 | V4 gap — presence, reactions, capabilities, voice, events lifecycle, notifications, private communities, proxy/middleware, feed/mod services, gaming profile + notification prefs UI, real tests | `6f18852` | PASS |
 | 10a | Browser smoke spec fix (Chromedriver/DOCTYPE assertion) | `5539aff` | PASS |
+| FIX | Production PostgREST embed-FK fix (feed 404s / empty feeds / voice+create digests) | `fb4bb23` + `a1f2838` (030 migration) | PASS |
 
 Launch Hardening status: P1.1 PARTIAL (audit done, subagents 400/429 env); P1.2 NONE REQUIRED; P1.3 PASS; P1.4 PARTIAL (static OK, runtime benchmark external); P2 PASS; P2.3 VERIFIED (browser harness added — `tests/browser/smoke.spec.ts`, real Chromium 149 / ChromeDriver 149 session, mobile 375×812, all smoke routes PASS); P3 PASS (webpack build 34 routes, TS 0, vitest 120/120 incl. browser smoke, security pass, DB pass, lint 0 errors).
 
@@ -149,9 +185,11 @@ Each milestone had:
 
 ## In-Progress / Next Work
 
-Repo-completeness pass is **PASS and committed** (this checkpoint). The gate
-is green: tsc 0 errors, eslint 0 errors (10 pre-existing warnings), webpack
-build 45 routes, vitest 145/145 (unit; browser suite not run on this host).
+Repo-completeness pass and the production PostgREST embed-FK fix are both
+**PASS and committed** (this checkpoint). The gate is green: tsc 0 errors,
+eslint 0 errors (10 pre-existing warnings), webpack build 45 routes, vitest
+145/145 (unit; browser suite not run on this host). Migration 030 is applied
+to the live DB; all feed/post/voice/community has been verified live.
 Launch hardening is the explicit next phase (see `ROADMAP.md` — do not
 intermix).
 

@@ -234,6 +234,14 @@ commit.
   - NEW this milestone: `025_v4_presence_state.sql` (user_presence + realtime),
     `026_v4_community_capabilities.sql`, `027_v4_notification_triggers.sql`,
     `028_v4_private_communities.sql`, `029_v4_notification_preferences.sql`.
+  - POST-V4 FIX `030_fix_posts_profiles_relationship.sql` (`a1f2838`): user
+    columns were created with bare inline `REFERENCES auth.users(id)`, so the
+    PostgREST embed hints (`author:profiles!posts_author_id_fkey`, etc.)
+    resolved to `auth.users`, not `profiles` — every feed/post/comment/report/
+    voice query failed with PGRST200. Renamed those FKs to `*_auth_users_fkey`
+    and added same-named FKs to `profiles(id)` (posts, comments, reports,
+    voice_room_participants). App-side `fb4bb23` stops masking non-404 query
+    errors as 404.
 - Features wired end-to-end:
   - **Presence** — `user_presence` realtime; heartbeat in root layout;
     live indicator + avatar dot (Header/UserMenu).
