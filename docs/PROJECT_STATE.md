@@ -296,6 +296,29 @@ The repository does NOT commit `.env.local`. Local secrets live in
 
 ---
 
+## Pre-Launch Reminders
+
+> Both items below must be resolved before any public launch. Do not ship
+> until they are. Full context: `docs/ERRORS.md`.
+
+- **RE-ENABLE email confirmation before launch.** Supabase project
+  `zpirpbivhkscixbokpbt` currently has "Confirm email" ENABLED. The approved
+  plan is to disable it — Supabase dashboard `authentication → providers →
+  email` — for rate-limit-free testing (signup confirmations currently trip
+  `429 over_email_send_rate_limit`). This is a **DASHBOARD-ONLY toggle**:
+  ox-auth settings live outside Postgres (there is no `auth.config` table),
+  so it cannot be changed via SQL. **It MUST be turned BACK ON before public
+  launch.**
+- **Remove TEST-ONLY test user before launch.** A confirmed test user was
+  seeded for rate-limit-free testing: id
+  `d1eeb9c0-0000-4000-8000-000000000007`, email `g4m37z.autotest@gmail.com`,
+  password `G4m37z!autotest2026`, username `autotest`. Defined in
+  `sql/_seed_autotest_user.sql` (idempotent) — temp-only, clean up at launch.
+  ox-auth caveat: `auth.users` token columns must be `''` (not `NULL`), or
+  login 500s with "Database error querying schema". See `docs/ERRORS.md` §5/§6.
+
+---
+
 ## NEXT AGENT ACTION
 
 **Read `docs/AGENT_HANDOFF.md`, reconcile this document against `git status`

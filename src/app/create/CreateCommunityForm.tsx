@@ -64,9 +64,19 @@ export function CreateCommunityForm({ categories }: Props) {
     }
     queue("checking");
     debounceRef.current = setTimeout(async () => {
-      const res = await checkSlugAvailability(s);
-      if (res.available) setSlugStatus("ok");
-      else setSlugStatus("taken");
+      try {
+        const res = await Promise.race([
+          checkSlugAvailability(s),
+          new Promise<Awaited<ReturnType<typeof checkSlugAvailability>>>(
+            (_, reject) =>
+              setTimeout(() => reject(new Error("slug check timed out")), 15000)
+          ),
+        ]);
+        if (res.available) setSlugStatus("ok");
+        else setSlugStatus("taken");
+      } catch {
+        setSlugStatus("ok");
+      }
     }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

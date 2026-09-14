@@ -54,15 +54,31 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
       }
       queue("checking");
       debounceRef.current = setTimeout(async () => {
-        const res = await checkUsernameAvailability(u);
-        if (res.available) {
-          setUsernameStatus("ok");
-        } else if (res.code === "invalid") {
-          setUsernameStatus("invalid");
-        } else if (res.code === "taken") {
-          setUsernameStatus("taken");
-        } else {
-          // unchecked / fail-open
+        try {
+          const res = await Promise.race([
+            checkUsernameAvailability(u),
+            new Promise<Awaited<ReturnType<typeof checkUsernameAvailability>>>(
+              (_, reject) =>
+                setTimeout(
+                  () => reject(new Error("username check timed out")),
+                  15000
+                )
+            ),
+          ]);
+          if (res.available) {
+            setUsernameStatus("ok");
+          } else if (res.code === "invalid") {
+            setUsernameStatus("invalid");
+          } else if (res.code === "taken") {
+            setUsernameStatus("taken");
+          } else {
+            // unchecked / fail-open
+            setUsernameStatus("ok");
+          }
+        } catch {
+          // The action rejected (dispatch/network error). Fail open — the DB
+          // unique constraint catches real duplicates. Never leave the form
+          // stuck on "Checking availability…".
           setUsernameStatus("ok");
         }
       }, 400);
