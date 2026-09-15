@@ -29,6 +29,7 @@
 // ============================================================================
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const UUID_RE =
@@ -154,8 +155,10 @@ export interface EventResult {
 // ---------------------------------------------------------------------------
 
 async function resolveUserId(): Promise<string | null> {
-  const session = createAdminClient();
-  const { data } = await session.auth.getUser();
+  // The service-role client has no user session; identity must come from the
+  // cookie-bound server client. Mutations still execute via the admin client.
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
   return data?.user?.id ?? null;
 }
 
@@ -215,12 +218,13 @@ async function isEventEditor(
   // service-role bypasses RLS so we read directly.
   const { data, error } = await supabase
     .from("events")
-    .select("community_id, status")
+    .select("community_id, created_by")
     .eq("id", eventId)
     .maybeSingle();
   if (error || !data) return false;
-  const e = data as { community_id: string | null };
-  if (e.community_id === null) return false; // no community → no editor in V3.5
+  const e = data as { community_id: string | null; created_by: string | null };
+  if (e.created_by === userId) return true; // recorded event owner
+  if (e.community_id === null) return false; // no community → no other editor
   const { data: comm, error: cerr } = await supabase
     .from("communities")
     .select("creator_id")
@@ -405,6 +409,7 @@ export async function createEvent(
   const session = createAdminClient();
   const payload = {
     community_id: input.communityId ?? null,
+    created_by: userId,
     title,
     description,
     event_type: eventType,

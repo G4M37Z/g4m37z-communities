@@ -18,6 +18,7 @@
 // ============================================================================
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const UUID_RE =
@@ -206,15 +207,14 @@ export async function followGame(
   gameId: string,
 ): Promise<FollowResult> {
   if (!isUuid(gameId)) return { ok: false, status: "error", error: "Invalid gameId" };
-  // Use the regular client for auth resolution (it carries the session cookie),
-  // then delegate the insert to the admin client (service_role bypasses RLS
-  // for the writable policy that requires auth.uid() = user_id; service_role
-  // INSERTs return auth.uid() NULL via auth functions but we explicitly set
-  // user_id from the resolved session).
-  const session = createAdminClient();
-  const { data: userData } = await session.auth.getUser();
+  // Identity comes from the cookie-bound server client (service-role has no
+  // session); the mutation below still executes via the admin client.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
+
+  const session = createAdminClient();
 
   const { error } = await session
     .from("game_followers")
@@ -229,10 +229,14 @@ export async function unfollowGame(
   gameId: string,
 ): Promise<FollowResult> {
   if (!isUuid(gameId)) return { ok: false, status: "error", error: "Invalid gameId" };
-  const session = createAdminClient();
-  const { data: userData } = await session.auth.getUser();
+  // Identity comes from the cookie-bound server client (service-role has no
+  // session); the mutation below still executes via the admin client.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
+
+  const session = createAdminClient();
 
   const { error } = await session
     .from("game_followers")
@@ -372,10 +376,14 @@ export async function createGameReview(
   input: CreateReviewInput,
 ): Promise<ReviewResult> {
   if (!isUuid(input.gameId)) return { ok: false, status: "error", error: "Invalid gameId" };
-  const session = createAdminClient();
-  const { data: userData } = await session.auth.getUser();
+  // Identity comes from the cookie-bound server client (service-role has no
+  // session); the mutation below still executes via the admin client.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
+
+  const session = createAdminClient();
 
   const payload = {
     game_id: input.gameId,
@@ -415,10 +423,14 @@ export async function updateGameReview(
 ): Promise<ReviewResult> {
   if (!isUuid(input.reviewId))
     return { ok: false, status: "error", error: "Invalid reviewId" };
-  const session = createAdminClient();
-  const { data: userData } = await session.auth.getUser();
+  // Identity comes from the cookie-bound server client (service-role has no
+  // session); the mutation below still executes via the admin client.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
+
+  const session = createAdminClient();
 
   const update: Record<string, unknown> = {};
   const fields: Array<[string, number | null | undefined, number, number]> = [
@@ -463,10 +475,14 @@ export async function deleteGameReview(
 ): Promise<ReviewResult> {
   if (!isUuid(reviewId))
     return { ok: false, status: "error", error: "Invalid reviewId" };
-  const session = createAdminClient();
-  const { data: userData } = await session.auth.getUser();
+  // Identity comes from the cookie-bound server client (service-role has no
+  // session); the mutation below still executes via the admin client.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
+
+  const session = createAdminClient();
 
   const { data: existing, error: rerr } = await session
     .from("game_reviews")

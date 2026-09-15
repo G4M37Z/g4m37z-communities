@@ -4,7 +4,9 @@
 //
 // Security model:
 //   - Only the OWNER can edit their own gaming identity. Identity is resolved
-//     server-side (createAdminClient + auth.getUser()), never from the client.
+//     server-side via the cookie-bound client's auth.getUser(), never from the
+//     client. Writes execute via the service-role client (identity never
+//     client-supplied).
 //   - Reads are handled by the profile's existing RLS (owner + public fields).
 //   - No new table: enriches `profiles` via migration 022 (safe ALTER ADD).
 // ============================================================================
@@ -44,10 +46,11 @@ function cleanEnum<T extends string>(v: unknown, allowed: readonly T[]): T | nul
 export async function updateGamingProfile(
   input: Partial<Omit<GamingProfile, "id">>
 ): Promise<{ ok: true }> {
-  const admin = createAdminClient();
-  const { data: u, error: authErr } = await admin.auth.getUser();
+  const supabase = await createClient();
+  const { data: u, error: authErr } = await supabase.auth.getUser();
   if (authErr || !u?.user) throw new Error("Not authenticated");
   const userId = u.user.id;
+  const admin = createAdminClient();
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (input.gaming_handle !== undefined) {

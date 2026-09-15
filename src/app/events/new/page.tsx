@@ -14,13 +14,28 @@ export default async function NewEventPage() {
     redirect("/login?next=/events/new");
   }
 
-  // Load communities the user owns (for the community dropdown). Empty
-  // list is acceptable: events may also be created without a community.
-  const { data: memberships } = await supabase
-    .from("communities")
-    .select("id, name")
-    .eq("creator_id", user.id)
-    .order("name");
+  // Load communities where the user may create events: owned, or where they
+  // are an admin/moderator member (matches the events INSERT RLS policy).
+  const [{ data: owned }, { data: moderated }] = await Promise.all([
+    supabase.from("communities").select("id, name").eq("creator_id", user.id),
+    supabase
+      .from("community_members")
+      .select("role, communities:community_id ( id, name )")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "moderator"]),
+  ]);
+
+  const moderatedCommunities = (moderated ?? []).flatMap(
+    (m: { role: string; communities: { id: string; name: string } | { id: string; name: string }[] | null }) => {
+      const c = Array.isArray(m.communities) ? m.communities[0] : m.communities;
+      return c ? [c] : [];
+    },
+  );
+  const byId = new Map<string, { id: string; name: string }>();
+  for (const c of [...(owned ?? []), ...moderatedCommunities]) {
+    byId.set(c.id, c);
+  }
+  const memberships = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <main className="container-x py-8 pb-20">

@@ -23,6 +23,7 @@
 // ============================================================================
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const UUID_RE =
@@ -75,8 +76,10 @@ function clamp(n: number, lo: number, hi: number): number {
 }
 
 async function resolveUserId(): Promise<string | null> {
-  const session = createAdminClient();
-  const { data } = await session.auth.getUser();
+  // The service-role client has no user session; identity must come from the
+  // cookie-bound server client. Mutations still execute via the admin client.
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
   return data?.user?.id ?? null;
 }
 
