@@ -53,5 +53,3 @@ export async function updatePresence(
   if (error) return { ok: false, error: "Could not update presence." };
   return { ok: true };
 }
-
-export const presenceStates = PRESENCE_STATES;

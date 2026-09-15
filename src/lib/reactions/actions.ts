@@ -79,5 +79,3 @@ export async function setReaction(
   revalidatePath(`/post/${postId}`);
   return { ok: true, reaction: reactionType as ReactionType };
 }
-
-export const reactionTypes = REACTION_TYPES;
