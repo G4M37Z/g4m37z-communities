@@ -5,6 +5,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { PostCardData } from "@/components/post/PostCard";
+import { getPollsForPosts, type PollView } from "@/lib/polls/service";
 
 export type SortKey = "latest" | "popular" | "trending";
 
@@ -39,6 +40,11 @@ interface VoteRow {
 }
 interface CommentRow {
   post_id: string;
+}
+
+interface RepostRow {
+  post_id: string;
+  reposter_id: string;
 }
 
 /**
@@ -84,8 +90,8 @@ export async function getCommunityPosts(
 }
 
 /**
- * Fetch posts from all communities the user has joined. Used on /home.
- * Supports offset-based pagination.
+ * Fetch posts from all communities the user has joined, plus posts by people
+ * they follow (from any community). Used on /home. Supports offset pagination.
  */
 export async function getHomeFeed(
   userId: string | null,
@@ -96,13 +102,23 @@ export async function getHomeFeed(
   const supabase = await createClient();
 
   let joinedIds: string[] = [];
+  let followedIds: string[] = [];
   if (userId) {
-    const { data: memberships } = await supabase
-      .from("community_members")
-      .select("community_id")
-      .eq("user_id", userId);
+    const [{ data: memberships }, { data: follows }] = await Promise.all([
+      supabase
+        .from("community_members")
+        .select("community_id")
+        .eq("user_id", userId),
+      supabase
+        .from("follows")
+        .select("followed_id")
+        .eq("follower_id", userId),
+    ]);
     joinedIds = (memberships ?? []).map(
       (m: { community_id: string }) => m.community_id
+    );
+    followedIds = (follows ?? []).map(
+      (f: { followed_id: string }) => f.followed_id
     );
   }
 
@@ -117,6 +133,33 @@ export async function getHomeFeed(
   }
 
   const { data: posts } = await postsQuery;
+
+  // Followed users' posts from outside the joined communities, merged in.
+  // RLS/private-community visibility is enforced by the database either way.
+  if (followedIds.length > 0) {
+    let followedQuery = supabase
+      .from("posts")
+      .select(POST_SELECT)
+      .in("author_id", followedIds)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (joinedIds.length > 0) {
+      followedQuery = followedQuery.not(
+        "community_id",
+        "in",
+        `(${joinedIds.join(",")})`
+      );
+    }
+    const { data: followedPosts } = await followedQuery;
+    if (followedPosts && followedPosts.length > 0) {
+      return await enrichPosts(
+        [...(posts ?? []), ...followedPosts] as unknown as JoinedPost[],
+        sort,
+        userId
+      );
+    }
+  }
+
   if (!posts || posts.length === 0) return [];
   return await enrichPosts(posts as unknown as JoinedPost[], sort, userId);
 }
@@ -129,14 +172,21 @@ async function enrichPosts(
   const supabase = await createClient();
   const postIds = posts.map((p: JoinedPost) => p.id);
 
-  // Fetch votes + comments in parallel.
-  const [{ data: votes }, { data: comments }] = await Promise.all([
-    supabase
-      .from("post_votes")
-      .select("post_id, user_id, value")
-      .in("post_id", postIds),
-    supabase.from("comments").select("post_id").in("post_id", postIds),
-  ]);
+  // Fetch votes + comments + reposts in parallel, then the batched poll map.
+  const [{ data: votes }, { data: comments }, { data: reposts }] =
+    await Promise.all([
+      supabase
+        .from("post_votes")
+        .select("post_id, user_id, value")
+        .in("post_id", postIds),
+      supabase.from("comments").select("post_id").in("post_id", postIds),
+      supabase
+        .from("reposts")
+        .select("post_id, reposter_id")
+        .in("post_id", postIds),
+    ]);
+
+  const pollMap = await getPollsForPosts(postIds);
 
   const scoreByPost = new Map<string, number>();
   const myVoteByPost = new Map<string, 1 | -1>();
@@ -145,14 +195,7 @@ async function enrichPosts(
     if (viewerId && v.user_id === viewerId) {
       myVoteByPost.set(v.post_id, v.value === 1 ? 1 : -1);
     }
-  }
-  const commentCountByPost = new Map<string, number>();
-  for (const c of (comments ?? []) as CommentRow[]) {
-    commentCountByPost.set(
-      c.post_id,
-      (commentCountByPost.get(c.post_id) ?? 0) + 1
-    );
-  }
+  }  const commentCountByPost = new Map<string, number>();  for (const c of (comments ?? []) as CommentRow[]) {    commentCountByPost.set(      c.post_id,      (commentCountByPost.get(c.post_id) ?? 0) + 1    );  }  const repostCountByPost = new Map<string, number>();  const repostedByViewer = new Set<string>();  for (const r of (reposts ?? []) as RepostRow[]) {    repostCountByPost.set(      r.post_id,      (repostCountByPost.get(r.post_id) ?? 0) + 1    );    if (viewerId && r.reposter_id === viewerId) repostedByViewer.add(r.post_id);  }
 
   const now = Date.now();
   const enriched: (PostCardData & { trending?: number })[] = posts.map(
@@ -170,9 +213,7 @@ async function enrichPosts(
         body: p.body,
         image_url: p.image_url,
         created_at: p.created_at,
-        updated_at: p.updated_at,
-        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,
-        author: p.author,
+        updated_at: p.updated_at,        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,        repost_count: repostCountByPost.get(p.id) ?? 0,        reposted: repostedByViewer.has(p.id),        poll: pollMap.get(p.id) ?? null,        author: p.author,
         community: p.community,
         score,
         my_vote: myVoteByPost.get(p.id) ?? null,

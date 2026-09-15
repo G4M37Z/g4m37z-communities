@@ -3,6 +3,7 @@
 // Server Component reads the profile; Client Component handles the form.
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./SettingsForm";
 import { GamingProfileForm } from "@/components/settings/gaming-profile-form";
@@ -71,6 +72,13 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 pt-8 pb-24">
+      <Link
+        href="/settings/analytics"
+        className="mb-5 flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 text-sm font-semibold text-fg hover:border-border-strong"
+      >
+        Creator analytics
+        <span aria-hidden="true">→</span>
+      </Link>
       <NotificationPreferencesForm initial={prefsRaw} />
       <div className="h-5" />
       <GamingProfileForm initial={gaming} />

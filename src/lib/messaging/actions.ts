@@ -10,7 +10,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createDirectConversation, sendMessage as sendMessageService } from "@/lib/messaging/service";
+import {  createDirectConversation,  sendMessage as sendMessageService,  markConversationRead,  getUnreadCounts,} from "@/lib/messaging/service";
 
 const MAX_USERNAME = 32;
 const MIN_USERNAME = 2;
@@ -59,15 +59,4 @@ export async function createConversation(
 
   revalidatePath("/messages");
   redirect(`/messages/${result.conversation_id}`);
-}
-
-export async function sendMessage(
-  conversationId: string,
-  body: string,
-): Promise<MessageActionState> {
-  const result = await sendMessageService(conversationId, body);
-  if (!result.ok) return { ok: false, error: result.error };
-
-  revalidatePath(`/messages/${conversationId}`);
-  return { ok: true };
-}
+}export async function sendMessage(  conversationId: string,  body: string,): Promise<MessageActionState> {  const result = await sendMessageService(conversationId, body);  if (!result.ok) return { ok: false, error: result.error };  revalidatePath(`/messages/${conversationId}`);  return { ok: true };}/** Marks a thread read for the signed-in member. Silent no-op when  * unauthenticated or the update is denied (RLS fails closed). */export async function markReadAction(  conversationId: string): Promise<{ ok: boolean }> {  const ok = await markConversationRead(conversationId);  if (ok) revalidatePath("/messages");  return { ok };}/** Server-side unread counts for the conversations list. */export async function getUnreadCountsAction(): Promise<Map<string, number>> {  return getUnreadCounts();}

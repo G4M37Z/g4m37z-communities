@@ -14,7 +14,9 @@ import { ReportButton } from "@/components/ReportButton";
 import { RealtimeComments } from "@/components/comments/RealtimeComments";
 import { ReactionButton } from "@/components/reaction-button";
 import { BookmarkButton } from "@/components/post/BookmarkButton";
+import { RepostButton } from "@/components/post/RepostButton";
 import { isBookmarked } from "@/lib/bookmarks/service";
+import { getRepostCount, hasReposted } from "@/lib/reposts/service";
 import { PollView } from "@/components/polls/PollView";
 import { PollCreateForm } from "@/components/polls/PollCreateForm";
 import { getPollForPost } from "@/lib/polls/service";
@@ -122,6 +124,8 @@ export default async function PostPage({
     savedState,
     poll,
     thread,
+    repostCount,
+    reposted,
   ] = await Promise.all([
     supabase
       .from("post_votes")
@@ -142,6 +146,8 @@ export default async function PostPage({
     isBookmarked(id),
     getPollForPost(id),
     getCommentThread(id, null),
+    getRepostCount(id),
+    hasReposted(id),
   ]);
 
   const score = ((votes ?? []) as { value: number }[]).reduce(
@@ -268,6 +274,12 @@ export default async function PostPage({
                   {post.comment_count ?? 0}{" "}
                   {post.comment_count === 1 ? "comment" : "comments"}
                 </span>
+                <RepostButton
+                  postId={post.id}
+                  initialReposted={Boolean(reposted)}
+                  initialCount={repostCount}
+                  signedIn={Boolean(user)}
+                />
                 {user && user.id !== post.author_id && (
                   <ReportButton targetType="post" targetId={post.id} />
                 )}

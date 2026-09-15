@@ -140,6 +140,75 @@ export async function getPollForPost(postId: string): Promise<PollView | null> {
   };
 }
 
+/** Polls for many posts in batch (feed cards). Missing posts simply have no entry. */
+export async function getPollsForPosts(
+  postIds: string[]
+): Promise<Map<string, PollView>> {
+  const out = new Map<string, PollView>();
+  const ids = postIds.filter(isUuid);
+  if (ids.length === 0) return out;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: polls } = await supabase
+    .from("polls")
+    .select("id, post_id, question, multiple, expires_at")
+    .in("post_id", ids);
+  if (!polls || polls.length === 0) return out;
+
+  const pollIds = (polls as { id: string; post_id: string }[]).map((p) => p.id);
+  const [{ data: options }, { data: votes }, { data: mine }] = await Promise.all([
+    supabase
+      .from("poll_options")
+      .select("id, label, position, poll_id")
+      .in("poll_id", pollIds)
+      .order("position", { ascending: true }),
+    supabase.from("poll_votes").select("poll_id, option_id").in("poll_id", pollIds),
+    user
+      ? supabase
+          .from("poll_votes")
+          .select("poll_id, option_id")
+          .in("poll_id", pollIds)
+          .eq("user_id", user.id)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const votesByPoll = new Map<string, Map<string, number>>();
+  for (const v of (votes ?? []) as { poll_id: string; option_id: string }[]) {
+    let m = votesByPoll.get(v.poll_id);
+    if (!m) votesByPoll.set(v.poll_id, (m = new Map()));
+    m.set(v.option_id, (m.get(v.option_id) ?? 0) + 1);
+  }
+  const mineByPoll = new Map<string, string>();
+  for (const m of (mine ?? []) as { poll_id: string; option_id: string }[]) {
+    mineByPoll.set(m.poll_id, m.option_id);
+  }
+
+  for (const p of polls as { id: string; post_id: string; question: string; multiple: boolean; expires_at: string | null }[]) {
+    const counts = votesByPoll.get(p.id) ?? new Map<string, number>();
+    const opts: PollOption[] = (
+      (options ?? []) as { id: string; label: string; position: number; poll_id: string }[]
+    )
+      .filter((o) => o.poll_id === p.id)
+      .map((o) => ({ id: o.id, label: o.label, position: o.position, votes: counts.get(o.id) ?? 0 }));
+    const closed =
+      p.expires_at !== null && new Date(p.expires_at).getTime() <= Date.now();
+    out.set(p.post_id, {
+      id: p.id,
+      question: p.question,
+      multiple: p.multiple,
+      expires_at: p.expires_at,
+      closed,
+      totalVotes: opts.reduce((s, o) => s + o.votes, 0),
+      options: opts,
+      myOptionId: mineByPoll.get(p.id) ?? null,
+    });
+  }
+  return out;
+}
+
 /** Create a poll attached to an existing post. Caller must be the post author. */
 export async function createPollForPost(
   postId: string,

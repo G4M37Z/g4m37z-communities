@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { listConversations } from "@/lib/messaging/service";
+import { listConversations, getUnreadCounts } from "@/lib/messaging/service";
 import { PageEnter } from "@/components/PageEnter";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,7 @@ export default async function MessagesPage() {
   }
 
   const conversations = await listConversations(30);
+  const unreadCounts = await getUnreadCounts();
 
   // Fetch last message + other member name for each conversation
   const enriched = await Promise.all(
@@ -102,6 +103,14 @@ export default async function MessagesPage() {
                     >
                       {new Date(conv.lastMsg.created_at).toLocaleDateString()}
                     </time>
+                  )}
+                  {(unreadCounts.get(conv.id) ?? 0) > 0 && (
+                    <span
+                      aria-label={`${unreadCounts.get(conv.id)} unread messages`}
+                      className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white"
+                    >
+                      {unreadCounts.get(conv.id)}
+                    </span>
                   )}
                 </Link>
               </li>

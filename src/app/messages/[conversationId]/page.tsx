@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listMessages } from "@/lib/messaging/service";
 import { PageEnter } from "@/components/PageEnter";
 import { MessageForm } from "./MessageForm";
+import { ThreadLive } from "./ThreadLive";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,8 @@ export default async function MessageThreadPage({
             ← Back
           </Link>
         </header>
+
+        <ThreadLive conversationId={conversationId} />
 
         <ul className="space-y-2 mb-4 max-h-[60vh] overflow-y-auto">
           {messages.map((m) => (

@@ -6,16 +6,11 @@ import { timeAgo } from "@/lib/utils";
 import { PostVoteControl } from "@/components/voting/PostVoteControl";
 import { ShareButton } from "@/components/post/ShareButton";
 import { BookmarkButton } from "@/components/post/BookmarkButton";
+import { RepostButton } from "@/components/post/RepostButton";
+import { PollView as PollViewComponent } from "@/components/polls/PollView";
+import type { PollView } from "@/lib/polls/service";
 
-export interface PostCardData extends Post {
-  author: { username: string; display_name: string | null; avatar_url: string | null } | null;
-  community: { slug: string; name: string } | null;
-  comment_count: number;
-  score: number;
-  my_vote?: 1 | -1 | null;
-  signed_in?: boolean;
-  bookmarked?: boolean;
-}
+export interface PostCardData extends Post {  author: { username: string; display_name: string | null; avatar_url: string | null } | null;  community: { slug: string; name: string } | null;  comment_count: number;  score: number;  my_vote?: 1 | -1 | null;  signed_in?: boolean;  bookmarked?: boolean;  repost_count?: number;  reposted?: boolean;  poll?: PollView | null;}
 
 interface Props { post: PostCardData; }
 
@@ -52,8 +47,14 @@ export function PostCard({ post }: Props) {
               <img src={post.image_url} alt="" className="block max-h-72 w-full object-cover" />
             </div>
           )}
+          {post.poll && (
+            <div className="mt-3">
+              <PollViewComponent poll={post.poll} signedIn={Boolean(post.signed_in)} postId={post.id} />
+            </div>
+          )}
           <footer className="mt-3 flex items-center gap-4 text-xs text-text-muted">
             <ShareButton postId={post.id} />
+            <RepostButton postId={post.id} initialReposted={post.reposted ?? false} initialCount={post.repost_count ?? 0} signedIn={Boolean(post.signed_in)} />
             <Link href={`/post/${post.id}#comments`} className="inline-flex items-center gap-1 hover:text-fg"><MessageSquare size={12} />{post.comment_count} {post.comment_count === 1 ? "comment" : "comments"}</Link>
             <BookmarkButton postId={post.id} initialSaved={post.bookmarked ?? false} signedIn={Boolean(post.signed_in)} />
           </footer>
