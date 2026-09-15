@@ -259,15 +259,18 @@ following breakdown is approximate and should be re-verified with live SQL:
   scoped to `auth.uid() = user_id`.
 - V3.4 (`lfg_sessions`, `lfg_participants`) — see `016_lfg_policies.sql`.
 - V3.5 (`events`, `event_participants`) — see `017_events_policies.sql`.
-- V3.6 (5 tournament tables) — see `018_tournaments_policies.sql`.
-
-Tables with RLS enabled but no policies (defined in master_v3.sql but not
-yet wired):
+- V3.6 (5 tournament tables) — see `018_tournaments_policies.sql`.Tables with RLS enabled but no policies (defined in master_v3.sql but not yet wired):
 - `conversations`, `conversation_members`, `messages` (V3.8 Messaging)
-- `follows`, `blocks`, `mutes` (V3.9 Social Graph)
 - `notification_events` (V3.9 Notifications)
 - `audit_logs`, `moderation_actions`
 - `creator_profiles`, `creator_content`, `creator_followers` (V3.7 Creators)
+
+Update (2026-09-15, live-verified): `follows`, `blocks`, `mutes` DO have
+full SELECT/INSERT/DELETE policies from migration 021 — the note above was
+stale for the social graph. V5 additions: `bookmarks`, `polls`,
+`poll_options`, `poll_votes` (migration 032) are RLS-enabled with full
+policies — bookmarks strictly private to the owner; polls inherit post
+visibility; one vote per user per poll enforced by PK.
 
 For each of these tables, RLS blocks all reads until policies are added —
 this is a deliberate gate, not a bug.

@@ -13,6 +13,11 @@ import { CommentForm } from "@/components/comments/CommentForm";
 import { ReportButton } from "@/components/ReportButton";
 import { RealtimeComments } from "@/components/comments/RealtimeComments";
 import { ReactionButton } from "@/components/reaction-button";
+import { BookmarkButton } from "@/components/post/BookmarkButton";
+import { isBookmarked } from "@/lib/bookmarks/service";
+import { PollView } from "@/components/polls/PollView";
+import { PollCreateForm } from "@/components/polls/PollCreateForm";
+import { getPollForPost } from "@/lib/polls/service";
 import { getCommentThread } from "@/lib/comments/queries";
 import type { Post } from "@/types/database";
 
@@ -114,6 +119,8 @@ export default async function PostPage({
     { data: votes },
     { count: reactionCount },
     { data: myReactionRow },
+    savedState,
+    poll,
     thread,
   ] = await Promise.all([
     supabase
@@ -132,6 +139,8 @@ export default async function PostPage({
           .eq("user_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    isBookmarked(id),
+    getPollForPost(id),
     getCommentThread(id, null),
   ]);
 
@@ -245,6 +254,13 @@ export default async function PostPage({
               </div>
             )}
 
+            {poll && (
+              <PollView poll={poll} signedIn={Boolean(user)} postId={post.id} />
+            )}
+            {!poll && isOwner && (
+              <PollCreateForm postId={post.id} />
+            )}
+
             <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted">
                 <span id="comments" className="inline-flex items-center gap-1">
@@ -255,6 +271,7 @@ export default async function PostPage({
                 {user && user.id !== post.author_id && (
                   <ReportButton targetType="post" targetId={post.id} />
                 )}
+                <BookmarkButton postId={post.id} initialSaved={savedState ?? false} signedIn={Boolean(user)} />
               </div>
               <ReactionButton
                 postId={post.id}

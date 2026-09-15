@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
 import { PageEnter } from "@/components/PageEnter";
+import { FollowButton } from "@/components/profile/FollowButton";
 import { getUserReputation, getUserReputationEventCount } from "@/lib/reputation/service";
 import {
   getUserAchievements,
@@ -92,6 +93,22 @@ export default async function ProfilePage({
   }
 
   const profileData = profile as ProfileData;
+
+  // Viewer identity + relationship state (for the follow button).
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser();
+  const isOwnProfile = viewer?.id === profileData.id;
+  let isFollowing = false;
+  if (viewer && !isOwnProfile) {
+    const { data: edge } = await supabase
+      .from("follows")
+      .select("followed_id")
+      .eq("follower_id", viewer.id)
+      .eq("followed_id", profileData.id)
+      .maybeSingle();
+    isFollowing = Boolean(edge);
+  }
 
   const [
     { data: postsData },
@@ -183,6 +200,14 @@ export default async function ProfilePage({
             <span className="text-sm text-text-muted">
               @{profileData.username}
             </span>
+          </div>
+          <div className="mt-3 flex justify-center sm:justify-start">
+            {!isOwnProfile && viewer && (
+              <FollowButton
+                targetUserId={profileData.id}
+                initialFollowing={isFollowing}
+              />
+            )}
           </div>
           <p className="mt-2 text-sm text-text-secondary">
             Member since{" "}

@@ -5,6 +5,7 @@ import type { Post } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
 import { PostVoteControl } from "@/components/voting/PostVoteControl";
 import { ShareButton } from "@/components/post/ShareButton";
+import { BookmarkButton } from "@/components/post/BookmarkButton";
 
 export interface PostCardData extends Post {
   author: { username: string; display_name: string | null; avatar_url: string | null } | null;
@@ -13,6 +14,7 @@ export interface PostCardData extends Post {
   score: number;
   my_vote?: 1 | -1 | null;
   signed_in?: boolean;
+  bookmarked?: boolean;
 }
 
 interface Props { post: PostCardData; }
@@ -53,6 +55,7 @@ export function PostCard({ post }: Props) {
           <footer className="mt-3 flex items-center gap-4 text-xs text-text-muted">
             <ShareButton postId={post.id} />
             <Link href={`/post/${post.id}#comments`} className="inline-flex items-center gap-1 hover:text-fg"><MessageSquare size={12} />{post.comment_count} {post.comment_count === 1 ? "comment" : "comments"}</Link>
+            <BookmarkButton postId={post.id} initialSaved={post.bookmarked ?? false} signedIn={Boolean(post.signed_in)} />
           </footer>
         </div>
       </div>

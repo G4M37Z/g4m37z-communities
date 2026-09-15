@@ -15,6 +15,7 @@ const NAV = [
   { label: "Communities", href: "/communities" },
   { label: "Games", href: "/discover" },
   { label: "Tournaments", href: "/tournaments" },
+  { label: "Saved", href: "/saved" },
   { label: "Create", href: "/create" },
 ];
 
