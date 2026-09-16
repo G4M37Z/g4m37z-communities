@@ -37,6 +37,37 @@ export default async function CreatorAnalyticsPage() {
     );
   }
 
+  // Creator status is opt-in: analytics belong to members who explicitly
+  // applied (a creator_profiles row). Everyone else gets the opt-in path.
+  const { data: creatorRow } = await supabase
+    .from("creator_profiles")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!creatorRow) {
+    return (
+      <PageEnter>
+        <main className="container-x py-8">
+          <h1 className="text-2xl font-bold tracking-tight text-fg">Creator analytics</h1>
+          <div className="mt-4 max-w-md rounded-lg border border-border bg-surface p-5">
+            <h2 className="text-sm font-semibold text-fg">You&apos;re not a creator yet</h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              Analytics are part of the creator toolkit. Applying is free and
+              doesn&apos;t change your regular account — it&apos;s your choice.
+            </p>
+            <Link
+              href="/creators/new"
+              className="press mt-4 inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
+            >
+              Apply as a creator
+            </Link>
+          </div>
+        </main>
+      </PageEnter>
+    );
+  }
+
   const result = await getCreatorAnalytics(user.id, user.id);
   if (!result.ok) {
     return (

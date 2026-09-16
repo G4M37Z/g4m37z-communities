@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./container-queries.css";
@@ -14,6 +14,16 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
+
+// Mobile browser chrome matches the dark-first theme; viewportFit: cover
+// lets fixed bottom chrome extend under the iOS home indicator (BottomNav
+// adds matching safe-area padding).
+export const viewport: Viewport = {
+  themeColor: "#0B0C0E",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -49,8 +59,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/icon.png",
-        width: 1200,
-        height: 630,
+        width: 677,
+        height: 369,
         alt: "G4M37Z Communities",
       },
     ],

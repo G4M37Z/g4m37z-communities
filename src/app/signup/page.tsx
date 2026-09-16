@@ -36,7 +36,7 @@ export default async function SignupPage({
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
-          <SignupForm next={next ?? "/"} initialError={error} />
+          <SignupForm next={next ?? "/home"} initialError={error} />
         </div>
       </div>
     </main>

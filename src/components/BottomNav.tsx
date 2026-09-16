@@ -18,7 +18,10 @@ export function BottomNav({ username }: { username?: string }) {
     <nav
       aria-label="Mobile navigation"
       className="material material-bright-top bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
+      {/* Safe-area padding on the nav (no fixed height) keeps the 64px row intact
+          and taps clear of the iOS home indicator (viewportFit: cover). */}
       <div className="flex h-16 items-center justify-around">
         {NAV.map(({ label, href, icon: Icon }) => (
           <Link

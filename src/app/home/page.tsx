@@ -113,6 +113,46 @@ export default async function HomePage({
 
       <FeedSortTabs current={sort} />
 
+      {/* First-run onboarding — only for users with no communities yet; joining
+          one removes it naturally (no dismiss state to store). */}
+      {joined.length === 0 && (
+        <section
+          aria-label="Getting started"
+          className="mb-6 rounded-lg border border-border bg-surface p-4 sm:p-5"
+        >
+          <h2 className="text-sm font-semibold text-fg">Getting started</h2>
+          <ol className="mt-3 grid gap-3 text-sm text-text-secondary sm:grid-cols-3">
+            <li className="flex items-start gap-2">
+              <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-fg">1</span>
+              <span>
+                <Link href="/communities" className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent">
+                  Join a community
+                </Link>{" "}
+                for the games you play.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-fg">2</span>
+              <span>
+                <Link href={`/profile/${profile?.username ?? ""}`} className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent">
+                  Fill out your profile
+                </Link>{" "}
+                so players recognize you.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-fg">3</span>
+              <span>
+                <Link href="/create/post" className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent">
+                  Say hi
+                </Link>{" "}
+                — your first post lands in the feed.
+              </span>
+            </li>
+          </ol>
+        </section>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_380px]">
         <div className="lg:col-span-2">
           <h2 className="mb-3 text-base font-semibold text-fg">

@@ -12,7 +12,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/home", "/notifications", "/settings", "/api/"],
+        disallow: [
+          "/admin",
+          "/home",
+          "/messages",
+          "/saved",
+          "/notifications",
+          "/settings",
+          "/api/",
+        ],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
