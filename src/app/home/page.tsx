@@ -125,7 +125,7 @@ export default async function HomePage({
             <li className="flex items-start gap-2">
               <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-fg">1</span>
               <span>
-                <Link href="/communities" className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent">
+                <Link href="/communities" className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent-text">
                   Join a community
                 </Link>{" "}
                 for the games you play.
@@ -134,7 +134,7 @@ export default async function HomePage({
             <li className="flex items-start gap-2">
               <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-fg">2</span>
               <span>
-                <Link href={`/profile/${profile?.username ?? ""}`} className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent">
+                <Link href={`/profile/${profile?.username ?? ""}`} className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent-text">
                   Fill out your profile
                 </Link>{" "}
                 so players recognize you.
@@ -143,7 +143,7 @@ export default async function HomePage({
             <li className="flex items-start gap-2">
               <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-fg">3</span>
               <span>
-                <Link href="/create/post" className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent">
+                <Link href="/create/post" className="font-medium text-fg underline decoration-border-strong underline-offset-2 hover:text-accent-text">
                   Say hi
                 </Link>{" "}
                 — your first post lands in the feed.
@@ -210,7 +210,7 @@ export default async function HomePage({
                   <li key={c.slug}>
                     <Link
                       href={`/communities/${c.slug}`}
-                      className="text-fg transition-colors hover:text-accent"
+                      className="text-fg transition-colors hover:text-accent-text"
                     >
                       {c.name}
                     </Link>

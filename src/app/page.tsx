@@ -2,10 +2,11 @@
 // G4M37Z Communities landing page. Server Component.
 
 import Link from "next/link";
-import { Gamepad2, Users, MessageSquare, ShieldCheck } from "lucide-react";
+import { Users, MessageSquare, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/components/post/PostCard";
 import { PageEnter } from "@/components/PageEnter";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { getHomeFeed } from "@/lib/posts/queries";
 
 export const dynamic = "force-dynamic";
@@ -30,20 +31,20 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero */}
+      {/* Hero — the brand moment: mark settles, signature speaks, then copy. */}
       <section className="border-b border-border bg-surface">
         <div className="container-x py-20 sm:py-28">
-          <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">
-              <Gamepad2 size={14} />
-              For players, by players
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <BrandMark size={72} className="text-accent motion-safe:animate-[brand-settle_900ms_var(--ease-out)_both]" />
+            <span className="font-signature mt-6 text-4xl leading-none text-accent-text sm:text-5xl motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_200ms_both]">
+              Wassup wassup
             </span>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-fg sm:text-5xl md:text-6xl">
-              Where gamers gather.
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-fg sm:text-5xl md:text-6xl motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_300ms_both]">
+              Where your people play.
             </h1>
-            <p className="mt-5 text-base text-text-secondary sm:text-lg">
-              Discover communities for every game and platform. Share posts,
-              join the conversation, and find your squad.
+            <p className="mt-5 text-base text-text-secondary sm:text-lg motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_380ms_both]">
+              G4M37Z is where communities, creators, and culture meet the
+              games you love. Find your people. Be found.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
               {user ? (
@@ -130,7 +131,7 @@ export default async function HomePage() {
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <span
-                        className="grid h-9 w-9 place-items-center rounded-md bg-accent-soft/40 text-sm font-bold text-accent"
+                        className="grid h-9 w-9 place-items-center rounded-md bg-accent-soft/40 text-sm font-bold text-accent-text"
                         aria-hidden="true"
                       >
                         {c.name.charAt(0).toUpperCase()}
@@ -159,7 +160,7 @@ export default async function HomePage() {
             No communities yet — be the first to{" "}
             <Link
               href="/communities"
-              className="font-semibold text-accent hover:underline"
+              className="font-semibold text-accent-text hover:underline"
             >
               start one
             </Link>
@@ -203,7 +204,7 @@ function FeatureCard({
 }) {
   return (
     <div className="rounded-lg border border-border bg-surface p-6">
-      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-md bg-accent-soft/40 text-accent">
+      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-md bg-accent-soft/40 text-accent-text">
         {icon}
       </div>
       <h3 className="mb-1 text-base font-semibold text-fg">{title}</h3>

@@ -86,7 +86,7 @@ export function NotificationBell() {
       aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
     >
       {unreadCount > 0 ? (
-        <BellRing size={22} className="text-accent" />
+        <BellRing size={22} className="text-accent-text" />
       ) : (
         <Bell size={22} />
       )}

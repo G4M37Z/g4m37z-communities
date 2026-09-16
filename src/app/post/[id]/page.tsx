@@ -214,7 +214,7 @@ export default async function PostPage({
                   <>
                     <Link
                       href={`/communities/${post.community.slug}`}
-                      className="font-semibold text-fg hover:text-accent"
+                      className="font-semibold text-fg hover:text-accent-text"
                     >
                       {post.community.name}
                     </Link>
@@ -313,7 +313,7 @@ export default async function PostPage({
             <p className="text-sm text-text-muted">
               <Link
                 href={`/login?next=/post/${post.id}`}
-                className="font-semibold text-accent hover:underline"
+                className="font-semibold text-accent-text hover:underline"
               >
                 Sign in
               </Link>{" "}

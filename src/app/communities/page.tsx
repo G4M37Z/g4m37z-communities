@@ -178,7 +178,7 @@ function CommunityIcon({ name, url }: { name: string; url: string | null }) {
   const initial = name.charAt(0).toUpperCase();
   return (
     <span
-      className="grid h-10 w-10 place-items-center rounded-md bg-accent-soft/40 text-base font-bold text-accent"
+      className="grid h-10 w-10 place-items-center rounded-md bg-accent-soft/40 text-base font-bold text-accent-text"
       aria-hidden="true"
     >
       {initial}

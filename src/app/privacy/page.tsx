@@ -15,7 +15,7 @@ export default function PrivacyPage() {
     <main className="container-x py-10 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <header className="mb-10">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent-text">
             Legal
           </p>
           <h1 className="text-3xl font-black tracking-tight text-fg sm:text-4xl">
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
         <Section id="rights" title="5. Your rights">
           <p>You can:</p>
           <ul className="list-disc space-y-2 pl-6 text-text-muted">
-            <li>Update your display name, bio, and avatar from <Link href="/settings" className="text-accent hover:underline">Settings</Link>.</li>
+            <li>Update your display name, bio, and avatar from <Link href="/settings" className="text-accent-text hover:underline">Settings</Link>.</li>
             <li>Delete your content (posts, comments) at any time.</li>
             <li>Request export of all data we hold about you.</li>
             <li>
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
         <footer className="mt-12 border-t border-border pt-6">
           <Link
             href="/terms"
-            className="text-sm font-medium text-accent hover:underline"
+            className="text-sm font-medium text-accent-text hover:underline"
           >
             Read the Terms of Service →
           </Link>

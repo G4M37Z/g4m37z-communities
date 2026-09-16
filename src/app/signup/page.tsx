@@ -23,7 +23,7 @@ export default async function SignupPage({
     <main className="container-x flex min-h-[80vh] items-center justify-center py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent">
+          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent-text">
             <UserPlus size={26} />
           </div>
           <h1 className="mb-2 text-2xl font-black text-fg sm:text-3xl">

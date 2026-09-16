@@ -121,7 +121,7 @@ export function LoginForm({ next, initialError }: LoginFormProps) {
         New here?{" "}
         <Link
           href={`/signup?next=${encodeURIComponent(next)}`}
-          className="font-semibold text-accent hover:underline"
+          className="font-semibold text-accent-text hover:underline"
         >
           Create an account
         </Link>

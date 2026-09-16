@@ -114,7 +114,7 @@ function ReportCard({ report }: { report: EnrichedReport }) {
   return (
     <li className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent-text">
           <Flag size={14} />
         </div>
 
@@ -155,7 +155,7 @@ function ReportCard({ report }: { report: EnrichedReport }) {
               href={target.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-accent-text hover:underline"
             >
               <ExternalLink size={11} />
               View {report.target_type}

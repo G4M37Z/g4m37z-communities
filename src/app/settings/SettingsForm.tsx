@@ -137,7 +137,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-accent/10 text-accent">
+              <div className="flex h-full w-full items-center justify-center bg-accent/10 text-accent-text">
                 <ImageIcon size={28} aria-hidden="true" />
               </div>
             )}
@@ -203,7 +203,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         <section className="rounded-2xl border border-border bg-bg p-6">
           <h2 className="mb-4 text-base font-semibold text-fg">Username</h2>
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
+            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center text-accent-text font-bold">
               {profile.username.charAt(0).toUpperCase()}
             </div>
             <div>

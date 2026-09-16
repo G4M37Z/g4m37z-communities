@@ -54,7 +54,7 @@ export function BookmarkButton({ postId, initialSaved, signedIn }: Props) {
         aria-pressed={saved}
         aria-label={saved ? "Remove bookmark" : "Save post"}
         className={`inline-flex items-center gap-1.5 text-xs transition-colors hover:text-fg disabled:opacity-60 ${
-          saved ? "text-accent" : "text-text-muted"
+          saved ? "text-accent-text" : "text-text-muted"
         }`}
       >
         {pending ? (

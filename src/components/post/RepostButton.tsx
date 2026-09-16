@@ -57,7 +57,7 @@ export function RepostButton({ postId, initialReposted, initialCount, signedIn }
         aria-pressed={reposted}
         aria-label={reposted ? "Undo repost" : "Repost to your feed"}
         className={`inline-flex items-center gap-1 text-xs transition-colors hover:text-fg ${
-          reposted ? "font-semibold text-accent" : "text-text-muted"
+          reposted ? "font-semibold text-accent-text" : "text-text-muted"
         } ${pending ? "opacity-60" : ""}`}
       >
         <Repeat2 size={12} />

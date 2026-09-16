@@ -27,7 +27,7 @@ export default async function CreatorAnalyticsPage() {
         <main className="container-x py-8">
           <h1 className="text-2xl font-bold tracking-tight text-fg">Creator analytics</h1>
           <p className="mt-4 text-sm text-text-secondary">
-            <Link href="/login?next=/settings/analytics" className="text-accent underline">
+            <Link href="/login?next=/settings/analytics" className="text-accent-text underline">
               Sign in
             </Link>{" "}
             to view your creator analytics.
@@ -126,7 +126,7 @@ export default async function CreatorAnalyticsPage() {
           <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
             {a.top_posts.map((p) => (
               <li key={p.id} className="flex items-center gap-4 px-4 py-3 text-sm">
-                <Link href={`/post/${p.id}`} className="min-w-0 flex-1 truncate font-semibold text-fg hover:text-accent">
+                <Link href={`/post/${p.id}`} className="min-w-0 flex-1 truncate font-semibold text-fg hover:text-accent-text">
                   {p.title}
                 </Link>
                 <span className="shrink-0 text-xs text-text-muted">

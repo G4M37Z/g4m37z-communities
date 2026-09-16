@@ -31,13 +31,13 @@ export default async function CreatorDetailPage({
   return (
     <PageEnter>
       <main className="container-x py-8 pb-20 max-w-2xl">
-        <Link href="/creators" className="mb-4 inline-block text-sm text-accent hover:text-accent-hover">
+        <Link href="/creators" className="mb-4 inline-block text-sm text-accent-text hover:text-accent-text-hover">
           ← All creators
         </Link>
         <header className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight text-fg">
             {creator.display_name}
-            {creator.verified && <span className="ml-2 text-accent">✓</span>}
+            {creator.verified && <span className="ml-2 text-accent-text">✓</span>}
           </h1>
           {creator.bio && (
             <p className="mt-2 text-sm text-text-secondary">{creator.bio}</p>

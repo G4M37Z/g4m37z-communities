@@ -130,7 +130,7 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
           <button
             type="button"
             onClick={() => setSentTo(null)}
-            className="text-xs font-medium text-accent hover:underline"
+            className="text-xs font-medium text-accent-text hover:underline"
           >
             try a different email
           </button>
@@ -291,7 +291,7 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
                               required
                               aria-required="true"
                               aria-describedby="acceptTermsLabel"
-                              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border bg-surface text-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+                              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border bg-surface text-accent-text focus:outline-none focus:ring-2 focus:ring-accent/30"
                             />
               <span id="acceptTermsLabel" className="text-xs leading-relaxed text-text-muted">
                 I have read and agree to the{" "}
@@ -299,7 +299,7 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-accent underline decoration-accent/40 hover:decoration-accent"
+                  className="font-medium text-accent-text underline decoration-accent/40 hover:decoration-accent"
                 >
                   Terms of Service
                 </Link>
@@ -308,7 +308,7 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
                   href="/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-accent underline decoration-accent/40 hover:decoration-accent"
+                  className="font-medium text-accent-text underline decoration-accent/40 hover:decoration-accent"
                 >
                   Privacy Policy
                 </Link>
@@ -338,7 +338,7 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
               Already have an account?{" "}
               <Link
                 href={`/login?next=${encodeURIComponent(next)}`}
-                className="font-semibold text-accent hover:underline"
+                className="font-semibold text-accent-text hover:underline"
               >
                 Sign in
               </Link>

@@ -68,7 +68,7 @@ export function GamingProfileForm({ initial = null }: Props) {
   return (
     <form onSubmit={submit} className="rounded-lg border border-border bg-surface p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Gamepad2 size={16} className="text-accent" />
+        <Gamepad2 size={16} className="text-accent-text" />
         <h3 className="text-base font-bold text-fg">Gaming Profile</h3>
         {saved && (
           <span className="ml-auto inline-flex items-center gap-1 text-xs text-success">
@@ -145,7 +145,7 @@ export function GamingProfileForm({ initial = null }: Props) {
           type="checkbox"
           checked={lfg}
           onChange={(e) => setLfg(e.target.checked)}
-          className="h-4 w-4 rounded border-border bg-bg text-accent focus:ring-accent"
+          className="h-4 w-4 rounded border-border bg-bg text-accent-text focus:ring-accent"
         />
         <span className="text-sm text-fg">Available for LFG (looking-for-group) sessions</span>
       </label>

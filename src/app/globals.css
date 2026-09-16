@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand — restrained deep red */
-  --color-accent: #B4232F;
-  --color-accent-hover: #C52B37;
-  --color-accent-soft: #6F2028;
+  /* Brand — burnished copper. Restrained, warm, non-neon; carries
+     interaction + identity without dominating (see docs/BRAND.md). */
+  --color-accent: #B4633C;
+  --color-accent-hover: #C6764C;
+  --color-accent-soft: #8A4A2C;
+  /* Accent readable as TEXT on both themes (AA on obsidian + ivory).
+     Elements (fills/borders) keep --color-accent. */
+  --color-accent-text: #D08A5F;
 
   /* Semantic */
   --color-success: #22C55E;
@@ -27,6 +31,7 @@
   /* Font chain */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-signature: var(--font-caveat), "Segoe Script", cursive;
 
   /* Radius system */
   --radius-sm: 8px;
@@ -51,6 +56,24 @@
    Large display text tightens; body stays near 0. */
 h1, h2, .text-2xl { letter-spacing: -0.02em; }
 .text-3xl, .text-4xl { letter-spacing: -0.025em; }
+
+/* Accent-as-text uses the lighter dark-bg step by default; the light theme
+   block deepens it. Elements (fills/borders) keep --color-accent. */
+.text-accent-text { color: var(--color-accent-text); }
+.font-signature { font-family: var(--font-signature); }
+
+/* Brand loading choreography — mark settles, signature fades in after.
+   Pure opacity/transform; gated behind motion-safe so reduced-motion
+   users get the final state immediately. */
+@keyframes brand-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes brand-settle {
+  0% { opacity: 0; transform: scale(0.92) rotate(-6deg); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
 
 /* Responsive typography — fluid, continuous, never jumps */
 @layer base {
@@ -174,5 +197,37 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 
 /* Theme support — light/dark via data-theme + prefers-color-scheme */
 :root { --theme-preference: dark; }
-[data-theme="light"] { --color-bg: #F5F5F3; --color-surface: #FFFFFF; --color-fg: #0B0C0E; --color-text-secondary: #4D5157; --color-text-muted: #6F737A; --color-border: #E5E7EB; --color-border-strong: #D1D5DB; --color-surface-elevated: #F0F0F4; --color-surface-subtle: #F8F8FA; }
-@media (prefers-color-scheme: light) { html:not([data-theme="dark"]) { --color-bg: #F5F5F3; --color-surface: #FFFFFF; --color-fg: #0B0C0E; --color-text-secondary: #4D5157; --color-text-muted: #6F737A; --color-border: #E5E7EB; --color-border-strong: #D1D5DB; --color-surface-elevated: #F0F0F4; --color-surface-subtle: #F8F8FA; } }
+/* Light theme — warm daylight expression of the same brand (not an
+   inversion): warm ivory foundation, ink text, deepened copper. */
+[data-theme="light"] {
+  --color-bg: #F3F0E8;
+  --color-surface: #FAF9F6;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-subtle: #E8E5DC;
+  --color-fg: #111114;
+  --color-text-secondary: #4D4A45;
+  --color-text-muted: #7A766E;
+  --color-border: #DDD8CC;
+  --color-border-strong: #C9C3B4;
+  --color-accent: #A44F28;
+  --color-accent-hover: #8F441F;
+  --color-accent-soft: #E9D5C8;
+  --color-accent-text: #9C4A24;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]) {
+    --color-bg: #F3F0E8;
+    --color-surface: #FAF9F6;
+    --color-surface-elevated: #FFFFFF;
+    --color-surface-subtle: #E8E5DC;
+    --color-fg: #111114;
+    --color-text-secondary: #4D4A45;
+    --color-text-muted: #7A766E;
+    --color-border: #DDD8CC;
+    --color-border-strong: #C9C3B4;
+    --color-accent: #A44F28;
+    --color-accent-hover: #8F441F;
+    --color-accent-soft: #E9D5C8;
+    --color-accent-text: #9C4A24;
+  }
+}

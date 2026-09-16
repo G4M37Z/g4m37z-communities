@@ -62,13 +62,13 @@ export function CommentVoteControl({
         onClick={() => onVote(1)}
         aria-label="Upvote"
         aria-pressed={vote === 1}
-        className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-bg hover:text-fg disabled:opacity-50 ${vote === 1 ? "text-accent" : ""}`}
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-bg hover:text-fg disabled:opacity-50 ${vote === 1 ? "text-accent-text" : ""}`}
       >
         <ChevronUp size={12} />
       </button>
       <span
         className={`min-w-[1.25rem] text-center font-semibold ${
-          vote === 1 ? "text-accent" : vote === -1 ? "text-sale" : "text-fg"
+          vote === 1 ? "text-accent-text" : vote === -1 ? "text-sale" : "text-fg"
         }`}
       >
         {pending ? <Loader2 size={10} className="mx-auto animate-spin" /> : score}

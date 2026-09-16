@@ -177,7 +177,7 @@ export function LfgCreateForm({
         <input
           type="checkbox"
           name="microphone"
-          className="h-4 w-4 rounded border border-border bg-surface text-accent focus:ring-accent"
+          className="h-4 w-4 rounded border border-border bg-surface text-accent-text focus:ring-accent"
         />
         <span className="text-sm text-fg">Microphone required</span>
       </label>

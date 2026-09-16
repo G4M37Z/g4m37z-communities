@@ -17,7 +17,7 @@ export default async function SocialPage() {
         <main className="container-x py-8 pb-20">
           <h1 className="text-3xl font-bold tracking-tight text-fg">Social</h1>
           <p className="mt-4 text-sm text-text-secondary">
-            <Link href="/login?next=/social" className="underline text-accent">
+            <Link href="/login?next=/social" className="underline text-accent-text">
               Sign in
             </Link>{" "}
             to see your social graph.

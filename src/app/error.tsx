@@ -25,9 +25,9 @@ export default function GlobalError({
     <main className="flex min-h-[70vh] items-center justify-center bg-bg px-4">
       <div className="container-x max-w-xl text-center">
         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-surface">
-          <AlertTriangle size={28} className="text-accent" />
+          <AlertTriangle size={28} className="text-accent-text" />
         </div>
-        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-accent">
+        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-accent-text">
           Something went wrong
         </p>
         <h1 className="mb-4 text-3xl font-black text-fg sm:text-4xl">

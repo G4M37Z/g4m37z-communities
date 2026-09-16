@@ -112,7 +112,7 @@ export function PollView({ poll, signedIn, postId }: Props) {
                 <span className="relative z-10 flex items-center gap-1.5 text-fg">
                   {o.label}
                   {mine && (
-                    <span className="text-xs font-semibold text-accent">
+                    <span className="text-xs font-semibold text-accent-text">
                       · your vote
                     </span>
                   )}
@@ -146,7 +146,7 @@ export function PollView({ poll, signedIn, postId }: Props) {
         {!signedIn && (
           <Link
             href={`/login?next=/post/${postId}`}
-            className="font-semibold text-accent hover:underline"
+            className="font-semibold text-accent-text hover:underline"
           >
             Sign in to vote
           </Link>

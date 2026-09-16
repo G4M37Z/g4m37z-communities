@@ -16,7 +16,7 @@ export default async function CreatorApplyPage() {
         <main className="container-x py-8 pb-20 max-w-lg">
           <h1 className="text-3xl font-bold tracking-tight text-fg">Apply as creator</h1>
           <p className="mt-4 text-sm text-text-secondary">
-            <Link href="/login?next=/creators/new" className="underline text-accent">
+            <Link href="/login?next=/creators/new" className="underline text-accent-text">
               Sign in
             </Link>{" "}
             to apply as a creator.
@@ -29,7 +29,7 @@ export default async function CreatorApplyPage() {
   return (
     <PageEnter>
       <main className="container-x py-8 pb-20 max-w-lg">
-        <Link href="/creators" className="mb-4 inline-block text-sm text-accent hover:text-accent-hover">
+        <Link href="/creators" className="mb-4 inline-block text-sm text-accent-text hover:text-accent-text-hover">
           ← All creators
         </Link>
         <h1 className="text-3xl font-bold tracking-tight text-fg mb-6">

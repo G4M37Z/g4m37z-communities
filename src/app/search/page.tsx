@@ -181,7 +181,7 @@ export default async function SearchPage({ searchParams }: Props) {
                       className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent"
                     >
                       <span
-                        className="grid h-10 w-10 place-items-center rounded-full bg-accent/15 text-sm font-black text-accent"
+                        className="grid h-10 w-10 place-items-center rounded-full bg-accent/15 text-sm font-black text-accent-text"
                         aria-hidden="true"
                       >
                         {u.username.charAt(0).toUpperCase()}

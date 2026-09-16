@@ -21,7 +21,7 @@ export default async function LoginPage({
     <main className="container-x flex min-h-[100dvh] flex-col items-center justify-center px-6 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent">
+          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent-text">
             <Lock size={26} />
           </div>
           <h1 className="mb-2 text-2xl font-bold tracking-tight text-fg sm:text-3xl">Sign in to G4M37Z</h1>
@@ -34,9 +34,9 @@ export default async function LoginPage({
 
         <p className="mt-6 text-center text-sm text-text-secondary">
           By signing in, you agree to our{" "}
-          <Link href="/terms" className="font-medium text-accent hover:underline">Terms</Link>
+          <Link href="/terms" className="font-medium text-accent-text hover:underline">Terms</Link>
           {" "}and{" "}
-          <Link href="/privacy" className="font-medium text-accent hover:underline">Privacy Policy</Link>
+          <Link href="/privacy" className="font-medium text-accent-text hover:underline">Privacy Policy</Link>
           .
         </p>
       </div>

@@ -65,7 +65,7 @@ export function Comment({
           <>
             <Link
               href={`/profile/${comment.author.username}`}
-              className="font-semibold text-fg hover:text-accent"
+              className="font-semibold text-fg hover:text-accent-text"
             >
               @{comment.author.username}
             </Link>

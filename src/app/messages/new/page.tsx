@@ -17,7 +17,7 @@ export default async function NewConversationPage() {
         <main className="container-x py-8 pb-20">
           <h1 className="text-3xl font-bold tracking-tight text-fg">New message</h1>
           <p className="mt-4 text-sm text-text-secondary">
-            <Link href="/login?next=/messages/new" className="underline text-accent">
+            <Link href="/login?next=/messages/new" className="underline text-accent-text">
               Sign in
             </Link>{" "}
             to start a conversation.
@@ -31,7 +31,7 @@ export default async function NewConversationPage() {
     <PageEnter>
       <main className="container-x py-8 pb-20 max-w-lg">
         <header className="mb-6 flex items-center gap-3">
-          <Link href="/messages" className="text-sm text-accent hover:text-accent-hover">
+          <Link href="/messages" className="text-sm text-accent-text hover:text-accent-text-hover">
             ← Back
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-fg">New message</h1>

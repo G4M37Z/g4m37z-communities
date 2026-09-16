@@ -30,7 +30,7 @@ export function PostCard({ post }: Props) {
         <div className="min-w-0 flex-1">
           <header className="mb-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
             {post.community && (
-              <><Link href={`/communities/${post.community.slug}`} className="font-semibold text-fg hover:text-accent">{post.community.name}</Link><span aria-hidden="true">·</span></>
+              <><Link href={`/communities/${post.community.slug}`} className="font-semibold text-fg hover:text-accent-text">{post.community.name}</Link><span aria-hidden="true">·</span></>
             )}
             {post.author && (
               <Link href={`/profile/${post.author.username}`} className="hover:text-fg">@{post.author.username}</Link>
@@ -39,7 +39,7 @@ export function PostCard({ post }: Props) {
             <time dateTime={post.created_at}>{timeAgo(post.created_at)}</time>
           </header>
           <h2 className="mb-1.5 text-base font-bold leading-snug text-fg">
-            <Link href={`/post/${post.id}`} className="hover:text-accent">{post.title}</Link>
+            <Link href={`/post/${post.id}`} className="hover:text-accent-text">{post.title}</Link>
           </h2>
           {post.body && <p className="line-clamp-2 text-sm text-text-secondary">{post.body}</p>}
           {post.image_url && (

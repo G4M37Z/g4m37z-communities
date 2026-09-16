@@ -58,7 +58,7 @@ export function CommunityCapabilitiesForm({
         {saved ? (
           <span className="text-xs text-text-muted">All changes saved</span>
         ) : (
-          <span className="animate-pulse text-xs text-accent">Saving…</span>
+          <span className="animate-pulse text-xs text-accent-text">Saving…</span>
         )}
       </div>
       <div className="divide-y divide-border">

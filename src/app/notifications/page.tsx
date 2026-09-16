@@ -226,14 +226,14 @@ function NotificationItem({
         !read ? "bg-accent/5 border-accent/20" : "hover:border-accent/40"
       }`}
     >
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent-text">
         <Icon size={16} />
       </div>
 
       <div className={href ? "min-w-0 flex-1" : "min-w-0 flex-1"}>
         <p className="text-sm text-fg">
           {href ? (
-            <Link href={href} className="hover:text-accent">
+            <Link href={href} className="hover:text-accent-text">
               {actor && (
                 <span className="font-semibold">@{actor.username}</span>
               )}
@@ -262,7 +262,7 @@ function NotificationItem({
           <input type="hidden" name="notificationId" value={notification.id} />
           <button
             type="submit"
-            className="rounded-md p-1.5 text-text-muted hover:bg-bg hover:text-accent transition-colors"
+            className="rounded-md p-1.5 text-text-muted hover:bg-bg hover:text-accent-text transition-colors"
             aria-label="Mark as read"
           >
             <Check size={16} />

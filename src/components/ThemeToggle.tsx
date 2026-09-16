@@ -1,24 +1,32 @@
 "use client";
 import { Sun, Moon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const STORAGE_KEY = "g4m37z-theme";
 
-// V1 foundation: derive initial theme synchronously from localStorage so we
-// avoid a useEffect that synchronously calls setState (which triggers cascading
-// renders per react-hooks/set-state-in-effect).
+// V1 foundation note, corrected: the initial render MUST match the server
+// (dark default) or React #418 hydration mismatch fires for light-stored
+// users — the server cannot know localStorage. Storage is read in the
+// effect below, after hydration, exactly once.
 function readInitialDark(): boolean {
-  if (typeof window === "undefined") return true;
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  return stored === "light" ? false : true;
+  return true;
 }
 
 export function ThemeToggle() {
   // Lazy initializer runs only once on mount; no cascading re-render.
   const [isDark, setIsDark] = useState<boolean>(readInitialDark);
+  const mounted = useRef(false);
 
-  // Sync the DOM attribute whenever isDark changes (no setState in body).
+  // First run: adopt the stored preference (post-hydration, so server and
+  // client first render agree). Every run after: sync the DOM attribute.
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      if (window.localStorage.getItem(STORAGE_KEY) === "light") {
+        setIsDark(false);
+        return; // attribute is applied by the run this triggers
+      }
+    }
     document.documentElement.setAttribute(
       "data-theme",
       isDark ? "dark" : "light",

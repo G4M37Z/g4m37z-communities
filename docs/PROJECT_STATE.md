@@ -23,6 +23,21 @@
 
 ## Current Checkpoint
 
+**Brand & visual identity redesign (2026-09-16) — SHIPPED.**
+
+Complete identity system: abstract "call & response" mark (two interlocked
+crescents + spark — see `public/brand/`, `BrandMark.tsx`), Caveat
+"Wassup wassup" signature (`BrandSignature.tsx`), burnished copper accent
+(`#B4633C` dark / `#A44F28` light; `text-accent-text` for accent TEXT) on
+obsidian `#0B0C0E` / warm-ivory `#F3F0E8` foundations, branded loading
+reveal (motion-safe), new favicon/app-icon/OG (1200×630) assets.
+Authoritative spec: `docs/BRAND.md`.
+Also fixed en route: **pre-existing hydration mismatch #418** in
+`ThemeToggle` (first render matches server; stored theme adopted
+post-hydration) — light-stored users no longer throw on hard load.
+
+---
+
 **Full audit, synchronization & contributor cleanup (2026-09-16) — COMPLETE.**
 
 HEAD `03b2d77` (fix: NotificationBell hydration mismatch). 118 commits on `main`.

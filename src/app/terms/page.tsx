@@ -16,7 +16,7 @@ export default function TermsPage() {
     <main className="container-x py-10 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <header className="mb-10">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent-text">
             Legal
           </p>
           <h1 className="text-3xl font-black tracking-tight text-fg sm:text-4xl">
@@ -136,7 +136,7 @@ export default function TermsPage() {
         <Section id="contact" title="8. Contact">
           <p>
             Questions about these terms? Reach out through the platform
-            <Link href="/communities" className="text-accent hover:underline">
+            <Link href="/communities" className="text-accent-text hover:underline">
               communities
             </Link>{" "}
             or report content using the in-app report button.

@@ -35,7 +35,7 @@ export default async function CreatorsPage() {
           </Link>
         ) : (
           <p className="mb-6 text-sm text-text-secondary">
-            <Link href="/login?next=/creators" className="underline text-accent">
+            <Link href="/login?next=/creators" className="underline text-accent-text">
               Sign in
             </Link>{" "}
             to apply as a creator.
@@ -55,7 +55,7 @@ export default async function CreatorsPage() {
                 >
                   {c.display_name}
                   {c.verified && (
-                    <span className="ml-1.5 text-accent">✓</span>
+                    <span className="ml-1.5 text-accent-text">✓</span>
                   )}
                 </Link>
                 {c.bio && (

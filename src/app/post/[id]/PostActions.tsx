@@ -90,7 +90,7 @@ export function PostActions({ post }: Props) {
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-bg px-3 text-xs font-medium text-fg hover:border-accent/60 hover:text-accent"
+        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-bg px-3 text-xs font-medium text-fg hover:border-accent/60 hover:text-accent-text"
       >
         <Pencil size={12} />
         Edit

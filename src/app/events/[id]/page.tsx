@@ -101,7 +101,7 @@ export default async function EventDetailPage({
             {STATUS_LABEL[event.status] ?? event.status}
           </span>
           {event.is_pinned && (
-            <span className="rounded-md border border-accent bg-accent/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-accent">
+            <span className="rounded-md border border-accent bg-accent/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-accent-text">
               Pinned
             </span>
           )}

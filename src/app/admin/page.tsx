@@ -110,7 +110,7 @@ export default async function AdminDashboardPage() {
             </h2>
             <a
               href="/admin/reports"
-              className="text-xs font-medium text-accent hover:underline"
+              className="text-xs font-medium text-accent-text hover:underline"
             >
               View all
             </a>

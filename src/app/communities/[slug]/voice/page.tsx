@@ -45,7 +45,7 @@ export default async function CommunityVoicePage({
         ← Back to {ctx.community.name}
       </Link>
       <h1 className="mb-1 mt-3 flex items-center gap-2 text-2xl font-black tracking-[-0.03em] text-fg">
-        <Mic size={20} className="text-accent" /> Voice Rooms
+        <Mic size={20} className="text-accent-text" /> Voice Rooms
       </h1>
       <p className="mb-6 text-sm text-text-secondary">
         Live audio rooms for {ctx.community.name}. Join a room to speak.
@@ -66,7 +66,7 @@ export default async function CommunityVoicePage({
             className="group rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent"
           >
             <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-fg group-hover:text-accent">
+              <h3 className="text-sm font-semibold text-fg group-hover:text-accent-text">
                 {room.name}
               </h3>
               <span className="flex items-center gap-1 text-xs text-text-muted">

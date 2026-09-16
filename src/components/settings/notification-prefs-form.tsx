@@ -40,7 +40,7 @@ export function NotificationPreferencesForm({ initial = {} }: Props) {
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Bell size={16} className="text-accent" />
+        <Bell size={16} className="text-accent-text" />
         <h3 className="text-base font-bold text-fg">Notification preferences</h3>
         {saved && <span className="ml-auto text-xs text-success">Saved</span>}
       </div>

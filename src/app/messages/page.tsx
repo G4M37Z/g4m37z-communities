@@ -17,7 +17,7 @@ export default async function MessagesPage() {
         <main className="container-x py-8 pb-20">
           <h1 className="text-3xl font-bold tracking-tight text-fg">Messages</h1>
           <p className="mt-4 text-sm text-text-secondary">
-            <Link href="/login?next=/messages" className="underline text-accent hover:text-accent-hover">
+            <Link href="/login?next=/messages" className="underline text-accent-text hover:text-accent-text-hover">
               Sign in
             </Link>{" "}
             to view your messages.

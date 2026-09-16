@@ -45,7 +45,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <div className="mb-4 flex items-center gap-2 px-2">
-            <Shield size={18} className="text-accent" />
+            <Shield size={18} className="text-accent-text" />
             <h2 className="text-sm font-bold uppercase tracking-wider text-fg">
               Admin
             </h2>
@@ -58,7 +58,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-fg hover:bg-bg hover:text-accent transition-colors"
+                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-fg hover:bg-bg hover:text-accent-text transition-colors"
                     >
                       <Icon size={14} />
                       {item.label}

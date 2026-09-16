@@ -9,7 +9,7 @@ export default function NotFound() {
   return (
     <main className="flex min-h-[70vh] items-center justify-center bg-bg px-4">
       <div className="container-x max-w-xl text-center">
-        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-accent">
+        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-accent-text">
           Error 404
         </p>
         <h1 className="mb-4 text-4xl font-black text-fg sm:text-5xl">
@@ -29,7 +29,7 @@ export default function NotFound() {
           </Link>
           <Link
             href="/communities"
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-bg px-5 py-2.5 text-sm font-semibold text-fg transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-bg px-5 py-2.5 text-sm font-semibold text-fg transition-colors hover:border-accent hover:text-accent-text"
           >
             <Compass size={16} />
             Browse communities

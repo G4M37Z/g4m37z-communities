@@ -77,14 +77,14 @@ export function PostVoteControl({
         onClick={() => onVote(1)}
         aria-label="Upvote"
         aria-pressed={vote === 1}
-        className={`${btn} ${vote === 1 ? "text-accent" : ""}`}
+        className={`${btn} ${vote === 1 ? "text-accent-text" : ""}`}
       >
         <ChevronUp size={size} />
       </button>
       <span
         className={`min-w-[1.5rem] text-center text-xs font-bold ${
           vote === 1
-            ? "text-accent"
+            ? "text-accent-text"
             : vote === -1
               ? "text-sale"
               : "text-fg"

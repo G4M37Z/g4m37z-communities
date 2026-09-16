@@ -25,7 +25,7 @@ export default async function MessageThreadPage({
         <main className="container-x py-8 pb-20">
           <h1 className="text-3xl font-bold tracking-tight text-fg">Messages</h1>
           <p className="mt-4 text-sm text-text-secondary">
-            <Link href="/login?next=/messages" className="underline text-accent">
+            <Link href="/login?next=/messages" className="underline text-accent-text">
               Sign in
             </Link>{" "}
             to view messages.
@@ -54,7 +54,7 @@ export default async function MessageThreadPage({
     <PageEnter>
       <main className="container-x py-8 pb-20">
         <header className="mb-4 flex items-center gap-3">
-          <Link href="/messages" className="text-sm text-accent hover:text-accent-hover">
+          <Link href="/messages" className="text-sm text-accent-text hover:text-accent-text-hover">
             ← Back
           </Link>
         </header>

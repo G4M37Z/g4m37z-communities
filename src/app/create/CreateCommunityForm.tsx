@@ -226,7 +226,7 @@ export function CreateCommunityForm({ categories }: Props) {
                   disabled={disabled}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                     active
-                      ? "border-accent bg-accent/10 text-accent"
+                      ? "border-accent bg-accent/10 text-accent-text"
                       : "border-border bg-bg text-text-muted hover:border-accent/60 hover:text-fg"
                   } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
                 >

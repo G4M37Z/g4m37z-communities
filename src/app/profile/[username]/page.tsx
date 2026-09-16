@@ -184,7 +184,7 @@ export default async function ProfilePage({
             />
           ) : (
             <div className="grid h-28 w-28 place-items-center rounded-full border-2 border-border bg-surface">
-              <span className="text-4xl font-semibold text-accent">
+              <span className="text-4xl font-semibold text-accent-text">
                 {profileData.display_name?.[0]?.toUpperCase() ??
                   profileData.username[0].toUpperCase()}
               </span>
@@ -379,7 +379,7 @@ export default async function ProfilePage({
                           className="h-10 w-10 flex-shrink-0 rounded-md object-cover"
                         />
                       ) : (
-                        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-accent-soft/40 text-base font-semibold text-accent">
+                        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-accent-soft/40 text-base font-semibold text-accent-text">
                           {m.community.name.charAt(0).toUpperCase()}
                         </span>
                       )}

@@ -138,7 +138,7 @@ function UserRow({ user }: { user: UserRow }) {
       <td className="px-4 py-3">
         <Link
           href={`/profile/${user.username}`}
-          className="font-medium text-fg hover:text-accent"
+          className="font-medium text-fg hover:text-accent-text"
         >
           {user.display_name ?? user.username}
         </Link>
@@ -159,7 +159,7 @@ function UserRow({ user }: { user: UserRow }) {
 
 function RoleBadge({ role }: { role: UserRow["role"] }) {
   const colors: Record<UserRow["role"], string> = {
-    admin: "bg-accent/15 text-accent",
+    admin: "bg-accent/15 text-accent-text",
     moderator: "bg-success/15 text-success",
     member: "bg-bg text-text-muted",
     suspended: "bg-sale/15 text-sale",
