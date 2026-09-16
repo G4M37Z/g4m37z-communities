@@ -34,14 +34,26 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
 
-  /* Motion */
+  /* Motion — extended per the animate/apple-design skills (no parallel systems)
+     ease-out: existing quintic-out. ease-in-out: strong on-screen curve.
+     ease-drawer: iOS-like sheet curve (Ionic). Durations: UI stays <300ms. */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --duration-micro: 140ms;
   --duration-normal: 200ms;
-  --duration-major: 320ms;
+  --duration-major: 280ms;
+
+  /* Translucent materials — apple-design §12: blur + saturate, bright top edge */
+  --material-blur: saturate(180%) blur(20px);
 
   --breakpoint-3xl: 1280px;
 }
+
+/* Typography — apple-design §15: tracking is size-specific, never one value.
+   Large display text tightens; body stays near 0. */
+h1, h2, .text-2xl { letter-spacing: -0.02em; }
+.text-3xl, .text-4xl { letter-spacing: -0.025em; }
 
 /* Responsive typography — fluid, continuous, never jumps */
 @layer base {
@@ -92,19 +104,69 @@
 .skeleton { background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-surface-subtle) 50%, var(--color-surface) 100%); background-size: 200% 100%; animation: skeleton-shimmer 1.6s ease-in-out infinite; border-radius: var(--radius-sm); }
 @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* Press micro-interaction */
+/* Press micro-interaction — feedback on pointer-down (apple-design §1) */
 .press { transition: transform 140ms var(--ease-out), background-color 200ms var(--ease-out); }
-.press:active { transform: scale(0.985); }
+.press:active { transform: scale(0.97); }
+
+/* Material surfaces — translucent chrome (apple-design §12).
+   Content scrolls underneath; bright top edge = light catching the material. */
+.material {
+  background: color-mix(in srgb, var(--color-bg) 65%, transparent);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+}
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+  .material { background: color-mix(in srgb, var(--color-bg) 55%, transparent); }
+}
+.material-bright-top { box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 12%, transparent); }
+
+/* Dropdown/menu entrance — scale 0.97 + opacity (never scale(0)),
+   transform-origin at the trigger, transition (not keyframes) so it retargets. */
+.menu-enter {
+  transform: scale(0.97) translateY(-4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 180ms var(--ease-out), opacity 150ms var(--ease-out), visibility 0s linear 180ms;
+}
+.group:hover .menu-enter,
+.group:focus-within .menu-enter {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  transition: transform 180ms var(--ease-out), opacity 150ms var(--ease-out), visibility 0s;
+}
 
 /* Page entrance — initial hidden state; GSAP reveals */
 .page-enter > * { opacity: 0; transform: translateY(8px); }
 
-/* Reduced motion — preserve function, drop decoration */
+/* Reduced motion — gentler, not zero (apple-design §14) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .skeleton { animation: none; opacity: 0.6; }
   .press:active { transform: none; }
   .page-enter > * { opacity: 1; transform: none; }
+  .menu-enter, .group:hover .menu-enter, .group:focus-within .menu-enter {
+    transform: none; transition: opacity 150ms ease, visibility 0s; }
+}
+
+/* Reduced transparency — frostier surfaces, drop the blur (apple-design §14) */
+@media (prefers-reduced-transparency: reduce) {
+  .material, .site-header, .bottom-nav {
+    background: var(--color-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .material-bright-top { box-shadow: none; }
+}
+
+/* More contrast — near-solid surfaces with defined borders (apple-design §14) */
+@media (prefers-contrast: more) {
+  .material, .site-header, .bottom-nav {
+    background: var(--color-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--color-border-strong);
+  }
 }
 
 /* Selection */

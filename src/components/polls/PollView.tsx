@@ -105,8 +105,8 @@ export function PollView({ poll, signedIn, postId }: Props) {
                 aria-label={`${o.label}: ${o.votes} votes, ${pct}%`}
               >
                 <div
-                  className="absolute inset-y-0 left-0 bg-accent/15 transition-all"
-                  style={{ width: `${pct}%` }}
+                  className="absolute inset-y-0 left-0 origin-left bg-accent/15 transition-transform duration-200 ease-[var(--ease-out)]"
+                  style={{ transform: `scaleX(${pct / 100})` }}
                   aria-hidden="true"
                 />
                 <span className="relative z-10 flex items-center gap-1.5 text-fg">

@@ -40,7 +40,7 @@ export async function Header() {
   }
 
   return (
-    <header className="site-header sticky top-0 z-40 border-b border-transparent bg-bg/85 backdrop-blur supports-[backdrop-filter]:bg-bg/70">
+    <header className="material material-bright-top site-header sticky top-0 z-40 border-b border-transparent">
       <HeaderScrollObserver />
       <div className="container-x flex h-14 items-center gap-4">
         <Link href="/" className="shrink-0" aria-label="G4M37Z Communities — home">

@@ -58,7 +58,7 @@ export function UserMenu({ userId, username, avatarUrl, isModerator, isAdmin }: 
 
       <div
         role="menu"
-        className="invisible absolute right-0 top-full z-50 mt-1 w-56 origin-top-right rounded-lg border border-border bg-bg opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+        className="menu-enter absolute right-0 top-full z-50 mt-1 w-56 origin-top-right rounded-lg border border-border bg-bg shadow-lg"
       >
         <ul className="py-1 text-sm">
           {username && (

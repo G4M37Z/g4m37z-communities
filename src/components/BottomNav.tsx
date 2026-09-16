@@ -17,7 +17,7 @@ export function BottomNav({ username }: { username?: string }) {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/90 md:hidden"
+      className="material material-bright-top bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border md:hidden"
     >
       <div className="flex h-16 items-center justify-around">
         {NAV.map(({ label, href, icon: Icon }) => (
