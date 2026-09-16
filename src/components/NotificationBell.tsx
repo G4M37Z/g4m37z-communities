@@ -31,42 +31,49 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
+    let cancelled = false;
     let cleanup: (() => void) | null = null;
 
     async function init() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      // StrictMode/teardown race: if the effect was cleaned up while the
+      // auth call was pending, attaching below would add callbacks to a
+      // channel another effect instance may already have subscribed.
+      if (cancelled) return;
       const userId = user?.id ?? null;
 
       await fetchUnreadCount();
+      if (cancelled || !userId) return;
 
-      if (userId) {
-        const channel = supabase
-          .channel("notifications")
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${userId}`,
-            },
-            () => {
-              void fetchUnreadCount();
-            }
-          )
-          .subscribe();
+      const channel = supabase
+        .channel("notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            void fetchUnreadCount();
+          }
+        )
+        .subscribe();
 
-        cleanup = () => {
-          supabase.removeChannel(channel);
-        };
-      }
+      cleanup = () => {
+        supabase.removeChannel(channel);
+      };
     }
 
-    void init();
+    init().catch((e: unknown) =>
+      console.error("NotificationBell init failed:", e)
+    );
 
     return () => {
+      cancelled = true;
       if (cleanup) cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
