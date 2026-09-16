@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { LoginForm } from "./LoginForm";
+import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +14,13 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; reset?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const params = await searchParams;
+  // Never trust ?next= — coerce to a safe same-origin path before use.
+  const next = sanitizeNextPath(params.next, "/");
+  // ?reset=complete is set by the password-reset flow.
+  const resetComplete = params.reset === "complete";
 
   return (
     <main className="container-x flex min-h-[100dvh] flex-col items-center justify-center px-6 py-10">
@@ -29,7 +34,11 @@ export default async function LoginPage({
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
-          <LoginForm next={next ?? "/"} initialError={error} />
+          <LoginForm
+            next={next}
+            initialError={params.error}
+            initialSuccess={resetComplete ? "Password updated. Sign in with your new password." : null}
+          />
         </div>
 
         <p className="mt-6 text-center text-sm text-text-secondary">

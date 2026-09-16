@@ -136,6 +136,15 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
           </button>
           .
         </p>
+        <p className="mt-4 text-xs text-text-muted">
+          Already confirmed?{" "}
+          <Link
+            href={`/login?next=${encodeURIComponent(next)}`}
+            className="text-xs font-medium text-accent-text hover:underline"
+          >
+            Return to sign in
+          </Link>
+        </p>
       </div>
     );
   }

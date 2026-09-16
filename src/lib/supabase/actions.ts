@@ -9,6 +9,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  authCallbackUrl,
+  authErrorMessage,
+  sanitizeNextPath,
+} from "@/lib/supabase/auth-urls";
 
 // ---------------------------------------------------------------------------
 // Username validation
@@ -63,13 +68,7 @@ export async function signUpWithPassword(formData: FormData) {
     }
 
   const supabase = await createClient();
-  const rawSiteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const siteUrl = rawSiteUrl
-    .replace(/\/$/, "")
-    .replace(/\/.*$/, "");
-
-  const callbackUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
+  const callbackUrl = authCallbackUrl(next);
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -87,13 +86,11 @@ export async function signUpWithPassword(formData: FormData) {
 
   if (error) {
     console.error("signUpWithPassword failed:", error);
-    if (error.message.toLowerCase().includes("already registered")) {
     return {
-        error: "An account with this email already exists. Try signing in.",
-      };
-    }
-    return {
-      error: error.message || "We couldn't create your account. Please try again.",
+      error: authErrorMessage(
+        error,
+        "We couldn't create your account. Please try again.",
+      ),
     };
   }
 
@@ -152,7 +149,8 @@ export async function checkUsernameAvailability(username: string) {
 export async function signInWithPassword(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/");
+  // Sanitize on the server: never let a forged `next` become a redirect target.
+  const next = sanitizeNextPath(String(formData.get("next") ?? "/"), "/");
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Please enter a valid email address." };
@@ -169,19 +167,12 @@ export async function signInWithPassword(formData: FormData) {
 
   if (error) {
     console.error("signInWithPassword failed:", error);
-    if (error.message.toLowerCase().includes("email not confirmed")) {
     return {
-        error:
-          "Please verify your email first — check your inbox for the confirmation link.",
-      };
-    }
-    if (
-      error.message.toLowerCase().includes("invalid login") ||
-      error.message.toLowerCase().includes("invalid credentials")
-    ) {
-    return { error: "Wrong email or password." };
-    }
-    return { error: "We couldn't sign you in. Please try again." };
+      error: authErrorMessage(
+        error,
+        "We couldn't sign you in. Please try again.",
+      ),
+    };
   }
 
   return { ok: true, redirectTo: next };
@@ -197,6 +188,125 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+// ---------------------------------------------------------------------------
+// signInWithGoogle
+// Starts the Google OAuth flow. Supabase redirects to Google, then back to
+// /auth/callback with a PKCE code that the callback exchanges for a session.
+// ---------------------------------------------------------------------------
+
+export async function signInWithGoogle(next = "/") {
+  const safeNext = sanitizeNextPath(next, "/");
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: authCallbackUrl(safeNext),
+    },
+  });
+
+  if (error) {
+    console.error("signInWithGoogle failed:", error);
+    return {
+      error: authErrorMessage(
+        error,
+        "Sign-in with Google didn't start. Please try again.",
+      ),
+    };
+  }
+
+  if (!data?.url) {
+    return {
+      error: "Sign-in with Google didn't start. Please try again.",
+    };
+  }
+
+  return { ok: true, url: data.url };
+}
+
+// ---------------------------------------------------------------------------
+// requestPasswordReset
+// Sends the "forgot password" email. The email link points at /auth/callback
+// (single exchange point — no competing reset architecture). Once the session
+// is established, the callback routes the user to /reset-password.
+// ---------------------------------------------------------------------------
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const next = String(formData.get("next") ?? "/");
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: authCallbackUrl(next),
+  });
+
+  if (error) {
+    console.error("requestPasswordReset failed:", error);
+    return {
+      error: authErrorMessage(
+        error,
+        "We couldn't send a reset link. Please try again.",
+      ),
+    };
+  }
+
+  return { ok: true, email };
+}
+
+// ---------------------------------------------------------------------------
+// updatePassword
+// Sets a new password for a user who arrived via a password-reset link.
+// Requires an authenticated session (established by /auth/callback when it
+// exchanged the recovery code). Signs the user out afterwards so they sign in
+// again with the new password.
+// ---------------------------------------------------------------------------
+
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirmPassword") ?? "");
+
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+  if (password !== confirm) {
+    return { error: "Passwords don't match." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "Your reset link has expired or already been used. Please request a new one.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    console.error("updatePassword failed:", error);
+    return {
+      error: authErrorMessage(
+        error,
+        "We couldn't update your password. Please try again.",
+      ),
+    };
+  }
+
+  // Sign out on success so the user signs in with the new password, and the
+  // old session cannot be replayed.
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  return { ok: true, redirectTo: "/login?reset=complete" };
 }
 
 // ---------------------------------------------------------------------------

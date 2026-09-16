@@ -4,6 +4,7 @@
 
 import { UserPlus } from "lucide-react";
 import { SignupForm } from "./SignupForm";
+import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,10 @@ export default async function SignupPage({
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const params = await searchParams;
+  // Never trust ?next= — coerce to a safe same-origin path before use.
+  const next = sanitizeNextPath(params.next, "/home");
+  const error = params.error;
 
   return (
     <main className="container-x flex min-h-[80vh] items-center justify-center py-12">
@@ -36,7 +40,7 @@ export default async function SignupPage({
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
-          <SignupForm next={next ?? "/home"} initialError={error} />
+          <SignupForm next={next} initialError={error} />
         </div>
       </div>
     </main>
