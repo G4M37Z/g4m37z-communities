@@ -1,15 +1,16 @@
 "use client";
 // Bottom navigation — mobile-first (<768px). Persistent, touch-friendly.
-// Shows Home / Communities / Create / Notifications / Profile.
+// Shows Home / Communities / Create / Messages / Me. Notifications stay
+// reachable via the header bell.
 
 import Link from "next/link";
-import { Home, Users, Plus, Bell, User } from "lucide-react";
+import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
 
 const NAV = [
   { label: "Home", href: "/home", icon: Home },
   { label: "Communities", href: "/communities", icon: Users },
   { label: "Create", href: "/create", icon: Plus },
-  { label: "Alerts", href: "/notifications", icon: Bell },
+  { label: "Messages", href: "/messages", icon: MessageCircle },
 ];
 
 export function BottomNav({ username }: { username?: string }) {

@@ -3,6 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CommunityCapabilitiesForm } from "@/components/community-capabilities-form";
 import { PrivacyToggle } from "@/components/privacy-toggle";
+import { CommunityMediaForm } from "@/components/communities/CommunityMediaForm";
+import { DeleteCommunityButton } from "@/components/communities/DeleteCommunityButton";
 import { getCommunityContext } from "@/lib/community-service";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +49,11 @@ export default async function CommunitySettingsPage({
         admins can change these.
       </p>
       <div className="mb-4 space-y-4">
+        <CommunityMediaForm
+          communityId={ctx.community.id}
+          iconUrl={ctx.community.icon_url ?? null}
+          bannerUrl={ctx.community.banner_url ?? null}
+        />
         <PrivacyToggle
           communityId={ctx.community.id}
           isPrivate={ctx.community.is_private}
@@ -55,6 +62,12 @@ export default async function CommunitySettingsPage({
           communityId={ctx.community.id}
           initialEnabled={ctx.community.capabilities ?? []}
         />
+        {ctx.community.creator_id === user.id && (
+          <DeleteCommunityButton
+            communityId={ctx.community.id}
+            slug={ctx.community.slug}
+          />
+        )}
       </div>
     </main>
   );

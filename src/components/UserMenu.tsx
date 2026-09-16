@@ -10,6 +10,7 @@ import {
   Shield,
   Gamepad2,
   Trophy,
+  MessageCircle,
 } from "lucide-react";
 import { PresenceIndicator } from "@/components/presence-indicator";
 import { SignOutButton } from "./SignOutButton";
@@ -87,6 +88,15 @@ export function UserMenu({ userId, username, avatarUrl, isModerator, isAdmin }: 
             >
               <Trophy size={14} />
               Tournaments
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/messages"
+              className="flex items-center gap-2 px-4 py-2 text-fg hover:bg-surface"
+            >
+              <MessageCircle size={14} />
+              Messages
             </Link>
           </li>
           <li>

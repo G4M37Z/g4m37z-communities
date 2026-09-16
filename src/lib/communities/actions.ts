@@ -318,3 +318,174 @@ export async function togglePrivacy(
   revalidatePath(`/communities/${slug}`);
   return { ok: true, is_private: next };
 }
+
+// ---------------------------------------------------------------------------
+// deleteCommunity
+// Deletes a community. RLS "Creator can delete own community" gates this to
+// the creator only (auth.uid() = creator_id). All child rows (members, posts,
+// events, voice rooms, category links) cascade at the FK level — verified.
+// Community media objects are cleaned up best-effort (bucket policies from
+// migration 034 permit the creator).
+// ---------------------------------------------------------------------------
+
+export type DeleteCommunityResult = { ok: true } | { ok: false; error: string };
+
+export async function deleteCommunity(
+  communityId: string,
+): Promise<DeleteCommunityResult> {
+  if (!communityId) return { ok: false, error: "Invalid community." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: existing } = await supabase
+    .from("communities")
+    .select("slug, creator_id")
+    .eq("id", communityId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Community not found." };
+  if (existing.creator_id !== user.id) {
+    // RLS would deny this anyway — surface it explicitly.
+    return { ok: false, error: "Only the community creator can delete it." };
+  }
+
+  // Best-effort media cleanup first (034 policies allow the creator).
+  try {
+    const { data: objects } = await supabase.storage
+      .from("community-media")
+      .list(communityId, { limit: 20 });
+    if (objects && objects.length > 0) {
+      await supabase.storage
+        .from("community-media")
+        .remove(objects.map((o: { name: string }) => `${communityId}/${o.name}`));
+    }
+  } catch {
+    // non-fatal: media cleanup failure must not block deletion
+  }
+
+  const { error } = await supabase
+    .from("communities")
+    .delete()
+    .eq("id", communityId);
+  if (error) return { ok: false, error: "Could not delete the community." };
+
+  revalidatePath("/communities");
+  revalidatePath("/home");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// uploadCommunityMedia
+// Uploads a community icon or banner into the community-media bucket under
+// {communityId}/{kind}.{ext}. Authorization: caller must be the creator or a
+// moderator/admin (storage RLS from 034 enforces the same server-side).
+// ---------------------------------------------------------------------------
+
+const CM_MAX_BYTES = 5 * 1024 * 1024;
+const CM_ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+function cmSafeExt(mime: string): string {
+  switch (mime) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    default:
+      return "img";
+  }
+}
+
+export type CommunityMediaResult =
+  | { ok: true; url: string; kind: "icon" | "banner" }
+  | { ok: false; error: string };
+
+export async function uploadCommunityMedia(
+  formData: FormData
+): Promise<CommunityMediaResult> {
+  const kindRaw = String(formData.get("kind") ?? "");
+  if (kindRaw !== "icon" && kindRaw !== "banner") {
+    return { ok: false, error: "Invalid media kind." };
+  }
+  const kind: "icon" | "banner" = kindRaw;
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No file uploaded." };
+  if (file.size === 0) return { ok: false, error: "File is empty." };
+  if (file.size > CM_MAX_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
+  if (!CM_ALLOWED_MIME.has(file.type)) {
+    return { ok: false, error: "Image must be JPEG, PNG, WebP, or GIF." };
+  }
+
+  const communityId = String(formData.get("communityId") ?? "");
+  if (!communityId) return { ok: false, error: "Invalid community." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  // Authorization: creator or moderator/admin (mirrors storage RLS).
+  const { data: ctx } = await supabase
+    .from("communities")
+    .select(
+      "slug, creator_id, community_members!left(role)"
+    )
+    .eq("id", communityId)
+    .maybeSingle();
+  const community = ctx as
+    | { slug: string; creator_id: string; community_members: { role: string }[] | null }
+    | null;
+  if (!community) return { ok: false, error: "Community not found." };
+
+  const isCreator = community.creator_id === user.id;
+  const isMod = (community.community_members ?? []).some(
+    (m) => m.role === "admin" || m.role === "moderator"
+  );
+  if (!isCreator && !isMod) {
+    return { ok: false, error: "Only the creator or moderators can change community media." };
+  }
+
+  const path = `${communityId}/${kind}.${cmSafeExt(file.type)}`;
+  const { error: uploadErr } = await supabase.storage
+    .from("community-media")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: file.type,
+    });
+  if (uploadErr) {
+    console.error("uploadCommunityMedia failed:", uploadErr);
+    const msg = uploadErr.message?.toLowerCase().includes("bucket")
+      ? "Storage is not configured yet. Please contact support."
+      : "Couldn't upload the image. Try again.";
+    return { ok: false, error: msg };
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("community-media").getPublicUrl(path);
+  const versionedUrl = `${publicUrl}?v=${Date.now()}`;
+
+  const column = kind === "icon" ? "icon_url" : "banner_url";
+  const { error: updateErr } = await supabase
+    .from("communities")
+    .update({ [column]: versionedUrl, updated_at: new Date().toISOString() })
+    .eq("id", communityId);
+  if (updateErr) {
+    console.error("community media url update failed:", updateErr);
+    return { ok: false, error: "Image uploaded but the community update failed." };
+  }
+
+  revalidatePath(`/communities/${community.slug}`);
+  revalidatePath(`/communities/${community.slug}/settings`);
+  revalidatePath("/communities");
+  return { ok: true, url: versionedUrl, kind };
+}
