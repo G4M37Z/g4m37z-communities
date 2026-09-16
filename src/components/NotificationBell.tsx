@@ -79,8 +79,6 @@ export function NotificationBell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
-  if (typeof window === "undefined") return null; // SSR safety
-
   return (
     <Link
       href="/notifications"
