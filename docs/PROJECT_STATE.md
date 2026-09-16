@@ -13,15 +13,53 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `a1f2838` (production PostgREST embed-FK fix; prior `f2ded26` repo-completeness checkpoint, prior certified `5539aff`) |
+| Last verified HEAD | `03b2d77` (full audit checkpoint; prior `7e2e6a4` bell race fix, `935fa44` V6 polish, prior `a1f2838` PostgREST fix) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
-| Documentation version | 3 (this commit) |
-| Last verified date | 2026-09-14 (session) |
+| Documentation version | 4 (full audit sync 2026-09-16) |
+| Last verified date | 2026-09-16 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Full audit, synchronization & contributor cleanup (2026-09-16) — COMPLETE.**
+
+HEAD `03b2d77` (fix: NotificationBell hydration mismatch). 118 commits on `main`.
+
+What this checkpoint established (all evidence-based, nothing fabricated):
+
+- **Deliverables:** `docs/IMPLEMENTATION_MATRIX.md` (44 requirements across 40 areas,
+  status + evidence per row), `docs/IMPLEMENTATION_GAPS.md` (P0 none · P1 ×2 · P2 ×8 ·
+  P3 ×4), `docs/IMPLEMENTATION_PLAN.md` (Phases A–E, no implementation performed).
+- **Gate:** tsc 0 errors · eslint 0 errors (12 pre-existing warnings) · vitest
+  161/169 (8 failures = `tests/browser/smoke.spec.ts` ECONNREFUSED, environment-blocked
+  as documented) · `next build` PASS (42 pages + proxy).
+- **Live DB (read-only):** 59/59 public tables RLS-enabled, 175 policies, 4 buckets
+  (post-images, avatars, voice-recordings, community-media), 17 non-internal triggers;
+  migrations 032/033/034 objects present (bookmarks, polls, reposts, community-media
+  bucket). **2 orphan notifications** point at deleted posts — user-reported 404-on-tap
+  bug confirmed in production data (GAP-01, P1). `platform_links`/`user_games` absent —
+  platform import (Steam/Play/App Store) confirmed NOT IMPLEMENTED (GAP-06, P2;
+  Steam feasible, Play/App Store infeasible per connectors assessment — do not fake).
+- **Runtime:** mobile smoke via headless Chrome CDP at 390×844 on `/` and `/communities`:
+  no horizontal overflow (scrollWidth 390), BottomNav present with material backdrop
+  (`saturate(1.8) blur(20px)`), safe-area padding wired (0px on non-notched desktop);
+  5 header/footer tap targets <44px logged (GAP-12). Production serving re-verified via
+  Vercel MCP (theme-color #0B0C0E, viewport-fit=cover, og:image:width 677, robots
+  /messages+/saved disallowed, sitemap /discover /events /creators).
+- **Fixed during audit:** NotificationBell hydration mismatch (`03b2d77`, pre-existing
+  SSR-null branch) — explains the previously-unexplained authenticated parentNode exception.
+- **Contributor cleanup:** all commits normalized to `G4M37Z <193523970+G4M37Z@users.noreply.github.com>`;
+  14 AI co-author trailers (13 Codebuff, 1 Claude) stripped. Backup ref
+  `backup-before-contributor-cleanup` preserved locally. Documented separately from
+  application state — application content byte-identical.
+- **User-reported bugs recorded, NOT implemented:** deleted-post notifications 404
+  (GAP-01, Phase A first item) and platform import (GAP-06, Phase C first item).
+
+---
+
+## Prior Checkpoint
 
 **Production PostgREST embed-FK fix (2026-09-14) — APPLIED & VERIFIED.**
 
