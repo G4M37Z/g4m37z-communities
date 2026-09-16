@@ -104,6 +104,49 @@ export default async function NotificationsPage() {
     }
   }
 
+  // Resolve existence for notifications whose reference_id IS the target id
+  // (post_vote -> posts, event_rsvp -> events). A stale reference — content
+  // deleted before the migration-035 cleanup triggers, or any unexpected
+  // reference — must never produce a broken /post/{id} or /events/{id} link;
+  // it renders as plain text instead (see getNotificationHref).
+  const postRefIds = Array.from(
+    new Set(
+      notifications
+        .filter((n) => n.type === "post_vote")
+        .map((n) => n.reference_id)
+        .filter(Boolean) as string[],
+    ),
+  );
+  const validPostIds = new Set<string>();
+  if (postRefIds.length > 0) {
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("id")
+      .in("id", postRefIds);
+    for (const p of posts ?? []) {
+      validPostIds.add(p.id);
+    }
+  }
+
+  const eventRefIds = Array.from(
+    new Set(
+      notifications
+        .filter((n) => n.type === "event_rsvp")
+        .map((n) => n.reference_id)
+        .filter(Boolean) as string[],
+    ),
+  );
+  const validEventIds = new Set<string>();
+  if (eventRefIds.length > 0) {
+    const { data: events } = await supabase
+      .from("events")
+      .select("id")
+      .in("id", eventRefIds);
+    for (const e of events ?? []) {
+      validEventIds.add(e.id);
+    }
+  }
+
   return (
     <main className="container-x py-8 sm:py-10">
       <header className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -144,6 +187,8 @@ export default async function NotificationsPage() {
               key={n.id}
               notification={n}
               commentTargets={commentTargets}
+              validPostIds={validPostIds}
+              validEventIds={validEventIds}
             />
           ))}
         </ul>
@@ -155,16 +200,25 @@ export default async function NotificationsPage() {
 interface NotificationItemProps {
   notification: NotificationWithActor;
   commentTargets: Map<string, string>;
+  validPostIds: Set<string>;
+  validEventIds: Set<string>;
 }
 
 function NotificationItem({
   notification,
   commentTargets,
+  validPostIds,
+  validEventIds,
 }: NotificationItemProps) {
   const { read, actor, created_at } = notification;
 
   const { label, icon: Icon } = getNotificationMeta(notification);
-  const href = getNotificationHref(notification, commentTargets);
+  const href = getNotificationHref(
+    notification,
+    commentTargets,
+    validPostIds,
+    validEventIds,
+  );
 
   return (
     <li
@@ -222,13 +276,16 @@ function NotificationItem({
 function getNotificationHref(
   notification: NotificationWithActor,
   commentTargets: Map<string, string>,
+  validPostIds: Set<string>,
+  validEventIds: Set<string>,
 ): string | null {
   const { type, reference_id } = notification;
   if (!reference_id) return null;
 
   switch (type) {
     case "post_vote":
-      return `/post/${reference_id}`;
+      // Existence-guarded: a deleted post must never yield a broken URL.
+      return validPostIds.has(reference_id) ? `/post/${reference_id}` : null;
     case "comment_on_post":
     case "reply_to_comment":
     case "comment_vote": {
@@ -238,7 +295,7 @@ function getNotificationHref(
     case "report_resolved":
       return null;
     case "event_rsvp":
-      return `/events/${reference_id}`;
+      return validEventIds.has(reference_id) ? `/events/${reference_id}` : null;
     case "mention":
       return commentTargets.has(reference_id)
         ? `/post/${commentTargets.get(reference_id)}`

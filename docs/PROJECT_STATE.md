@@ -66,6 +66,17 @@ What this checkpoint established (all evidence-based, nothing fabricated):
 > graph recalculates asynchronously.
 - **User-reported bugs recorded, NOT implemented:** deleted-post notifications 404
   (GAP-01, Phase A first item) and platform import (GAP-06, Phase C first item).
+- **UPDATE (same session, post-audit): GAP-01/GAP-04 FIXED.** Migration 035
+  (`docs/database/035_notification_deleted_content_cleanup.sql`) applied live:
+  one-time purge of the 2 confirmed orphan notifications + BEFORE DELETE
+  cleanup triggers on `posts`/`comments` (SECURITY DEFINER, 027 pattern).
+  Href guard added in `src/app/notifications/page.tsx` (stale post/event
+  references render as plain text, never a 404 link). Regression tests:
+  `tests/notification-deleted-content.test.ts` (16/16). Live verification:
+  transactional delete→cleanup→rollback cycle proved the trigger on the
+  production DB; orphan count now 0. Gate: tsc 0, full vitest 177/185
+  (8 browser-smoke ECONNREFUSED environment class unchanged), build PASS.
+  GAP-06 (platform import) remains NOT implemented — separate work.
 
 ---
 

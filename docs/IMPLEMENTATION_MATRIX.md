@@ -49,7 +49,7 @@
 | S-1 | Messaging | Conversations, messages, read state, realtime | IMPLEMENTED — VERIFIED | messaging service/actions, `/messages*` | 020/033 | messaging tests | nav entry live-verified; read-state migration applied | Full multi-user QA partial |
 | T-1 | Voice/WebRTC | Rooms, signaling, mesh transport | IMPLEMENTED — UNVERIFIED | voice service, `/communities/[slug]/voice`, `/voice/[roomId]` | 009–011 | signaling-payload tests | transport verified statically (Phase 0.6) | Physical multi-device E2E BLOCKED (environment) |
 | U-1 | Presence | Heartbeat + indicator | IMPLEMENTED — VERIFIED | presence actions, `PresenceIndicator` | 025 | indirect | component live | — |
-| V-1 | Notifications | Triggers, prefs, bell, list page | BROKEN (edge) | 027/029 + `NotificationBell` + `/notifications` | notifications + prefs | indirect | bell realtime race fixed `7e2e6a4`; hydration fixed `03b2d77` | **Deleted-post notifications orphaned (2 live rows) → 404 on tap** |
+| V-1 | Notifications | Triggers, prefs, bell, list page | IMPLEMENTED — VERIFIED | 027/029 + `NotificationBell` + `/notifications` + migration 035 cleanup triggers | notifications + prefs | `notification-deleted-content.test.ts` (16) | bell race fixed `7e2e6a4`; hydration `03b2d77`; deleted-content cleanup live-verified (lifecycle test rolled back clean; 0 orphans) | — |
 | W-1 | Bookmarks | Save/unsave, `/saved` | IMPLEMENTED — VERIFIED | bookmarks service | 032 | indirect | schema live | — |
 | X-1 | Polls | Poll create/vote/results | IMPLEMENTED — VERIFIED | polls service, PollView | 032 | indirect | schema live; scaleX results anim verified | — |
 | Y-1 | Reposts | Repost with attribution | IMPLEMENTED — VERIFIED | reposts service | 033 | indirect | schema live | — |
@@ -72,10 +72,10 @@
 
 ## Count summary (requirements rows: 44)
 
-- IMPLEMENTED — VERIFIED: 29
+- IMPLEMENTED — VERIFIED: 30 (V-1 after GAP-01 fix)
 - IMPLEMENTED — UNVERIFIED: 3 (T-1, P-1, R-1 depth)
 - PARTIALLY IMPLEMENTED: 8
-- BROKEN: 1 (V-1 notification/deleted-post edge)
+- BROKEN: 0 (V-1 fixed post-audit)
 - NOT IMPLEMENTED: 3 (M-2, AI-1, AL-1)
 - BLOCKED: 0 standalone (T-1 E2E + AF-1 benchmark are environment-blocked aspects)
 - DEFERRED: 1 (AM-1)

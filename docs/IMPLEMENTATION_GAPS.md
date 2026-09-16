@@ -5,7 +5,11 @@
 
 ## 1. Broken existing functionality
 
-### GAP-01 · Deleted-post notifications 404 on tap — **P1** (user-reported, live-confirmed)
+### GAP-01 · Deleted-post notifications 404 on tap — **FIXED 2026-09-16** (was P1)
+- **Fix implemented:** migration `035_notification_deleted_content_cleanup.sql` (one-time orphan purge — the 2 audit-confirmed rows deleted; `BEFORE DELETE` triggers `trg_cleanup_notifications_post` / `trg_cleanup_notifications_comment` with SECURITY DEFINER `cleanup_notifications_for_deleted_content()`) + existence-guarded `getNotificationHref` (`validPostIds`/`validEventIds` sets; stale references render as plain text instead of a 404 link).
+- **Files changed:** `docs/database/035_notification_deleted_content_cleanup.sql` (new), `src/app/notifications/page.tsx`, `tests/notification-deleted-content.test.ts` (new, 16 tests).
+- **Verification:** migration applied live (`DELETE 2`, triggers verified in pg_trigger, `prosecdef = t`); transactional lifecycle test on live DB (insert post+notification → delete post → notification count 0 → ROLLBACK, zero residue); orphans now 0; targeted tests 16/16; tsc 0; full suite 177/185 (8 = documented browser ECONNREFUSED environment class); build PASS.
+- **Remaining limitation:** the href guard is a read-time defense only for the historical window between a deletion and any pre-trigger notifications created by non-post/comment writers (none exist today); events cleanup is href-guarded but not trigger-covered (event deletions keep their notifications as plain text — acceptable, no 404 path).
 - **Problem:** deleting a post leaves its notifications; tapping one navigates to `/post/{id}` → "We couldn't find that page".
 - **Evidence:** user report; live query today: `orphan_post_notifications = 2` (notifications whose `reference_id` post no longer exists); `getNotificationHref` (`src/app/notifications/page.tsx`) builds `/post/${reference_id}` for `post_vote`, `comment_on_post`, etc.
 - **Files:** `src/app/notifications/page.tsx`, `src/lib/posts/actions.ts` (deletePost), trigger creators in `docs/database/027_v4_notification_triggers.sql`.
@@ -19,7 +23,8 @@
 - Rate limiting (P1.1), CAPTCHA (P1.2), upload MIME validation (P1.5), telemetry/anomaly (P2), CSP/MFA/rotation/WAF (P3). All documented in `docs/PROJECT_STATE.md` + `docs/ROADMAP.md`; unchanged by this audit. RLS posture verified sound today (59/59 tables, 175 policies).
 
 ## 3. Data-integrity issues
-### GAP-04 · Notification rows lack referential integrity — **P1** (root of GAP-01)
+### GAP-04 · Notification rows lack referential integrity — **FIXED 2026-09-16** (was P1, root of GAP-01)
+- Fixed by the same migration 035 trigger-based hygiene (see GAP-01). `reference_id` remains polymorphic by design; deletion hygiene is now database-enforced for posts and comments (the two types that produce content URLs via `/post/{id}`).
 - `notifications.reference_id` is a bare uuid; no FK, no cleanup on content deletion. Migration 035 should add cleanup triggers (FK to heterogeneous targets isn't possible; trigger-based hygiene is the correct pattern).
 
 ### GAP-05 · Capacity TOCTOU races (LFG + Events) — **P2** (long-documented)
@@ -72,6 +77,6 @@
 
 ## Severity summary
 - **P0:** none open.
-- **P1:** GAP-01 (+GAP-04 root cause), GAP-03 pre-launch set.
+- **P1:** GAP-03 pre-launch set (GAP-01 + GAP-04 fixed 2026-09-16).
 - **P2:** GAP-05, GAP-06, GAP-07, GAP-08, GAP-10, GAP-11, GAP-14, GAP-15 (fixed).
 - **P3:** GAP-09, GAP-12, GAP-13, deferred list.
