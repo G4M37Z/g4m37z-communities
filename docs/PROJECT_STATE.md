@@ -52,8 +52,18 @@ What this checkpoint established (all evidence-based, nothing fabricated):
   SSR-null branch) — explains the previously-unexplained authenticated parentNode exception.
 - **Contributor cleanup:** all commits normalized to `G4M37Z <193523970+G4M37Z@users.noreply.github.com>`;
   14 AI co-author trailers (13 Codebuff, 1 Claude) stripped. Backup ref
-  `backup-before-contributor-cleanup` preserved locally. Documented separately from
-  application state — application content byte-identical.
+  `backup-before-contributor-cleanup` preserved locally (pre-rewrite tip `d119451`).
+  Documented separately from application state — application content byte-identical
+  (`git diff backup main` empty).
+
+> **History-rewrite note (hashes):** the contributor cleanup rewrote commit
+> metadata, so all pre-2026-09-16 commit hashes cited anywhere in docs/
+> (e.g. `0cfd728`, `935fa44`, `7e2e6a4`, `03b2d77`) refer to pre-rewrite
+> identifiers preserved by the local `backup-before-contributor-cleanup`
+> branch. Content is identical; only author/committer identity and the 14 AI
+> co-author trailers changed. Post-rewrite `main` tip: `04d6b8a`. Tag `v0.1.0`
+> was repointed onto the rewritten history (`cb6c0f5`). GitHub's contributor
+> graph recalculates asynchronously.
 - **User-reported bugs recorded, NOT implemented:** deleted-post notifications 404
   (GAP-01, Phase A first item) and platform import (GAP-06, Phase C first item).
 
