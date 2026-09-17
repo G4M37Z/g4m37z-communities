@@ -45,14 +45,18 @@ export default async function MessageThreadPage({
   const messages = await listMessages(conversationId, 1);
 
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter(Boolean))] as string[];
-  const profiles = new Map<string, string>();
+  const profiles = new Map<
+    string,
+    { username: string; display_name: string | null; avatar_url: string | null }
+  >();
   if (senderIds.length) {
     const { data } = await supabase
       .from("profiles")
-      .select("id, username")
+      .select("id, username, display_name, avatar_url")
       .in("id", senderIds);
-    (data ?? []).forEach((p: { id: string; username: string }) =>
-      profiles.set(p.id, p.username),
+    (data ?? []).forEach(
+      (p: { id: string; username: string; display_name: string | null; avatar_url: string | null }) =>
+        profiles.set(p.id, p),
     );
   }
 
@@ -77,8 +81,26 @@ export default async function MessageThreadPage({
           {messages.map((m) => (
             <li
               key={m.id}
-              className={`flex gap-2 ${m.sender_id === user.id ? "justify-end" : ""}`}
+              className={`flex items-end gap-2 ${m.sender_id === user.id ? "justify-end" : ""}`}
             >
+              {m.sender_id !== user.id &&
+                (() => {
+                  const p = profiles.get(m.sender_id ?? "");
+                  return p?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.avatar_url}
+                      alt={p.display_name ?? p.username}
+                      className="h-7 w-7 shrink-0 rounded-full object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="h-7 w-7 shrink-0 rounded-full bg-surface border border-border flex items-center justify-center text-[10px] font-bold text-fg">
+                      {((p?.display_name ?? p?.username ?? "U"))
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+                  );
+                })()}
               <div
                 className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
                   m.sender_id === user.id
@@ -88,7 +110,10 @@ export default async function MessageThreadPage({
               >
                 {m.sender_id !== user.id && (
                   <p className="mb-0.5 text-[10px] font-semibold text-text-muted">
-                    {profiles.get(m.sender_id ?? "") ?? "Unknown"}
+                    {(() => {
+                      const p = profiles.get(m.sender_id ?? "");
+                      return p?.display_name ?? p?.username ?? "Unknown";
+                    })()}
                   </p>
                 )}
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>

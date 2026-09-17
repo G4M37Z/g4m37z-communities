@@ -47,19 +47,21 @@ export default async function MessagesPage() {
         .eq("conversation_id", conv.id);
 
       let otherName = conv.name;
-      if (!otherName && members && members.length === 2) {
-        const otherId = members.find((m: { user_id: string }) => m.user_id !== user.id)?.user_id;
+      let otherAvatar: string | null = null;
+      if (!otherName && members && members.length >= 1) {
+        const otherId = members.find((m: { user_id: string }) => m.user_id !== user.id)?.user_id ?? members[0]?.user_id;
         if (otherId) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("username")
+            .select("username, display_name, avatar_url")
             .eq("id", otherId)
             .maybeSingle();
-          otherName = profile?.username ?? "Unknown";
+          otherName = profile?.display_name ?? profile?.username ?? "Unknown";
+          otherAvatar = profile?.avatar_url ?? null;
         }
       }
 
-      return { ...conv, otherName, lastMsg };
+      return { ...conv, otherName, otherAvatar, lastMsg };
     }),
   );
 
@@ -88,9 +90,18 @@ export default async function MessagesPage() {
                   href={`/messages/${conv.id}`}
                   className="flex items-center gap-3 px-4 py-4 hover:bg-bg/50 transition-colors"
                 >
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-fg">
-                    {(conv.otherName ?? "U").charAt(0).toUpperCase()}
-                  </div>
+                  {conv.otherAvatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={conv.otherAvatar}
+                      alt={conv.otherName ?? "User"}
+                      className="h-10 w-10 shrink-0 rounded-full object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-fg">
+                      {(conv.otherName ?? "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between mb-0.5">
                       <span className="truncate text-sm font-semibold text-fg">
