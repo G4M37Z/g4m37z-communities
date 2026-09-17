@@ -8,7 +8,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { PresenceHeartbeat } from "@/components/presence-heartbeat";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -92,16 +92,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let username: string | undefined;
-  if (user) {
-    const { data: p } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
-    username = p?.username ?? undefined;
-  }
+  const { user, username } = await getCurrentUser();
 
   return (
     <html lang="en" className={`${inter.variable} ${caveat.variable} h-full`}>
@@ -110,7 +101,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {user && <PresenceHeartbeat />}
         <main className="flex-1">{children}</main>
         <Footer user={user} />
-        <BottomNav username={username} />
+        <BottomNav username={username ?? undefined} />
       </body>
     </html>
   );

@@ -3,7 +3,7 @@
 // (slightly raises surface opacity + border) once the page scrolls.
 
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { Logo } from "@/components/Logo";
 import { UserMenu } from "@/components/UserMenu";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -20,24 +20,7 @@ const NAV = [
 ];
 
 export async function Header() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let username: string | null = null;
-  let role: string = "member";
-  let avatarUrl: string | null = null;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username, role, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle();
-    username = profile?.username ?? null;
-    role = (profile?.role as string) ?? "member";
-    avatarUrl = (profile?.avatar_url as string | null) ?? null;
-  }
+  const { user, username, role, avatarUrl } = await getCurrentUser();
 
   return (
     <header className="material material-bright-top site-header sticky top-0 z-40 border-b border-transparent">
