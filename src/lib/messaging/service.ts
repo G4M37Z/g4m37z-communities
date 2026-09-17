@@ -270,7 +270,7 @@ export async function getUnreadCounts(): Promise<Map<string, number>> {
   if (error || !data) return new Map();
 
   const unread = new Map<string, number>();
-  for (const row of (data as Array<{ conversation_id: string; unread_count: number }>) {
+  for (const row of (data as Array<{ conversation_id: string; unread_count: number }>)) {
     unread.set(row.conversation_id, row.unread_count);
   }
   return unread;
