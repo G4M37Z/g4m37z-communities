@@ -93,12 +93,16 @@ export default async function MessageThreadPage({
                 )}
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 {m.created_at && (
-                  <time
-                    dateTime={m.created_at}
-                    className="mt-1 block text-[10px] opacity-60"
-                  >
-                    {new Date(m.created_at).toLocaleTimeString()}
-                  </time>
+                  <div className="mt-1 flex items-center gap-1 text-[10px] opacity-60">
+                    <time dateTime={m.created_at}>
+                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </time>
+                    {m.sender_id === user.id && (
+                      <span title={m.read ? "Read" : "Sent"}>
+                        {m.read ? "✓✓" : "✓"}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </li>
