@@ -25,6 +25,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { calculateAdvancement, type Framework, type Stage, type ProgressionRule, type ScoreEntry } from "@/lib/tournaments/frameworks";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -185,10 +186,28 @@ export interface TournamentDispute {
   created_at: string;
 }
 
+export interface TournamentScore {
+  id: string;
+  tournament_id: string;
+  stage_id: string;
+  user_id: string;
+  score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateScoreInput {
+  tournamentId: string;
+  stageId: string;
+  userId: string;
+  score: number;
+}
+
 export interface CreateTournamentInput {
   eventId?: string | null;
   gameId?: string | null;
   name: string;
+  frameworkId?: string | null;
   format?: TournamentFormat;
   maxTeams?: number;
 }
@@ -462,6 +481,7 @@ export async function createTournament(
     game_id: input.gameId ?? null,
     name,
     format: (input.format ?? "SINGLE_ELIMINATION") as TournamentFormat,
+    framework_id: input.frameworkId ?? null,
     status: "REGISTRATION" as TournamentStatus,
     max_teams: maxTeams ?? 8,
   };
@@ -772,6 +792,113 @@ export async function withdrawDispute(disputeId: string): Promise<OpResult> {
     .eq("id", disputeId);
   if (error) return { ok: false, status: "error", error: error.message };
   return { ok: true, status: "updated", id: disputeId };
+}
+
+// ---------------------------------------------------------------------------
+// Frameworks & Scoring
+// ---------------------------------------------------------------------------
+
+export async function updateTournamentScore(
+  input: UpdateScoreInput,
+): Promise<OpResult> {
+  if (!isUuid(input.tournamentId) || !isUuid(input.stageId) || !isUuid(input.userId)) {
+    return { ok: false, status: "invalid_input" };
+  }
+  const userId = await resolveUserId();
+  if (!userId) return { ok: false, status: "error" };
+  const session = createAdminClient();
+  const editor = await isTournamentOrganiser(session, input.tournamentId, userId);
+  if (!editor) return { ok: false, status: "forbidden" };
+
+  const { error } = await session.from("tournament_scores").upsert({
+    tournament_id: input.tournamentId,
+    stage_id: input.stageId,
+    user_id: input.userId,
+    score: input.score,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) return { ok: false, status: "error", error: error.message };
+  return { ok: true, status: "updated" };
+}
+
+export async function advanceTournamentStage(
+  tournamentId: string,
+): Promise<OpResult> {
+  if (!isUuid(tournamentId)) return { ok: false, status: "invalid_input" };
+  const userId = await resolveUserId();
+  if (!userId) return { ok: false, status: "error" };
+  const session = createAdminClient();
+  const editor = await isTournamentOrganiser(session, tournamentId, userId);
+  if (!editor) return { ok: false, status: "forbidden" };
+
+  const { data: t, error: tErr } = await session
+    .from("tournaments")
+    .select("id, framework_id, current_stage_id, status")
+    .eq("id", tournamentId)
+    .single();
+  if (tErr || !t) return { ok: false, status: "not_found", error: tErr?.message };
+  const tournament = t as { id: string; framework_id: string; current_stage_id: string; status: TournamentStatus };
+
+  if (!tournament.framework_id || !tournament.current_stage_id) {
+    return { ok: false, status: "error", error: "Tournament has no framework or current stage." };
+  }
+
+  const { data: stage, error: sErr } = await session
+    .from("tournament_stages")
+    .select("stage_order, progression_rule")
+    .eq("id", tournament.current_stage_id)
+    .single();
+  if (sErr || !stage) return { ok: false, status: "not_found", error: sErr?.message };
+  const currentStage = stage as { stage_order: number; progression_rule: ProgressionRule };
+
+  const { data: scores, error: scErr } = await session
+    .from("tournament_scores")
+    .select("user_id, score")
+    .eq("tournament_id", tournament.id)
+    .eq("stage_id", tournament.current_stage_id);
+  if (scErr) return { ok: false, status: "error", error: scErr.message };
+
+  const scoreEntries: ScoreEntry[] = (scores ?? []).map((s) => ({
+    userId: s.user_id,
+    points: s.score,
+    rank: 0,
+  }));
+
+  const advancingUsers = calculateAdvancement(scoreEntries, currentStage.progression_rule);
+  if (advancingUsers.length === 0) {
+    return { ok: false, status: "error", error: "No users qualified to advance." };
+  }
+
+  const { data: nextStage, error: nsErr } = await session
+    .from("tournament_stages")
+    .select("id")
+    .eq("framework_id", tournament.framework_id)
+    .gt("stage_order", currentStage.stage_order)
+    .order("stage_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (nsErr || !nextStage) {
+    const { error: finalErr } = await session
+      .from("tournaments")
+      .update({ status: "COMPLETED" as TournamentStatus })
+      .eq("id", tournamentId);
+    if (finalErr) return { ok: false, status: "error", error: finalErr.message };
+    return { ok: true, status: "updated", id: tournamentId };
+  }
+
+  const { error: upErr } = await session
+    .from("tournaments")
+    .update({
+      current_stage_id: (nextStage as { id: string }).id,
+      status: "IN_PROGRESS" as TournamentStatus,
+    })
+    .eq("id", tournamentId);
+
+  if (upErr) return { ok: false, status: "error", error: upErr.message };
+
+  return { ok: true, status: "updated", id: tournamentId };
 }
 
 export const __test = {

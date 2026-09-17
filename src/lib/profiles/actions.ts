@@ -9,6 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { updateGamingProfile } from "@/lib/profiles/service-v4";
+import { savePlatformLinks, type PlatformLinkInput } from "@/lib/profiles/platform-links";
 
 export type GamingProfileActionResult =
   | { ok: true }
@@ -56,5 +57,27 @@ export async function updateNotificationPrefs(
     .update({ notification_prefs: sanitised })
     .eq("id", user.id);
   if (error) return { ok: false, error: "Could not save preferences." };
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// savePlatformLinksAction
+// Manual, self-reported gaming-platform identities. The service resolves the
+// owner from the session and writes under that user's own RLS policies.
+// ---------------------------------------------------------------------------
+
+export async function savePlatformLinksAction(
+  input: PlatformLinkInput[],
+): Promise<GamingProfileActionResult> {
+  try {
+    await savePlatformLinks(input);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not save platform links.",
+    };
+  }
+  revalidatePath("/settings");
+  revalidatePath("/profile");
   return { ok: true };
 }

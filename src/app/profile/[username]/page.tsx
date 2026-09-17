@@ -13,6 +13,7 @@ import {
   getUserAchievements,
   listAchievements,
 } from "@/lib/achievements/service";
+import { listPlatformLinks, PLATFORM_LABELS } from "@/lib/profiles/platform-links";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,7 @@ export default async function ProfilePage({
     reputationEventCount,
     userAchievements,
     allAchievements,
+    platformLinks,
   ] = await Promise.all([
     supabase
       .from("posts")
@@ -137,6 +139,7 @@ export default async function ProfilePage({
     getUserReputationEventCount(supabase, profileData.id),
     getUserAchievements(supabase, profileData.id),
     listAchievements(supabase),
+    listPlatformLinks(profileData.id),
   ]);
 
   const posts: PostRow[] = ((postsData ?? []) as Array<{
@@ -249,6 +252,42 @@ export default async function ProfilePage({
           <p className="text-base leading-relaxed text-fg whitespace-pre-wrap">
             {profileData.bio}
           </p>
+        </section>
+      )}
+
+      {/* Linked platforms — self-reported, never shown as verified */}
+      {platformLinks.length > 0 && (
+        <section
+          className="mb-10 rounded-lg border border-border bg-surface p-6"
+          aria-label="Linked gaming platforms"
+        >
+          <div className="mb-3 flex items-baseline gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-fg">
+              Gaming platforms
+            </h2>
+            <span className="text-xs text-text-muted">self-reported</span>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {platformLinks.map((link) => (
+              <li key={link.id} className="flex items-baseline gap-2 text-sm">
+                <span className="w-40 shrink-0 text-text-muted">
+                  {PLATFORM_LABELS[link.platform]}
+                </span>
+                {link.profile_url ? (
+                  <a
+                    href={link.profile_url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="font-medium text-accent-text hover:underline"
+                  >
+                    {link.handle}
+                  </a>
+                ) : (
+                  <span className="font-medium text-fg">{link.handle}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

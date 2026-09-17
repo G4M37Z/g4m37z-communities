@@ -43,6 +43,29 @@ export interface Profile {
 }
 
 // ----------------------------------------------------------------------------
+// platform_links (042_platform_links.sql) — manual, self-reported identities.
+// verified_at stays NULL until a real connector exists.
+// ----------------------------------------------------------------------------
+
+export type PlatformLinkPlatform =
+  | "steam"
+  | "playstation"
+  | "xbox"
+  | "google_play"
+  | "apple_game_center";
+
+export interface PlatformLink {
+  id: string;
+  user_id: string;
+  platform: PlatformLinkPlatform;
+  handle: string;
+  profile_url: string | null;
+  verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ----------------------------------------------------------------------------
 // terms_acceptances
 // ----------------------------------------------------------------------------
 

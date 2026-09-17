@@ -7,8 +7,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./SettingsForm";
 import { GamingProfileForm } from "@/components/settings/gaming-profile-form";
+import { PlatformLinksForm } from "@/components/settings/platform-links-form";
 import { NotificationPreferencesForm } from "@/components/settings/notification-prefs-form";
 import { getGamingProfile } from "@/lib/profiles/service-v4";
+import { listPlatformLinks } from "@/lib/profiles/platform-links";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +69,7 @@ export default async function SettingsPage() {
   }
 
   const gaming = await getGamingProfile(user.id);
+  const platformLinks = await listPlatformLinks(user.id);
   const prefsRaw = (profile as { notification_prefs?: Record<string, boolean> | null } | null)
     ?.notification_prefs ?? {};
 
@@ -82,6 +85,8 @@ export default async function SettingsPage() {
       <NotificationPreferencesForm initial={prefsRaw} />
       <div className="h-5" />
       <GamingProfileForm initial={gaming} />
+      <div className="h-5" />
+      <PlatformLinksForm initial={platformLinks} />
       <div className="h-5" />
       <SettingsForm profile={profile} />
     </div>

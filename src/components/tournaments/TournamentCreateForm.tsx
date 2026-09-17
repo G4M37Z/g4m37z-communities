@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createTournamentAction } from "@/lib/tournaments/actions";
+import { FrameworkSelector } from "./FrameworkSelector";
 
 export function TournamentCreateForm({
   games,
@@ -9,6 +10,7 @@ export function TournamentCreateForm({
   games: { id: string; name: string }[];
 }) {
   const router = useRouter();
+  const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -19,6 +21,7 @@ export function TournamentCreateForm({
       gameId: formData.get("gameId")
         ? String(formData.get("gameId"))
         : null,
+      frameworkId: selectedFramework,
       format:
         (String(formData.get("format") ?? "SINGLE_ELIMINATION") as
           | "SINGLE_ELIMINATION"
@@ -42,74 +45,72 @@ export function TournamentCreateForm({
   return (
     <form
       action={onSubmit}
-      className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+      className="mt-6 flex flex-col gap-6"
     >
-      <label className="flex flex-col gap-1 sm:col-span-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-xs uppercase tracking-wider text-text-muted">
+            Tournament name *
+          </span>
+          <input
+            type="text"
+            name="name"
+            maxLength={200}
+            required
+            placeholder="e.g. Spring Cup 2026"
+            className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wider text-text-muted">
+            Game *
+          </span>
+          <select
+            name="gameId"
+            required
+            className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
+          >
+            <option value="">Select a game</option>
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wider text-text-muted">
+            Max teams (2..128)
+          </span>
+          <input
+            type="number"
+            name="maxTeams"
+            min={2}
+            max={128}
+            defaultValue={8}
+            className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-1">
         <span className="text-xs uppercase tracking-wider text-text-muted">
-          Tournament name *
+          Framework / Format *
         </span>
-        <input
-          type="text"
-          name="name"
-          maxLength={200}
-          required
-          placeholder="e.g. Spring Cup 2026"
-          className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none"
+        <FrameworkSelector
+          selectedId={selectedFramework}
+          onSelect={setSelectedFramework}
         />
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-wider text-text-muted">
-          Game *
-        </span>
-        <select
-          name="gameId"
-          required
-          className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
-        >
-          <option value="">Select a game</option>
-          {games.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-wider text-text-muted">
-          Format
-        </span>
-        <select
-          name="format"
-          defaultValue="SINGLE_ELIMINATION"
-          className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
-        >
-          <option value="SINGLE_ELIMINATION">Single elimination</option>
-          <option value="DOUBLE_ELIMINATION">Double elimination</option>
-          <option value="ROUND_ROBIN">Round robin</option>
-          <option value="SWISS">Swiss</option>
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 sm:col-span-2">
-        <span className="text-xs uppercase tracking-wider text-text-muted">
-          Max teams (2..128)
-        </span>
-        <input
-          type="number"
-          name="maxTeams"
-          min={2}
-          max={128}
-          defaultValue={8}
-          className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
-        />
-      </label>
+        <input type="hidden" name="frameworkId" value={selectedFramework ?? ""} />
+        <input type="hidden" name="format" value="SINGLE_ELIMINATION" />
+      </div>
 
       <div className="sm:col-span-2">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || !selectedFramework}
           className="press inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
         >
           {pending ? "Creating…" : "Create tournament"}
