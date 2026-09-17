@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint && npm run test:unit",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude 'tests/browser/**'",
+    "test:browser": "vitest run tests/browser",
     "test:related": "vitest run --related $(git diff --name-only HEAD)"
   },
   "dependencies": {
