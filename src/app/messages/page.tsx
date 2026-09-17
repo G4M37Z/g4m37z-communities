@@ -86,32 +86,43 @@ export default async function MessagesPage() {
               <li key={conv.id}>
                 <Link
                   href={`/messages/${conv.id}`}
-                  className="flex items-baseline gap-3 px-4 py-3 hover:bg-bg/50"
+                  className="flex items-center gap-3 px-4 py-4 hover:bg-bg/50 transition-colors"
                 >
-                  <span className="min-w-0 truncate text-sm font-semibold text-fg">
-                    {conv.otherName}
-                  </span>
-                  {conv.lastMsg && (
-                    <span className="min-w-0 flex-1 truncate text-xs text-text-muted">
-                      {conv.lastMsg.body}
-                    </span>
-                  )}
-                  {conv.lastMsg?.created_at && (
-                    <time
-                      dateTime={conv.lastMsg.created_at}
-                      className="shrink-0 text-[10px] text-text-muted"
-                    >
-                      {new Date(conv.lastMsg.created_at).toLocaleDateString()}
-                    </time>
-                  )}
-                  {(unreadCounts.get(conv.id) ?? 0) > 0 && (
-                    <span
-                      aria-label={`${unreadCounts.get(conv.id)} unread messages`}
-                      className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white"
-                    >
-                      {unreadCounts.get(conv.id)}
-                    </span>
-                  )}
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-fg">
+                    {(conv.otherName ?? "U").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between mb-0.5">
+                      <span className="truncate text-sm font-semibold text-fg">
+                        {conv.otherName}
+                      </span>
+                      {conv.lastMsg?.created_at && (
+                        <time
+                          dateTime={conv.lastMsg.created_at}
+                          className="shrink-0 text-[10px] text-text-muted"
+                        >
+                          {new Date(conv.lastMsg.created_at).toLocaleDateString()}
+                        </time>
+                      )}
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      {conv.lastMsg ? (
+                        <span className="truncate text-xs text-text-muted">
+                          {conv.lastMsg.body}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-text-muted italic">No messages yet</span>
+                      )}
+                      {(unreadCounts.get(conv.id) ?? 0) > 0 && (
+                        <span
+                          aria-label={`${unreadCounts.get(conv.id)} unread messages`}
+                          className="ml-2 shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white"
+                        >
+                          {unreadCounts.get(conv.id)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </Link>
               </li>
             ))}
