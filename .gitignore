@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# generated brand art previews (tools/wordmark)
+/tools/wordmark/out/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
