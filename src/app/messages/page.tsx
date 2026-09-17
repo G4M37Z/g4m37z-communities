@@ -30,7 +30,9 @@ export default async function MessagesPage() {
   const conversations = await listConversations(30);
   const unreadCounts = await getUnreadCounts();
 
-  // Fetch last message + other member name for each conversation
+  // Fetch last message + other member's profile for each conversation.
+  // conversation_members SELECT is RLS-scoped to the caller, so the counterpart
+  // is fetched via get_conversation_partner (SECURITY DEFINER, migration 041).
   const enriched = await Promise.all(
     conversations.map(async (conv) => {
       const { data: lastMsg } = await supabase
@@ -41,27 +43,14 @@ export default async function MessagesPage() {
         .limit(1)
         .maybeSingle();
 
-      const { data: members } = await supabase
-        .from("conversation_members")
-        .select("user_id")
-        .eq("conversation_id", conv.id);
+      const { data: partner } = await supabase.rpc("get_conversation_partner", {
+        p_conv_id: conv.id,
+      });
 
-      let otherName = conv.name;
-      let otherAvatar: string | null = null;
-      if (!otherName && members && members.length >= 1) {
-        const otherId = members.find((m: { user_id: string }) => m.user_id !== user.id)?.user_id ?? members[0]?.user_id;
-        if (otherId) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("username, display_name, avatar_url")
-            .eq("id", otherId)
-            .maybeSingle();
-          otherName = profile?.display_name ?? profile?.username ?? "Unknown";
-          otherAvatar = profile?.avatar_url ?? null;
-        }
-      }
+      const other = Array.isArray(partner) ? partner[0] : null;
+      const otherName = conv.name ?? other?.display_name ?? other?.username ?? "Unknown";
 
-      return { ...conv, otherName, otherAvatar, lastMsg };
+      return { ...conv, otherName, otherAvatar: other?.avatar_url ?? null, lastMsg };
     }),
   );
 

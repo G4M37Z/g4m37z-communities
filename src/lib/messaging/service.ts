@@ -286,16 +286,6 @@ export async function sendMessage(  conversationId: string,  body: string,): 
   if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
 
   const supabase = await createClient();
-
-  // Ensure membership exists to prevent RLS 42501 failures on subsequent messages
-  const { error: memberError } = await supabase.rpc("ensure_conversation_membership", {
-    p_conv_id: conversationId,
-  });
-  if (memberError) {
-    console.error("ensure_conversation_membership failed:", memberError);
-    return { ok: false, status: "error", error: "Could not verify conversation membership." };
-  }
-
   const { data: inserted, error } = await supabase
     .from("messages")
     .insert({ conversation_id: conversationId, sender_id: uid, body: verdict.body })
