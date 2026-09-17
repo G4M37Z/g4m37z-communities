@@ -5,7 +5,7 @@
 // direct children, then forwards refs through. Server pages can drop this
 // in to opt into entrance animation without becoming client components.
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { staggerIn } from "@/lib/motion";
 
 export function PageEnter({
@@ -19,13 +19,14 @@ export function PageEnter({
   stagger?: number;
   y?: number;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const el = document.querySelector("[data-page-enter]");
-    if (el) staggerIn(el, childSelector, { stagger, y });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    staggerIn(ref.current, childSelector, { stagger, y });
+  }, [childSelector, stagger, y]);
+
   return (
-    <div data-page-enter className="page-enter">
+    <div ref={ref} className="page-enter">
       {children}
     </div>
   );
