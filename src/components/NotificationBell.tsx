@@ -47,12 +47,14 @@ export function NotificationBell() {
       await fetchUnreadCount();
       if (cancelled || !userId) return;
 
+      // "*" so the badge reconciles on INSERT (new activity) AND UPDATE
+      // (marked read elsewhere: /notifications page, another tab).
       const channel = supabase
         .channel("notifications")
         .on(
           "postgres_changes",
           {
-            event: "INSERT",
+            event: "*",
             schema: "public",
             table: "notifications",
             filter: `user_id=eq.${userId}`,

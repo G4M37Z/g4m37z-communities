@@ -179,10 +179,12 @@ export async function editPost(formData: FormData) {
   const postId = String(formData.get("postId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
-  const imageUrlRaw = String(formData.get("imageUrl") ?? "");
-  // null = keep existing image; "" = remove image; otherwise replace.
-  const imageUrl: string | null | undefined =
-    imageUrlRaw === "" ? undefined : imageUrlRaw.trim() || null;
+  // FormData cannot carry null, so image intent is explicit:
+  //   removeImage=true → clear the image
+  //   imageUrl=<url>   → replace the image
+  //   neither          → keep the existing image
+  const removeImage = String(formData.get("removeImage") ?? "") === "true";
+  const imageUrlRaw = String(formData.get("imageUrl") ?? "").trim();
 
   if (!postId) return { error: "Missing post id." };
   const titleErr = validateTitle(title);
@@ -201,7 +203,8 @@ export async function editPost(formData: FormData) {
     body: body || null,
     updated_at: new Date().toISOString(),
   };
-  if (imageUrl !== undefined) patch.image_url = imageUrl;
+  if (removeImage) patch.image_url = null;
+  else if (imageUrlRaw) patch.image_url = imageUrlRaw;
 
   const { data: post, error } = await supabase
     .from("posts")

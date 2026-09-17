@@ -14,23 +14,7 @@ import {
   authErrorMessage,
   sanitizeNextPath,
 } from "@/lib/supabase/auth-urls";
-
-// ---------------------------------------------------------------------------
-// Username validation
-// ---------------------------------------------------------------------------
-
-function validateUsername(username: string): string | null {
-  const u = username.trim();
-  if (u.length < 3) return "Username must be at least 3 characters.";
-  if (u.length > 30) return "Username must be 30 characters or fewer.";
-  if (!/^[a-zA-Z0-9_]+$/.test(u)) {
-    return "Username may only contain letters, numbers, and underscores.";
-  }
-  if (/^_|_$/.test(u)) {
-    return "Username cannot start or end with an underscore.";
-  }
-  return null;
-}
+import { validateUsername } from "@/lib/profiles/username";
 
 // ---------------------------------------------------------------------------
 // signUpWithPassword
@@ -40,7 +24,7 @@ function validateUsername(username: string): string | null {
 export async function signUpWithPassword(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const username = String(formData.get("username") ?? "").trim();
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
   const displayName = String(formData.get("displayName") ?? "").trim();
   const next = String(formData.get("next") ?? "/");
 
@@ -49,9 +33,14 @@ export async function signUpWithPassword(formData: FormData) {
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
-    }
-    const usernameError = validateUsername(username);
-    if (usernameError) return { error: usernameError };
+  }
+  // Confirmation is enforced server-side too, so a forged request can't skip it.
+  if (password !== confirmPassword) {
+    return { error: "Passwords don't match." };
+  }
+    const usernameVerdict = validateUsername(String(formData.get("username") ?? ""));
+    if (!usernameVerdict.ok) return { error: usernameVerdict.error };
+    const username = usernameVerdict.username;
     if (displayName.length === 0) {
     return { error: "Please enter a display name." };
     }
@@ -119,15 +108,17 @@ export async function signUpWithPassword(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 export async function checkUsernameAvailability(username: string) {
-  const validationError = validateUsername(username);
-  if (validationError) {
-    return { available: false, reason: validationError, code: "invalid" };
+  const verdict = validateUsername(username);
+  if (!verdict.ok) {
+    return { available: false, reason: verdict.error, code: "invalid" };
   }
   const supabase = await createClient();
+  // Compare against the canonical (lowercased) stored value so @Derick,
+  // derick and DERICK all resolve to the same availability answer.
   const { data, error } = await supabase
     .from("profiles")
     .select("username")
-    .eq("username", username.trim())
+    .eq("username", verdict.username)
     .maybeSingle();
 
   if (error) {
@@ -173,6 +164,16 @@ export async function signInWithPassword(formData: FormData) {
         "We couldn't sign you in. Please try again.",
       ),
     };
+  }
+
+  // Guarantee a profile row before the session reaches the app shell. Every
+  // social table (community_members, conversation_members, messages, posts)
+  // foreign-keys to public.profiles, so an authenticated user without one
+  // cannot join communities or message (FK 23503). ensure_profile() (036) is
+  // self-only and idempotent. Best-effort: a hiccup must not block sign-in.
+  const { error: ensureErr } = await supabase.rpc("ensure_profile");
+  if (ensureErr) {
+    console.error("signInWithPassword ensure_profile failed:", ensureErr);
   }
 
   return { ok: true, redirectTo: next };

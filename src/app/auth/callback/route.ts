@@ -59,98 +59,47 @@ export async function GET(request: NextRequest) {
     return Response.redirect(new URL("/reset-password", url.origin));
   }
 
-  // Look up the user, then ensure a profile row exists.
+  // Look up the user, then guarantee a profile row exists.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) {
-    // Look up using the cookie-bound client — RLS allows SELECT for everyone.
-    const { data: existing, error: lookupErr } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (lookupErr) {
-      console.error("auth/callback profile lookup failed:", lookupErr);
+    // ensure_profile() (migration 036) is a SECURITY DEFINER RPC that
+    // idempotently creates the CALLER's own profile row from their metadata /
+    // email, deriving a unique username (auto-suffixed on collision). This
+    // replaces a raw insert whose 23505 branch stranded the user at
+    // /settings?error=username_taken — a page that cannot change usernames.
+    const { error: ensureErr } = await supabase.rpc("ensure_profile");
+    if (ensureErr) {
+      // The user is authenticated; a profile hiccup must not block sign-in.
+      // ensure_profile also runs on password sign-in and covers existing users.
+      console.error("auth/callback ensure_profile failed:", ensureErr);
     }
 
-    if (!existing) {
-      // No profile yet — create one from the user_metadata collected at
-      // signup (or returned by the OAuth provider). Using the cookie-bound
-      // client so RLS WITH CHECK (auth.uid() = id) enforces ownership.
-      const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
-      const str = (v: unknown) =>
-        typeof v === "string" && v.trim() ? v.trim() : "";
-
-      const fallbackUsername =
-        str(meta.username) ||
-        str(meta.user_name) ||
-        (user.email ? user.email.split("@")[0] : user.id);
-      const fallbackDisplay =
-        str(meta.display_name) ||
-        str(meta.full_name) ||
-        str(meta.name) ||
-        fallbackUsername;
-
-      // Sanitize the username to match our policy in case of garbage in metadata.
-      const safeUsername =
-        String(fallbackUsername)
-          .replace(/[^a-zA-Z0-9_]/g, "_")
-          .slice(0, 30) || `user_${user.id.slice(0, 8)}`;
-
-      const avatar = str(meta.avatar_url) || str(meta.picture) || null;
-
-      const { error: insertErr } = await supabase
-        .from("profiles")
+    // Audit log: every ToS acceptance is recorded (best-effort).
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    if (
+      typeof meta.terms_version === "string" &&
+      typeof meta.terms_accepted_at === "string"
+    ) {
+      const headers = request.headers;
+      const ip =
+        headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        headers.get("x-real-ip") ??
+        null;
+      const ua = headers.get("user-agent") ?? null;
+      const { error: termsErr } = await supabase
+        .from("terms_acceptances")
         .insert({
-          id: user.id,
-          username: safeUsername,
-          display_name: String(fallbackDisplay).slice(0, 80),
-          avatar_url: avatar,
-          terms_version:
-            typeof meta.terms_version === "string"
-              ? meta.terms_version
-              : null,
-          terms_accepted_at:
-            typeof meta.terms_accepted_at === "string"
-              ? meta.terms_accepted_at
-              : null,
-        });
-
-      // Audit log: every ToS acceptance is recorded.
-      if (
-        typeof meta.terms_version === "string" &&
-        typeof meta.terms_accepted_at === "string"
-      ) {
-        const headers = request.headers;
-        const ip =
-          headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-          headers.get("x-real-ip") ??
-          null;
-        const ua = headers.get("user-agent") ?? null;
-        await supabase.from("terms_acceptances").insert({
           user_id: user.id,
           terms_version: meta.terms_version,
           accepted_at: meta.terms_accepted_at,
           ip_address: ip,
           user_agent: ua,
         });
-      }
-
-      if (insertErr) {
-        // Most common cause: username collision (the user picked a name
-        // someone else grabbed between signup and confirmation).
-        console.error("auth/callback profile insert failed:", insertErr);
-        if (insertErr.code === "23505") {
-          // Redirect to settings so they can pick a new username.
-          return Response.redirect(
-            new URL("/settings?error=username_taken", url.origin)
-          );
-        }
-        // Other errors: log and continue — the user is authenticated.
-        // They can finish profile setup at /settings later.
+      if (termsErr) {
+        console.error("auth/callback terms_acceptances insert failed:", termsErr);
       }
     }
   }

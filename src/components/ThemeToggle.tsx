@@ -23,7 +23,9 @@ export function ThemeToggle() {
     if (!mounted.current) {
       mounted.current = true;
       if (window.localStorage.getItem(STORAGE_KEY) === "light") {
-        setIsDark(false);
+        // Defer adoption out of the effect's synchronous path. Same single
+        // extra render as before, but the effect never sets state directly.
+        queueMicrotask(() => setIsDark(false));
         return; // attribute is applied by the run this triggers
       }
     }

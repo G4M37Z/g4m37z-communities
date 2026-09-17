@@ -54,6 +54,8 @@ export async function searchAll(rawQuery: string): Promise<SearchResult> {
 
   const supabase = await createClient();
   const pattern = `%${escapeLike(q)}%`;
+  // People search "@derick" or "derick" the same way: drop the handle prefix.
+  const userPattern = `%${escapeLike(q.replace(/^@+/, ""))}%`;
 
   // Run three searches in parallel.
   const [{ data: communities }, { data: posts }, { data: users }] =
@@ -84,7 +86,7 @@ export async function searchAll(rawQuery: string): Promise<SearchResult> {
         .from("profiles")
         .select("id, username, display_name, avatar_url, created_at")
         .or(
-          `username.ilike.${pattern},display_name.ilike.${pattern}`
+          `username.ilike.${userPattern},display_name.ilike.${userPattern}`
         )
         .order("created_at", { ascending: false })
         .limit(PER_TYPE_LIMIT),

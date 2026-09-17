@@ -243,8 +243,12 @@ describe("getNotificationHref — stale references cannot produce broken URLs", 
 });
 
 describe("notifications page — existence-guard wiring", () => {
-  it("page fetches existing post ids for post_vote references", () => {
-    expect(PAGE).toMatch(/\.filter\(\(n\) => n\.type === "post_vote"\)/);
+  it("page fetches existing post ids for post_vote/repost references", () => {
+    // The post existence-guard covers BOTH post_vote and repost references
+    // (a repost notification for a deleted post must not 404 either).
+    expect(PAGE).toMatch(
+      /\.filter\(\(n\) => n\.type === "post_vote" \|\| n\.type === "repost"\)/,
+    );
     expect(PAGE).toMatch(/\.from\("posts"\)\s*\n?\s*\.select\("id"\)/);
   });
 

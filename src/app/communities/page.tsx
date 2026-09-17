@@ -86,7 +86,7 @@ export default async function CommunitiesPage() {
           </p>
         </div>
         <Link
-          href="/create"
+          href="/create/community"
           className="press inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover"
         >
           Create community

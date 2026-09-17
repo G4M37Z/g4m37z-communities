@@ -3,10 +3,18 @@
 // src/app/post/[id]/PostActions.tsx
 // Edit + delete controls for post owners.
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, Loader2, AlertCircle, X, Check } from "lucide-react";
-import { deletePost, editPost } from "@/lib/posts/actions";
+import {
+  Pencil,
+  Trash2,
+  Loader2,
+  AlertCircle,
+  X,
+  Check,
+  ImagePlus,
+} from "lucide-react";
+import { deletePost, editPost, uploadPostImage } from "@/lib/posts/actions";
 import type { Post } from "@/types/database";
 
 interface Props {
@@ -118,16 +126,42 @@ function EditForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(post.image_url ?? null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function onFile(file: File) {
+    setUploading(true);
+    setUploadError(null);
+    const res = await uploadPostImage(file);
+    setUploading(false);
+    if (res.error) {
+      setUploadError(res.error);
+      return;
+    }
+    setImageUrl(res.url ?? null);
+  }
 
   function onSubmit(formData: FormData) {
     setError(null);
+    // Express the image intent explicitly — FormData cannot carry null.
+    if (imageUrl) {
+      formData.set("imageUrl", imageUrl);
+    } else {
+      formData.set("removeImage", "true");
+    }
     startTransition(async () => {
-      const res = await editPost(formData);
-      if (res?.error) {
-        setError(res.error);
-        return;
+      try {
+        const res = await editPost(formData);
+        if (res?.error) {
+          setError(res.error);
+          return;
+        }
+        onSaved();
+      } catch {
+        setError("Couldn't update the post. Try again.");
       }
-      onSaved();
     });
   }
 
@@ -149,7 +183,59 @@ function EditForm({
         maxLength={20000}
         className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
       />
-      <input type="hidden" name="imageUrl" value="" />
+
+      <div>
+        <span className="mb-1.5 block text-xs font-medium text-text-muted">
+          Image
+        </span>
+        {imageUrl ? (
+          <div className="relative overflow-hidden rounded-lg border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="" className="block max-h-60 w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => {
+                setImageUrl(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-bg/90 text-text-muted hover:text-sale"
+              aria-label="Remove image"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <label
+            htmlFor="edit-image"
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-bg px-4 py-4 text-xs text-text-muted hover:border-accent/60 hover:text-fg"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <ImagePlus size={14} />
+                Add an image
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              id="edit-image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onFile(f);
+              }}
+            />
+          </label>
+        )}
+        {uploadError && <p className="mt-1 text-xs text-sale">{uploadError}</p>}
+      </div>
+
       {error && (
         <p className="flex items-center gap-1 text-xs text-sale">
           <AlertCircle size={12} /> {error}
@@ -167,7 +253,7 @@ function EditForm({
         </button>
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || uploading}
           className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
         >
           {pending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}

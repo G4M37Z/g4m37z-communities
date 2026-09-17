@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { listMessageSuggestions } from "@/lib/messaging/service";
 import { PageEnter } from "@/components/PageEnter";
 import { NewConversationForm } from "./NewConversationForm";
 
@@ -27,6 +28,8 @@ export default async function NewConversationPage() {
     );
   }
 
+  const suggestions = await listMessageSuggestions(8);
+
   return (
     <PageEnter>
       <main className="container-x py-8 pb-20 max-w-lg">
@@ -36,7 +39,7 @@ export default async function NewConversationPage() {
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-fg">New message</h1>
         </header>
-        <NewConversationForm />
+        <NewConversationForm suggestions={suggestions} />
       </main>
     </PageEnter>
   );

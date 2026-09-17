@@ -17,7 +17,6 @@
 //     deterministic unit coverage (see tests/messaging-service.test.ts).
 // ============================================================================
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID_RE =
@@ -105,6 +104,47 @@ export async function listConversations(limit = 20): Promise<Conversation[]> {
   return (data ?? []) as Conversation[];
 }
 
+export interface RecipientSuggestion {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+/** Graph-first suggestions for the new-message picker: people the caller
+ * follows plus people they already message. Caller-scoped, no service role. */
+export async function listMessageSuggestions(limit = 8): Promise<RecipientSuggestion[]> {
+  const { uid } = await resolveUserId();
+  if (!uid) return [];
+  const cap = clamp(limit, 1, MAX_PAGE);
+  const supabase = await createClient();
+  const byId = new Map<string, RecipientSuggestion>();
+
+  // People the caller follows (follows SELECT is RLS-scoped to follower_id).
+  const { data: follows } = await supabase
+    .from("follows")
+    .select("followed_id")
+    .eq("follower_id", uid)
+    .order("followed_at", { ascending: false })
+    .limit(cap);
+  const ids = (follows ?? []).map((f: { followed_id: string }) => f.followed_id);
+  if (ids.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar_url")
+      .in("id", ids);
+    for (const p of (profiles ?? []) as RecipientSuggestion[]) byId.set(p.id, p);
+  }
+
+  // People the caller already has a direct conversation with (RPC 037).
+  const { data: partners } = await supabase.rpc("list_message_partners");
+  for (const p of (partners ?? []) as RecipientSuggestion[]) {
+    if (!byId.has(p.id)) byId.set(p.id, p);
+  }
+
+  return [...byId.values()].slice(0, cap);
+}
+
 // ---------------------------------------------------------------------------
 // Message list — ascending, page-based (offset bounded by MAX_PAGE per page)
 // ---------------------------------------------------------------------------
@@ -141,43 +181,33 @@ async function resolveUserId(): Promise<{ uid: string | null; error?: string }> 
   return { uid: user.id };
 }
 
-// Finds an existing direct conversation between two users, if any.
-// conversation_members SELECT is RLS-scoped to auth.uid(), so only the admin
-// (service_role) client can see the invitee's membership rows; this is a
-// bounded read of membership ids for the (self, invitee) pair.
-async function findExistingDirect(both: string[]): Promise<string | null> {
-  const admin = await createAdminClient();
-  const set = new Set(both);
-  if (set.size < 2) return null;
+// Finds an existing direct conversation between the caller and `otherId`, if
+// any. Delegated to public.find_direct_conversation (migration 037) —
+// SECURITY DEFINER, performs the caller-membership check itself, and needs no
+// service-role key. Failures degrade to "no existing thread" (a new thread is
+// created) rather than throwing.
+async function findExistingDirect(otherId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("find_direct_conversation", {
+    p_other: otherId,
+  });
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
 
-  const { data: memberships } = await admin
+/** True when the signed-in user is a member of the conversation. */
+export async function isConversationMember(conversationId: string): Promise<boolean> {
+  if (!isUuid(conversationId)) return false;
+  const { uid } = await resolveUserId();
+  if (!uid) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
     .from("conversation_members")
-    .select("conversation_id, user_id")
-    .in("user_id", both);
-  if (!memberships) return null;
-
-  const byConversation = new Map<string, string[]>();
-  for (const m of memberships) {
-    const list = byConversation.get(m.conversation_id) ?? [];
-    list.push(m.user_id);
-    byConversation.set(m.conversation_id, list);
-  }
-
-  const { data: candidateIds } = await admin
-    .from("conversations")
-    .select("id")
-    .eq("type", "direct")
-    .in("id", [...byConversation.keys()]);
-  if (!candidateIds) return null;
-
-  for (const c of candidateIds) {
-    const members = byConversation.get(c.id);
-    if (members && members.length >= 2) {
-      const memberSet = new Set(members);
-      if (both.every((u) => memberSet.has(u))) return c.id;
-    }
-  }
-  return null;
+    .select("conversation_id")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", uid)
+    .maybeSingle();
+  return Boolean(data);
 }
 
 export async function createDirectConversation(
@@ -201,7 +231,7 @@ export async function createDirectConversation(
     .eq("id", recipientId)
     .maybeSingle();
 
-  const existingThreadId = await findExistingDirect([uid, recipientId]);
+  const existingThreadId = await findExistingDirect(recipientId);
   const verdict = createDirectVerdict({
     senderId: uid,
     recipientId,
@@ -233,7 +263,21 @@ export async function createDirectConversation(
     sender_id: uid,
     body: body.body,
   });
-  if (msgErr) return { ok: false, status: "error", error: "Failed to send message." };  return { ok: true, status: "created", conversation_id: conv.id };
+  if (msgErr) {
+    // Don't leave an empty "zombie" thread behind — the members were inserted
+    // but the first message failed, so the thread would 404 forever. Best-effort
+    // rollback (the caller is the creator, and FKs cascade the member rows).
+    const { error: cleanupErr } = await supabase
+      .from("conversations")
+      .delete()
+      .eq("id", conv.id);
+    if (cleanupErr) {
+      console.error("createDirectConversation rollback failed:", cleanupErr);
+    }
+    return { ok: false, status: "error", error: "Failed to send message." };
+  }
+
+  return { ok: true, status: "created", conversation_id: conv.id };
 }
 
 // ---------------------------------------------------------------------------

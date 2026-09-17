@@ -134,6 +134,8 @@ export async function getHomeFeed(
 
   const { data: posts } = await postsQuery;
 
+  const merged: JoinedPost[] = [...((posts ?? []) as unknown as JoinedPost[])];
+
   // Followed users' posts from outside the joined communities, merged in.
   // RLS/private-community visibility is enforced by the database either way.
   if (followedIds.length > 0) {
@@ -151,23 +153,92 @@ export async function getHomeFeed(
       );
     }
     const { data: followedPosts } = await followedQuery;
-    if (followedPosts && followedPosts.length > 0) {
-      return await enrichPosts(
-        [...(posts ?? []), ...followedPosts] as unknown as JoinedPost[],
-        sort,
-        userId
-      );
-    }
+    merged.push(...((followedPosts ?? []) as unknown as JoinedPost[]));
   }
 
-  if (!posts || posts.length === 0) return [];
-  return await enrichPosts(posts as unknown as JoinedPost[], sort, userId);
+  // Reposts by people the user follows (and their own) surface in the feed,
+  // attributed to the reposter. RLS still gates which originals are visible.
+  const repostMeta = await getRepostFeedMeta(
+    supabase,
+    [...new Set([...followedIds, ...(userId ? [userId] : [])])],
+    limit,
+    merged
+  );
+
+  if (merged.length === 0) return [];
+  return await enrichPosts(merged, sort, userId, repostMeta);
+}
+
+interface RepostMeta {
+  username: string;
+  comment: string | null;
+  at: string;
+}
+
+/**
+ * Load reposts by the given users, merge any not-already-present originals into
+ * `merged`, and return per-post attribution (newest repost wins per post).
+ */
+async function getRepostFeedMeta(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  reposterIds: string[],
+  limit: number,
+  merged: JoinedPost[]
+): Promise<Map<string, RepostMeta>> {
+  const meta = new Map<string, RepostMeta>();
+  if (reposterIds.length === 0) return meta;
+
+  const { data: reposts } = await supabase
+    .from("reposts")
+    .select("post_id, reposter_id, comment, created_at")
+    .in("reposter_id", reposterIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const rows = (reposts ?? []) as {
+    post_id: string;
+    reposter_id: string;
+    comment: string | null;
+    created_at: string;
+  }[];
+  if (rows.length === 0) return meta;
+
+  const present = new Set(merged.map((p) => p.id));
+  const missingIds = [...new Set(rows.map((r) => r.post_id))].filter(
+    (id) => !present.has(id)
+  );
+  if (missingIds.length > 0) {
+    const { data: originals } = await supabase
+      .from("posts")
+      .select(POST_SELECT)
+      .in("id", missingIds);
+    merged.push(...((originals ?? []) as unknown as JoinedPost[]));
+  }
+
+  const reposterNames = new Map<string, string>();
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, username")
+    .in("id", [...new Set(rows.map((r) => r.reposter_id))]);
+  for (const p of profiles ?? []) reposterNames.set(p.id, p.username);
+
+  for (const r of rows) {
+    if (!meta.has(r.post_id)) {
+      meta.set(r.post_id, {
+        username: reposterNames.get(r.reposter_id) ?? "someone",
+        comment: r.comment,
+        at: r.created_at,
+      });
+    }
+  }
+  return meta;
 }
 
 async function enrichPosts(
   posts: JoinedPost[],
   sort: SortKey,
-  viewerId: string | null
+  viewerId: string | null,
+  repostMeta?: Map<string, RepostMeta>
 ): Promise<PostCardData[]> {
   const supabase = await createClient();
   const postIds = posts.map((p: JoinedPost) => p.id);
@@ -213,7 +284,10 @@ async function enrichPosts(
         body: p.body,
         image_url: p.image_url,
         created_at: p.created_at,
-        updated_at: p.updated_at,        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,        repost_count: repostCountByPost.get(p.id) ?? 0,        reposted: repostedByViewer.has(p.id),        poll: pollMap.get(p.id) ?? null,        author: p.author,
+        updated_at: p.updated_at,        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,                repost_count: repostCountByPost.get(p.id) ?? 0,
+        reposted: repostedByViewer.has(p.id),
+        reposted_by: repostMeta?.get(p.id) ?? null,
+        poll: pollMap.get(p.id) ?? null,        author: p.author,
         community: p.community,
         score,
         my_vote: myVoteByPost.get(p.id) ?? null,
@@ -241,10 +315,11 @@ function sortPosts(
   } else if (sort === "trending") {
     copy.sort((a, b) => (b.trending ?? 0) - (a.trending ?? 0));
   } else {
-    copy.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    // "latest" ranks by when the item entered the feed: a repost is newer
+    // than the original post it surfaces.
+    const feedTime = (p: PostCardData) =>
+      new Date(p.reposted_by?.at ?? p.created_at).getTime();
+    copy.sort((a, b) => feedTime(b) - feedTime(a));
   }
   return copy;
 }

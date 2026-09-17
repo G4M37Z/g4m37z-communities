@@ -14,11 +14,16 @@ export function MessageForm({ conversationId }: { conversationId: string }) {
     const body = (fd.get("body") as string) ?? "";
     if (!body.trim()) return;
     startTransition(async () => {
-      const result = await sendMessage(conversationId, body);
-      if (result.ok) {
-        formRef.current?.reset();
+      try {
+        const result = await sendMessage(conversationId, body);
+        if (result.ok) {
+          formRef.current?.reset();
+        }
+        setState(result);
+      } catch {
+        // Network/transport failure — keep the typed text so it can be retried.
+        setState({ ok: false, error: "Your message didn't send. Please try again." });
       }
-      setState(result);
     });
   }
 

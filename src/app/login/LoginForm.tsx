@@ -8,13 +8,13 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Mail,
-  Lock,
   AlertCircle,
   CheckCircle2,
   Loader2,
   ArrowRight,
 } from "lucide-react";
 import { signInWithPassword, signInWithGoogle } from "@/lib/supabase/actions";
+import { PasswordInput } from "@/components/PasswordInput";
 
 interface LoginFormProps {
   next: string;
@@ -140,21 +140,13 @@ export function LoginForm({ next, initialError, initialSuccess }: LoginFormProps
               Forgot password?
             </Link>
           </div>
-          <div className="relative">
-            <Lock
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-            />
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              placeholder="Your password"
-              className="h-11 w-full rounded-md border border-border bg-bg pl-10 pr-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            name="password"
+            required
+            autoComplete="current-password"
+            placeholder="Your password"
+          />
         </div>
 
         <input type="hidden" name="next" value={next} />

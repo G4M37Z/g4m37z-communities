@@ -15,6 +15,7 @@ import { RealtimeComments } from "@/components/comments/RealtimeComments";
 import { ReactionButton } from "@/components/reaction-button";
 import { BookmarkButton } from "@/components/post/BookmarkButton";
 import { RepostButton } from "@/components/post/RepostButton";
+import { ShareButton } from "@/components/post/ShareButton";
 import { isBookmarked } from "@/lib/bookmarks/service";
 import { getRepostCount, hasReposted } from "@/lib/reposts/service";
 import { PollView } from "@/components/polls/PollView";
@@ -280,6 +281,7 @@ export default async function PostPage({
                   initialCount={repostCount}
                   signedIn={Boolean(user)}
                 />
+                <ShareButton postId={post.id} title={post.title} />
                 {user && user.id !== post.author_id && (
                   <ReportButton targetType="post" targetId={post.id} />
                 )}

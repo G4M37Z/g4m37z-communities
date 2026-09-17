@@ -8,7 +8,6 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Mail,
-  Lock,
   User,
   AtSign,
   CheckCircle2,
@@ -17,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { signUpWithPassword, checkUsernameAvailability } from "@/lib/supabase/actions";
+import { PasswordInput } from "@/components/PasswordInput";
 
 interface SignupFormProps {
   next: string;
@@ -30,6 +30,8 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
   const [sentTo, setSentTo] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(initialError ?? null);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
   // Live username availability check
   const [username, setUsername] = useState("");
@@ -97,6 +99,15 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
         setError("Please choose a valid, available username.");
         return;
       }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords don't match.");
+        return;
+      }
+      formData.set("confirmPassword", confirmPassword);
       // Append terms_version + acceptance timestamp for the server to persist
       formData.set("termsAccepted", "true");
       formData.set("termsVersion", "v1");
@@ -255,25 +266,45 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
         >
           Password
         </label>
-        <div className="relative">
-          <Lock
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-          />
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            className="h-11 w-full rounded-md border border-border bg-bg pl-10 pr-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-          />
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
         <p className="mt-1 text-xs text-text-muted">
           At least 8 characters. Use a mix of letters and numbers.
         </p>
+      </div>
+
+      <div>
+        <label
+          htmlFor="confirmPassword"
+          className="mb-1.5 block text-sm font-medium text-fg"
+        >
+          Confirm password
+        </label>
+        <PasswordInput
+          id="confirmPassword"
+          name="confirmPassword"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          placeholder="Repeat your password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}
+        />
+        {confirmPassword.length > 0 && password !== confirmPassword && (
+          <p className="mt-1 text-xs text-sale">Passwords don&apos;t match.</p>
+        )}
+        {confirmPassword.length > 0 && password === confirmPassword && (
+          <p className="mt-1 text-xs text-success">Passwords match.</p>
+        )}
       </div>
 
       <input type="hidden" name="next" value={next} />
@@ -327,7 +358,13 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
 
             <button
               type="submit"
-              disabled={pending || usernameStatus !== "ok" || !acceptedTerms}
+              disabled={
+                pending ||
+                usernameStatus !== "ok" ||
+                !acceptedTerms ||
+                password.length < 8 ||
+                password !== confirmPassword
+              }
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending ? (

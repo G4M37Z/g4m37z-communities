@@ -121,18 +121,30 @@ export async function joinCommunity(communityId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
+  if (!communityId) return { error: "Invalid community." };
 
-  const { error } = await supabase.from("community_members").insert({
-    community_id: communityId,
-    user_id: user.id,
-    role: "member",
-  });
+  // Idempotent join. `ignoreDuplicates` => ON CONFLICT DO NOTHING on the
+  // (community_id, user_id) PK, so re-joining is a no-op and the creator's
+  // auto-created 'admin' row (handle_new_community, migration 036) is never
+  // demoted to 'member'.
+  const attempt = () =>
+    supabase.from("community_members").upsert(
+      { community_id: communityId, user_id: user.id, role: "member" },
+      { onConflict: "community_id,user_id", ignoreDuplicates: true }
+    );
 
-  if (error) {
-    if (error.code === "23505") {
-      // Already a member — treat as success.
-      return { ok: true };
+  let { error } = await attempt();
+
+  // FK 23503: the caller has no public.profiles row, and every membership
+  // table foreign-keys to profiles. Self-heal with the self-only RPC and retry.
+  if (error?.code === "23503") {
+    const { error: ensureErr } = await supabase.rpc("ensure_profile");
+    if (!ensureErr) {
+      ({ error } = await attempt());
     }
+  }
+
+  if (error && error.code !== "23505") {
     console.error("joinCommunity failed:", error);
     return { error: "Couldn't join the community. Try again." };
   }

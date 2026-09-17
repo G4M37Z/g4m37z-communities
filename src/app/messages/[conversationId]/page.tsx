@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { listMessages } from "@/lib/messaging/service";
+import { listMessages, isConversationMember } from "@/lib/messaging/service";
 import { PageEnter } from "@/components/PageEnter";
 import { MessageForm } from "./MessageForm";
 import { ThreadLive } from "./ThreadLive";
@@ -35,8 +35,14 @@ export default async function MessageThreadPage({
     );
   }
 
+  // Membership is the authorization check, not "are there messages". A member
+  // with an empty thread (e.g. a first send that failed) still gets a usable
+  // composer; a non-member gets 404. RLS returns [] for non-members, so
+  // emptiness alone cannot distinguish the two.
+  const isMember = await isConversationMember(conversationId);
+  if (!isMember) notFound();
+
   const messages = await listMessages(conversationId, 1);
-  if (!messages.length) notFound();
 
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter(Boolean))] as string[];
   const profiles = new Map<string, string>();
@@ -60,6 +66,12 @@ export default async function MessageThreadPage({
         </header>
 
         <ThreadLive conversationId={conversationId} />
+
+        {messages.length === 0 && (
+          <p className="mb-4 text-center text-sm text-text-muted">
+            No messages yet — say hello.
+          </p>
+        )}
 
         <ul className="space-y-2 mb-4 max-h-[60vh] overflow-y-auto">
           {messages.map((m) => (

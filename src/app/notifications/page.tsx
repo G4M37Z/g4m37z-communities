@@ -4,10 +4,11 @@
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyNotifications, getUnreadNotificationCount } from "@/lib/notifications/queries";
-import { markAllNotificationsRead, markNotificationRead } from "@/lib/notifications/actions";
+import { markNotificationRead } from "@/lib/notifications/actions";
+import { MarkAllReadButton } from "@/components/MarkAllReadButton";
 import type { Notification, Profile } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
 
@@ -112,7 +113,7 @@ export default async function NotificationsPage() {
   const postRefIds = Array.from(
     new Set(
       notifications
-        .filter((n) => n.type === "post_vote")
+        .filter((n) => n.type === "post_vote" || n.type === "repost")
         .map((n) => n.reference_id)
         .filter(Boolean) as string[],
     ),
@@ -158,17 +159,7 @@ export default async function NotificationsPage() {
             Activity on your posts, comments, and communities.
           </p>
         </div>
-        {unreadCount > 0 && (
-          <form action={markAllNotificationsRead} className="mt-4 sm:mt-0">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover"
-            >
-              <CheckCheck size={14} />
-              Mark all as read
-            </button>
-          </form>
-        )}
+        {unreadCount > 0 && <MarkAllReadButton />}
       </header>
 
       {notifications.length === 0 ? (
@@ -284,6 +275,7 @@ function getNotificationHref(
 
   switch (type) {
     case "post_vote":
+    case "repost":
       // Existence-guarded: a deleted post must never yield a broken URL.
       return validPostIds.has(reference_id) ? `/post/${reference_id}` : null;
     case "comment_on_post":
@@ -326,6 +318,11 @@ function getNotificationMeta(notification: NotificationWithActor): {
       return {
         label: " upvoted your post",
         icon: (props) => <ArrowUpIcon {...props} />,
+      };
+    case "repost":
+      return {
+        label: " reposted your post",
+        icon: (props) => <RepeatIcon {...props} />,
       };
     case "comment_vote":
       return {
@@ -392,6 +389,17 @@ function ArrowUpIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  );
+}
+
+function RepeatIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m17 2 4 4-4 4"></path>
+      <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+      <path d="m7 22-4-4 4-4"></path>
+      <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
     </svg>
   );
 }

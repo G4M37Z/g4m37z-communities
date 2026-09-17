@@ -179,7 +179,8 @@ export type NotificationType =
   | "mention"
   | "community_invite"
   | "follow"
-  | "event_rsvp";
+  | "event_rsvp"
+  | "repost";
 
 export interface Notification {
   id: string;

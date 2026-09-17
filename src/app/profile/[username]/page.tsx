@@ -4,6 +4,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeUsername } from "@/lib/profiles/username";
 import { timeAgo } from "@/lib/utils";
 import { PageEnter } from "@/components/PageEnter";
 import { FollowButton } from "@/components/profile/FollowButton";
@@ -39,10 +40,12 @@ export async function generateMetadata({
 }) {
   const { username } = await params;
   const supabase = await createClient();
+  // Canonicalize so /profile/@Derick, /profile/Derick and /profile/derick all
+  // resolve to the same stored lowercase username row.
   const { data: profile } = await supabase
     .from("profiles")
     .select("username, display_name, bio, avatar_url")
-    .eq("username", username)
+    .eq("username", normalizeUsername(username))
     .maybeSingle();
   if (!profile) return { title: "Profile · G4M37Z" };
   const p = profile as {
@@ -85,7 +88,7 @@ export default async function ProfilePage({
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, username, display_name, avatar_url, bio, created_at")
-    .eq("username", username)
+    .eq("username", normalizeUsername(username))
     .maybeSingle();
 
   if (!profile) {

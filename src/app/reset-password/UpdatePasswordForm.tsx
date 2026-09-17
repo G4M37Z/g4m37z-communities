@@ -6,19 +6,30 @@
 
 import { useState, useTransition } from "react";
 import {
-  Lock,
   AlertCircle,
   Loader2,
   ArrowRight,
 } from "lucide-react";
 import { updatePassword } from "@/lib/supabase/actions";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function UpdatePasswordForm() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   function onSubmit(formData: FormData) {
     setError(null);
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    formData.set("confirmPassword", confirmPassword);
     startTransition(async () => {
       const res = await updatePassword(formData);
       if (res.error) {
@@ -40,22 +51,16 @@ export function UpdatePasswordForm() {
         >
           New password
         </label>
-        <div className="relative">
-          <Lock
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-          />
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            className="h-11 w-full rounded-md border border-border bg-bg pl-10 pr-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-          />
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
         <p className="mt-1 text-xs text-text-muted">
           At least 8 characters. Use a mix of letters and numbers.
         </p>
@@ -68,21 +73,19 @@ export function UpdatePasswordForm() {
         >
           Confirm new password
         </label>
-        <div className="relative">
-          <Lock
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-          />
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            required
-            autoComplete="new-password"
-            placeholder="Repeat your new password"
-            className="h-11 w-full rounded-md border border-border bg-bg pl-10 pr-3 text-sm text-fg placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-          />
-        </div>
+        <PasswordInput
+          id="confirmPassword"
+          name="confirmPassword"
+          required
+          autoComplete="new-password"
+          placeholder="Repeat your new password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}
+        />
+        {confirmPassword.length > 0 && password !== confirmPassword && (
+          <p className="mt-1 text-xs text-sale">Passwords don&apos;t match.</p>
+        )}
       </div>
 
       {error && (
@@ -97,7 +100,7 @@ export function UpdatePasswordForm() {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || password.length < 8 || password !== confirmPassword}
         className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? (

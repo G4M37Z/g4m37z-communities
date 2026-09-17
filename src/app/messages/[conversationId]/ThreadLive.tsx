@@ -16,7 +16,11 @@ export function ThreadLive({ conversationId }: { conversationId: string }) {
 
   useEffect(() => {
     // Mark read once per mount; failures are non-fatal (state stays stale).
-    markReadAction(conversationId).then(() => router.refresh());
+    // Swallow rejections so a transport error can't surface as an unhandled
+    // promise rejection.
+    markReadAction(conversationId)
+      .then(() => router.refresh())
+      .catch(() => {});
 
     const supabase = createClient();
     const channel = supabase
