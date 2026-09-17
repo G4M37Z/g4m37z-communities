@@ -3,7 +3,7 @@
 Date: 2026-09-17
 Scope: `~/g4m37z-communities` audited against the **live** Supabase database (not just the migration tree).
 Method: source review of the working tree + direct queries against the live DB (RLS policies, indexes, functions, grants, realtime publication, storage policies) + RLS **impersonation tests** simulating a signed-in user + full static suite + WebDriver smoke suite against the served production build.
-Result: **13/15 failure items PASS, 1 PARTIAL (I - completed), 1 runtime-BLOCKED (O/P WebRTC audio), 0 FAIL.**
+Result: **14/15 failure items PASS, 1 runtime-BLOCKED (O/P WebRTC audio), 0 FAIL.**
 
 ---
 
@@ -16,7 +16,7 @@ Result: **13/15 failure items PASS, 1 PARTIAL (I - completed), 1 runtime-BLOCKED
 | **C** | Signup confirm password | **PASS** | `SignupForm.tsx` adds a confirm field with live match/mismatch feedback; `signUpWithPassword` re-checks `password === confirmPassword` **server-side** so a forged request cannot bypass it; UI also blocks submit until both boxes + terms + availability pass. |
 | **D** | Username search fails | **PASS** | `normalizeUsername` (trim, strip `@`, lowercase) canonicalizes every lookup; search uses `ilike` + `escapeLike` on username/display_name; live DB has `uq_profiles_lower_username` (unique lower), `idx_profiles_lower_username_prefix`, and two `pg_trgm` GIN indexes on `lower(username)` / `lower(display_name)`. |
 | **E** | Messaging "user not found" | **PASS** | Conversation resolution goes through `public.find_direct_conversation` (migration 037, EXECUTE granted only to `authenticated`, revoke-safe; live grants verified) — no more exact-case client lookup and no service-role dependency. |
-| **F** | Messaging crashes on send | **PASS** | Live `messages_insert` WITH CHECK: `auth.uid() = sender_id AND EXISTS(conversation_members where user_id = auth.uid())`. `sender_id` is set server-side in the action; `MessageForm.tsx` keeps the draft and shows an inline retry on failure (no lost input, no blanking). |
+| **F** | Messaging crashes on send | **PASS** | **Root cause found + fixed this session:** the old "start a message" path did three request-scoped writes that RLS made self-contradictory — (1) `INSERT INTO conversations ... RETURNING id` is filtered by the member-only `conversations_select` policy (a fresh thread has no membership yet, so PostgREST gets no id → "Could not start conversation."), and (2) a single-statement insert of **both** `conversation_members` rows violates the invitee WITH CHECK, which requires the sender's row to already exist within the statement (42501). Replaced with `public.create_direct_conversation` (migration 038, SECURITY DEFINER, grant-verified live): atomically creates the conversation, BOTH member rows and the first message — verified by impersonation (new thread: 1 thread, 2 members, 1 message; second send: hybrid reuse — same thread id returned with `reused=true`, 1 thread, 2 messages; self → 22023; unknown recipient → P0002). The reuse path also no longer drops your typed message. |
 | **G** | Messaging crashes on reply | **PASS** | Same RLS + membership gate; server-side sender identity; `messages_select` scoped to `conversation_members`. |
 | **H** | No smart message discovery | **PASS** | `NewConversationForm.tsx` is graph-first (`listMessageSuggestions` = follows + existing partners) with a debounced `searchRecipients` fallback; debounce effect no longer performs synchronous setState (acceptance-test fix, see Issues). |
 | **I** | Create page is a single form, not a hub | **PASS** | `/create` already offered Post + Community; **added "New event" (`/events/new`, full `EventCreateForm`) and "New tournament" (`/tournaments/new`, full `TournamentCreateForm`)** — both flows verified to build and exist as real routes. |
@@ -38,6 +38,7 @@ Result: **13/15 failure items PASS, 1 PARTIAL (I - completed), 1 runtime-BLOCKED
    - `ThemeToggle.tsx`: synchronous `setIsDark(false)` when adopting the stored theme. Deferred with `queueMicrotask` (same single extra render, but never sets state synchronously in the effect).
 3. **Stale test contract:** `notification-deleted-content.test.ts` asserted the existence-guard filtered `n.type === "post_vote"` only; the page also guards **`repost`** references (failure L). Test updated to the shipped contract — not weakened.
 4. **Create hub completeness (failure I):** added the two missing creation flows to `/create`.
+5. **"Couldn't start a message" (failure F, confirmed alive):** user reported smart discovery worked (H) but launching a conversation failed. DB reproduction proved the create path self-contradicts under RLS: `RETURNING` on a new `conversations` row is filtered by the member-only SELECT policy, and a two-row `conversation_members` batch violates the invitee WITH CHECK. Shipped `public.create_direct_conversation` (migration 038, added **to the live DB**) — a SECURITY DEFINER RPC that does create/reuse + both members + first message atomically, error-mapped to friendly service statuses.
 
 ## Verification Gates (all run on this device against the real app)
 
@@ -49,6 +50,7 @@ Result: **13/15 failure items PASS, 1 PARTIAL (I - completed), 1 runtime-BLOCKED
 | `next build --webpack` | PASS — 49 routes, `/create`, `/events/new`, `/tournaments/new` all emit |
 | Browser smoke suite (WebDriver, Chromium 149 ≈ ChromeDriver 149) against `next start` | PASS — **8/8** routes load without 404 |
 | Live-DB RLS impersonation (A) | PASS — creator→admin + own-id join + idempotent PK |
+| Live-DB RLS impersonation (038 create/reuse) | PASS — new thread = 1 thread/2 members/1 msg; reuse returns same id (`reused=true`), still 1 thread, 2 msgs; self→22023; ghost→P0002 |
 
 ## Remaining / Blocked
 
@@ -62,5 +64,7 @@ Result: **13/15 failure items PASS, 1 PARTIAL (I - completed), 1 runtime-BLOCKED
 - `src/components/ThemeToggle.tsx` — lint fix (deferred theme adoption)
 - `tests/notification-deleted-content.test.ts` — updated to the real repost-guard contract
 - `src/app/create/page.tsx` — extended hub with Event + Tournament entries
+- `src/lib/messaging/service.ts` — `createDirectConversation` now delegates to RPC 038 (removed the RLS-broken 3-step client write + rollback, and the now-unused `findExistingDirect`)
+- `docs/database/038_create_direct_conversation.sql` — new SECURITY DEFINER RPC (applied to the live DB)
 
-No schema, RLS, or authentication changes were made: the live DB already carried every fix the audit set out to verify (migrations 033/035/036/037), and RLS hardening was confirmed, never weakened.
+The live DB already carried every other fix the audit set out to verify (migrations 033/035/036/037) and RLS hardening was confirmed, never weakened. The single new DB change this session is the additive 038 RPC, granted only to `authenticated`.

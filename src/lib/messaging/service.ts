@@ -181,20 +181,6 @@ async function resolveUserId(): Promise<{ uid: string | null; error?: string }> 
   return { uid: user.id };
 }
 
-// Finds an existing direct conversation between the caller and `otherId`, if
-// any. Delegated to public.find_direct_conversation (migration 037) —
-// SECURITY DEFINER, performs the caller-membership check itself, and needs no
-// service-role key. Failures degrade to "no existing thread" (a new thread is
-// created) rather than throwing.
-async function findExistingDirect(otherId: string): Promise<string | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("find_direct_conversation", {
-    p_other: otherId,
-  });
-  if (error) return null;
-  return (data as string | null) ?? null;
-}
-
 /** True when the signed-in user is a member of the conversation. */
 export async function isConversationMember(conversationId: string): Promise<boolean> {
   if (!isUuid(conversationId)) return false;
@@ -222,62 +208,38 @@ export async function createDirectConversation(
   const { uid, error: authError } = await resolveUserId();
   if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
 
+  if (uid === recipientId) return { ok: false, status: "self", error: "You cannot message yourself." };
+
+  // Create-or-reuse is delegated to public.create_direct_conversation
+  // (migration 038), a SECURITY DEFINER RPC that atomically creates the
+  // conversation, BOTH member rows and the first message — or appends the
+  // message to the existing direct thread. The old client-side writes were
+  // impossible under RLS: a fresh conversation's RETURNING id is filtered by
+  // the member-only conversations SELECT policy (no membership exists yet),
+  // and a single-statement insert of both member rows violates the invitee
+  // WITH CHECK, which requires the sender's row to already exist.
   const supabase = await createClient();
-
-  // Recipient must exist and be a real user.
-  const { data: recipient } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", recipientId)
-    .maybeSingle();
-
-  const existingThreadId = await findExistingDirect(recipientId);
-  const verdict = createDirectVerdict({
-    senderId: uid,
-    recipientId,
-    recipientExists: Boolean(recipient),
-    existingThreadId,
+  const { data, error } = await supabase.rpc("create_direct_conversation", {
+    p_other: recipientId,
+    p_body: body.body,
   });
 
-  if (verdict === "self") return { ok: false, status: "self", error: "You cannot message yourself." };
-  if (verdict === "not_found") return { ok: false, status: "not_found", error: "User not found." };
-  if (verdict === "reuse") return { ok: true, status: "reused", conversation_id: existingThreadId as string };
-
-  // Create a fresh direct conversation (RLS: conversations_insert,
-  // conversation_members_insert incl. the direct-invitee row, messages_insert).
-  const { data: conv, error: convErr } = await supabase
-    .from("conversations")
-    .insert({ type: "direct" })
-    .select("id")
-    .single();
-  if (convErr || !conv) return { ok: false, status: "error", error: "Could not start conversation." };
-
-  const { error: memberErr } = await supabase.from("conversation_members").insert([
-    { conversation_id: conv.id, user_id: uid },
-    { conversation_id: conv.id, user_id: recipientId },
-  ]);
-  if (memberErr) return { ok: false, status: "error", error: memberErr.message };
-
-  const { error: msgErr } = await supabase.from("messages").insert({
-    conversation_id: conv.id,
-    sender_id: uid,
-    body: body.body,
-  });
-  if (msgErr) {
-    // Don't leave an empty "zombie" thread behind — the members were inserted
-    // but the first message failed, so the thread would 404 forever. Best-effort
-    // rollback (the caller is the creator, and FKs cascade the member rows).
-    const { error: cleanupErr } = await supabase
-      .from("conversations")
-      .delete()
-      .eq("id", conv.id);
-    if (cleanupErr) {
-      console.error("createDirectConversation rollback failed:", cleanupErr);
-    }
-    return { ok: false, status: "error", error: "Failed to send message." };
+  if (error) {
+    if (error.code === "22023") return { ok: false, status: "invalid", error: "Invalid request." };
+    if (error.code === "P0002") return { ok: false, status: "not_found", error: "User not found." };
+    if (error.code === "28000") return { ok: false, status: "forbidden", error: "Sign in to send messages." };
+    console.error("create_direct_conversation failed:", error);
+    return { ok: false, status: "error", error: "Could not start conversation." };
   }
 
-  return { ok: true, status: "created", conversation_id: conv.id };
+  const row = (data as Array<{ conversation_id: string; reused: boolean }> | null)?.[0];
+  if (!row) return { ok: false, status: "error", error: "Could not start conversation." };
+
+  return {
+    ok: true,
+    status: row.reused ? "reused" : "created",
+    conversation_id: row.conversation_id,
+  };
 }
 
 // ---------------------------------------------------------------------------
