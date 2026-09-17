@@ -265,43 +265,15 @@ export async function markConversationRead(conversationId: string): Promise<bool
  * recent 200 messages across the user's conversations. */
 export async function getUnreadCounts(): Promise<Map<string, number>> {
   const supabase = await createClient();
-  const { uid } = await resolveUserId();
-  if (!uid) return new Map();
+  const { data, error } = await supabase.rpc("get_unread_counts");
 
-  const { data: memberships } = await supabase
-    .from("conversation_members")
-    .select("conversation_id, last_read_at");
-  const convIds = (memberships ?? []).map(
-    (m: { conversation_id: string }) => m.conversation_id
-  );
-  if (convIds.length === 0) return new Map();
-
-  const lastReadByConv = new Map<string, number>(
-    (memberships ?? []).map((m: { conversation_id: string; last_read_at: string | null }) => [
-      m.conversation_id,
-      m.last_read_at ? new Date(m.last_read_at).getTime() : 0,
-    ])
-  );
-
-  const { data: recent } = await supabase
-    .from("messages")
-    .select("conversation_id, sender_id, created_at")
-    .in("conversation_id", convIds)
-    .order("created_at", { ascending: false })
-    .limit(200);
+  if (error || !data) return new Map();
 
   const unread = new Map<string, number>();
-  for (const m of (recent ?? []) as Array<{
-    conversation_id: string;
-    sender_id: string | null;
-    created_at: string;
-  }>) {
-    if (m.sender_id === uid) continue;
-    const threshold = lastReadByConv.get(m.conversation_id) ?? 0;
-    if (new Date(m.created_at).getTime() > threshold) {
-      unread.set(m.conversation_id, (unread.get(m.conversation_id) ?? 0) + 1);
-    }
-  }  return unread;
+  for (const row of (data as Array<{ conversation_id: string; unread_count: number }>) {
+    unread.set(row.conversation_id, row.unread_count);
+  }
+  return unread;
 }
 
 export async function sendMessage(  conversationId: string,  body: string,): Promise<MessageResult> {
@@ -314,6 +286,16 @@ export async function sendMessage(  conversationId: string,  body: string,): 
   if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
 
   const supabase = await createClient();
+
+  // Ensure membership exists to prevent RLS 42501 failures on subsequent messages
+  const { error: memberError } = await supabase.rpc("ensure_conversation_membership", {
+    p_conv_id: conversationId,
+  });
+  if (memberError) {
+    console.error("ensure_conversation_membership failed:", memberError);
+    return { ok: false, status: "error", error: "Could not verify conversation membership." };
+  }
+
   const { data: inserted, error } = await supabase
     .from("messages")
     .insert({ conversation_id: conversationId, sender_id: uid, body: verdict.body })
