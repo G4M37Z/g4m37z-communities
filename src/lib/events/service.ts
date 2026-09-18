@@ -235,6 +235,36 @@ async function isEventEditor(
 }
 
 // ---------------------------------------------------------------------------
+// create-authorization
+// ---------------------------------------------------------------------------
+
+/** True when the caller may create a community-anchored event/tournament.
+ * Mirrors the 031/045 RLS intent for the admin-client write path, which
+ * bypasses RLS: creator, or an active admin/moderator member. */
+export async function canManageCommunityEvents(
+  supabase: SupabaseClient,
+  communityId: string,
+  userId: string,
+): Promise<boolean> {
+  const { data: comm, error: cerr } = await supabase
+    .from("communities")
+    .select("creator_id")
+    .eq("id", communityId)
+    .maybeSingle();
+  if (cerr || !comm) return false;
+  if ((comm as { creator_id: string }).creator_id === userId) return true;
+  const { data, error } = await supabase
+    .from("community_members")
+    .select("user_id")
+    .eq("community_id", communityId)
+    .eq("user_id", userId)
+    .in("role", ["admin", "moderator"])
+    .is("left_at", null)
+    .maybeSingle();
+  return !error && Boolean(data);
+}
+
+// ---------------------------------------------------------------------------
 // Reads (public via RLS)
 // ---------------------------------------------------------------------------
 
@@ -407,6 +437,16 @@ export async function createEvent(
   }
 
   const session = createAdminClient();
+
+  // Community-anchored events require creator or active admin/mod status
+  // (admin-client writes bypass RLS, so enforce it here).
+  if (input.communityId) {
+    const allowed = await canManageCommunityEvents(session, input.communityId, userId);
+    if (!allowed) {
+      return { ok: false, status: "forbidden", error: "Only community moderators can create community events." };
+    }
+  }
+
   const payload = {
     community_id: input.communityId ?? null,
     created_by: userId,

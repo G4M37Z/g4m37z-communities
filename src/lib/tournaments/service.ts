@@ -25,6 +25,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { canManageCommunityEvents } from "@/lib/events/service";
 import { calculateAdvancement, type Framework, type Stage, type ProgressionRule, type ScoreEntry } from "@/lib/tournaments/frameworks";
 
 const UUID_RE =
@@ -495,6 +496,26 @@ export async function createTournament(
   }
 
   const session = createAdminClient();
+
+  // An event-linked tournament is a community-management action: the caller
+  // must be the event's community creator or an active admin/moderator
+  // (admin-client writes bypass RLS, so enforce it here). Standalone
+  // tournaments are open to any authenticated user, like standalone events.
+  if (input.eventId) {
+    const { data: event } = await session
+      .from("events")
+      .select("community_id")
+      .eq("id", input.eventId)
+      .maybeSingle();
+    if (!event) return { ok: false, status: "invalid_input", error: "Event not found." };
+    const communityId = (event as { community_id: string | null }).community_id;
+    if (communityId) {
+      const allowed = await canManageCommunityEvents(session, communityId, userId);
+      if (!allowed) {
+        return { ok: false, status: "forbidden", error: "Only community moderators can create tournaments for this event." };
+      }
+    }
+  }
 
   // A framework-linked tournament starts at its framework's first stage, so a
   // fresh tournament immediately "knows" its pipeline (SPEC success criterion 2).
