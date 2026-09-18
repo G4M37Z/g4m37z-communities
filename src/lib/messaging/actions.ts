@@ -11,7 +11,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeUsername } from "@/lib/profiles/username";
-import {  createDirectConversation,  sendMessage as sendMessageService,  markConversationRead,    getUnreadCounts,
+import {
+  createDirectConversation,
+  sendMessage as sendMessageService,
+  markConversationRead,
+    getUnreadCounts,
+  blockedUserIds,
   type RecipientSuggestion,
 } from "@/lib/messaging/service";
 
@@ -98,7 +103,10 @@ export async function searchRecipients(query: string): Promise<RecipientSuggesti
       .neq("id", user.id)
       .order("username", { ascending: true })
       .limit(8);
-    return (data ?? []) as RecipientSuggestion[];
+    const matches = (data ?? []) as RecipientSuggestion[];
+    // Exclude people the caller blocked or who blocked the caller.
+    const blocked = await blockedUserIds(user.id);
+    return matches.filter((p) => !blocked.has(p.id));
   } catch {
     return [];
   }
@@ -116,7 +124,15 @@ export async function searchRecipients(query: string): Promise<RecipientSuggesti
     console.error("sendMessage failed:", err);
     return { ok: false, error: "Your message didn't send. Please try again." };
   }
-}/** Marks a thread read for the signed-in member. Silent no-op when  * unauthenticated or the update is denied (RLS fails closed). */export async function markReadAction(
+}
+
+
+
+/** Marks a thread read for the signed-in member. Silent no-op when
+
+  * unauthenticated or the update is denied (RLS fails closed). */
+
+export async function markReadAction(
   conversationId: string
 ): Promise<{ ok: boolean }> {
   try {
@@ -126,4 +142,14 @@ export async function searchRecipients(query: string): Promise<RecipientSuggesti
   } catch {
     return { ok: false };
   }
-}/** Server-side unread counts for the conversations list. */export async function getUnreadCountsAction(): Promise<Map<string, number>> {  return getUnreadCounts();}
+}
+
+
+
+/** Server-side unread counts for the conversations list. */
+
+export async function getUnreadCountsAction(): Promise<Map<string, number>> {
+
+  return getUnreadCounts();
+
+}

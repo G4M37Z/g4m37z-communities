@@ -18,6 +18,7 @@
 // ============================================================================
 
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -112,13 +113,19 @@ export interface RecipientSuggestion {
 }
 
 /** Graph-first suggestions for the new-message picker: people the caller
- * follows plus people they already message. Caller-scoped, no service role. */
+ * follows, people who follow the caller, plus people they already message.
+ * Caller-scoped, no service role. Blocked and blocking users are excluded. */
 export async function listMessageSuggestions(limit = 8): Promise<RecipientSuggestion[]> {
   const { uid } = await resolveUserId();
   if (!uid) return [];
   const cap = clamp(limit, 1, MAX_PAGE);
   const supabase = await createClient();
   const byId = new Map<string, RecipientSuggestion>();
+  const blocked = await blockedUserIds(uid);
+  const isUsable = (id: string) => !blocked.has(id);
+  const collect = (profiles: RecipientSuggestion[]) => {
+    for (const p of profiles) if (!byId.has(p.id) && isUsable(p.id)) byId.set(p.id, p);
+  };
 
   // People the caller follows (follows SELECT is RLS-scoped to follower_id).
   const { data: follows } = await supabase
@@ -127,22 +134,52 @@ export async function listMessageSuggestions(limit = 8): Promise<RecipientSugges
     .eq("follower_id", uid)
     .order("followed_at", { ascending: false })
     .limit(cap);
-  const ids = (follows ?? []).map((f: { followed_id: string }) => f.followed_id);
-  if (ids.length > 0) {
+  const followedIds = (follows ?? [])
+    .map((f: { followed_id: string }) => f.followed_id)
+    .filter(isUsable);
+  if (followedIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, username, display_name, avatar_url")
-      .in("id", ids);
-    for (const p of (profiles ?? []) as RecipientSuggestion[]) byId.set(p.id, p);
+      .in("id", followedIds);
+    collect((profiles ?? []) as RecipientSuggestion[]);
+  }
+
+  // People who follow the caller back (cross-link without an outgoing edge).
+  const { data: reverseFollows } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("followed_id", uid);
+  const reverseIds = (reverseFollows ?? [])
+    .map((f: { follower_id: string }) => f.follower_id)
+    .filter(isUsable);
+  if (reverseIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar_url")
+      .in("id", reverseIds);
+    collect((profiles ?? []) as RecipientSuggestion[]);
   }
 
   // People the caller already has a direct conversation with (RPC 037).
   const { data: partners } = await supabase.rpc("list_message_partners");
-  for (const p of (partners ?? []) as RecipientSuggestion[]) {
-    if (!byId.has(p.id)) byId.set(p.id, p);
-  }
+  collect((partners ?? []) as RecipientSuggestion[]);
 
   return [...byId.values()].slice(0, cap);
+}
+
+/** Combined block set for a user: everyone they blocked plus everyone who
+ * blocked them. Used by the recipient picker and the send guard. */
+export async function blockedUserIds(uid: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const [mine, incoming] = await Promise.all([
+    supabase.from("blocks").select("blocked_id").eq("blocker_id", uid),
+    supabase.from("blocks").select("blocker_id").eq("blocked_id", uid),
+  ]);
+  const blocked = new Set<string>();
+  for (const r of (mine.data ?? []) as { blocked_id: string }[]) blocked.add(r.blocked_id);
+  for (const r of (incoming.data ?? []) as { blocker_id: string }[]) blocked.add(r.blocker_id);
+  return blocked;
 }
 
 // ---------------------------------------------------------------------------
@@ -286,6 +323,41 @@ export async function sendMessage(  conversationId: string,  body: string,): 
   if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
 
   const supabase = await createClient();
+
+  // Per-user send throttle (no-op unless Vercel KV is configured).
+  const { allowed: sendAllowed } = await rateLimit(`msg-send:${uid}`, 60, 60);
+  if (!sendAllowed) {
+    return { ok: false, status: "error", error: "You're sending messages too quickly. Try again in a moment." };
+  }
+
+  // Block guard for direct conversations: a blocked pair (either direction)
+  // must not be able to send into an existing thread. The create path is
+  // already guarded by the RPC (045); this covers long-lived threads.
+  const { data: convo } = await supabase
+    .from("conversations")
+    .select("type")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (convo?.type === "direct") {
+    const { data: members } = await supabase
+      .from("conversation_members")
+      .select("user_id")
+      .eq("conversation_id", conversationId);
+    const other = (members as { user_id: string }[] | null)?.find(
+      (m) => m.user_id !== uid
+    )?.user_id;
+    if (other) {
+      const blocked = await blockedUserIds(uid);
+      if (blocked.has(other)) {
+        return {
+          ok: false,
+          status: "forbidden",
+          error: "You can't send messages to this user.",
+        };
+      }
+    }
+  }
+
   const { data: inserted, error } = await supabase
     .from("messages")
     .insert({ conversation_id: conversationId, sender_id: uid, body: verdict.body })
