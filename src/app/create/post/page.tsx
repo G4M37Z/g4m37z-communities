@@ -33,6 +33,7 @@ export default async function CreatePostPage({
       "community_id, communities:community_id ( id, slug, name )"
     )
     .eq("user_id", user.id)
+    .is("left_at", null)
     .order("joined_at", { ascending: false });
 
   type JoinedRow = {

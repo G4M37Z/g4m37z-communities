@@ -129,12 +129,13 @@ export default async function ProfilePage({
       .eq("author_id", profileData.id)
       .order("created_at", { ascending: false })
       .limit(15),
-    supabase
-      .from("community_members")
-      .select("community_id, role, joined_at, community:communities ( id, slug, name, icon_url )")
-      .eq("user_id", profileData.id)
-      .order("joined_at", { ascending: false })
-      .limit(20),
+supabase
+    .from("community_members")
+    .select("community_id, role, joined_at, community:communities ( id, slug, name, icon_url )")
+    .eq("user_id", profileData.id)
+    .is("left_at", null)
+    .order("joined_at", { ascending: false })
+    .limit(20),
     getUserReputation(supabase, profileData.id),
     getUserReputationEventCount(supabase, profileData.id),
     getUserAchievements(supabase, profileData.id),

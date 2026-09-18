@@ -38,7 +38,8 @@ export default async function CommunitiesPage() {
   // a single grouped count and merge client-side.
   const { data: counts } = await supabase
     .from("community_members")
-    .select("community_id");
+    .select("community_id")
+    .is("left_at", null);
   const memberCounts = new Map<string, number>();
   if (counts) {
     for (const row of counts as { community_id: string }[]) {

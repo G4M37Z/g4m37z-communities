@@ -102,7 +102,8 @@ export async function searchAll(rawQuery: string): Promise<SearchResult> {
     const { data: memberships } = await supabase
       .from("community_members")
       .select("community_id")
-      .in("community_id", communityIds);
+      .in("community_id", communityIds)
+      .is("left_at", null);
     for (const m of (memberships ?? []) as { community_id: string }[]) {
       memberCountByCommunity.set(
         m.community_id,

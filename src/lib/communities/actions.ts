@@ -123,28 +123,25 @@ export async function joinCommunity(communityId: string) {
   if (!user) return { error: "You must be signed in." };
   if (!communityId) return { error: "Invalid community." };
 
-  // Idempotent join. `ignoreDuplicates` => ON CONFLICT DO NOTHING on the
-  // (community_id, user_id) PK, so re-joining is a no-op and the creator's
-  // auto-created 'admin' row (handle_new_community, migration 036) is never
-  // demoted to 'member'.
-  const attempt = () =>
-    supabase.from("community_members").upsert(
-      { community_id: communityId, user_id: user.id, role: "member" },
-      { onConflict: "community_id,user_id", ignoreDuplicates: true }
-    );
-
-  let { error } = await attempt();
+  // Reactivates the (community_id, user_id) membership row via the SECURITY
+  // DEFINER RPC. left_at is cleared, joined_at refreshed; the role column is
+  // deliberately untouched so an admin/moderator who left keeps their role.
+  let { error } = await supabase.rpc("join_community", {
+    p_community_id: communityId,
+  });
 
   // FK 23503: the caller has no public.profiles row, and every membership
   // table foreign-keys to profiles. Self-heal with the self-only RPC and retry.
   if (error?.code === "23503") {
     const { error: ensureErr } = await supabase.rpc("ensure_profile");
     if (!ensureErr) {
-      ({ error } = await attempt());
+      ({ error } = await supabase.rpc("join_community", {
+        p_community_id: communityId,
+      }));
     }
   }
 
-  if (error && error.code !== "23505") {
+  if (error) {
     console.error("joinCommunity failed:", error);
     return { error: "Couldn't join the community. Try again." };
   }
@@ -167,6 +164,7 @@ export async function leaveCommunity(communityId: string) {
     .select("role")
     .eq("community_id", communityId)
     .eq("user_id", user.id)
+    .is("left_at", null)
     .maybeSingle();
 
   if (membership?.role === "admin") {
@@ -174,7 +172,8 @@ export async function leaveCommunity(communityId: string) {
       .from("community_members")
       .select("user_id", { count: "exact", head: true })
       .eq("community_id", communityId)
-      .eq("role", "admin");
+      .eq("role", "admin")
+      .is("left_at", null);
     if ((count ?? 0) <= 1) {
       return {
         error:
@@ -183,11 +182,9 @@ export async function leaveCommunity(communityId: string) {
     }
   }
 
-  const { error } = await supabase
-    .from("community_members")
-    .delete()
-    .eq("community_id", communityId)
-    .eq("user_id", user.id);
+  const { error } = await supabase.rpc("leave_community", {
+    p_community_id: communityId,
+  });
 
   if (error) {
     console.error("leaveCommunity failed:", error);
@@ -215,6 +212,7 @@ export async function getCommunityMembership(
     .select("community_id, user_id, role, joined_at")
     .eq("community_id", communityId)
     .eq("user_id", user.id)
+    .is("left_at", null)
     .maybeSingle();
   return (data as CommunityMember | null) ?? null;
 }
@@ -448,18 +446,18 @@ export async function uploadCommunityMedia(
   const { data: ctx } = await supabase
     .from("communities")
     .select(
-      "slug, creator_id, community_members!left(role)"
+      "slug, creator_id, community_members!left(role, user_id)"
     )
     .eq("id", communityId)
     .maybeSingle();
   const community = ctx as
-    | { slug: string; creator_id: string; community_members: { role: string }[] | null }
+    | { slug: string; creator_id: string; community_members: { role: string; user_id: string }[] | null }
     | null;
   if (!community) return { ok: false, error: "Community not found." };
 
   const isCreator = community.creator_id === user.id;
   const isMod = (community.community_members ?? []).some(
-    (m) => m.role === "admin" || m.role === "moderator"
+    (m) => m.user_id === user.id && (m.role === "admin" || m.role === "moderator")
   );
   if (!isCreator && !isMod) {
     return { ok: false, error: "Only the creator or moderators can change community media." };

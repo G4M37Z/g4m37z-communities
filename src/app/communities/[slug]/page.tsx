@@ -105,7 +105,8 @@ export default async function CommunityPage({
     supabase
       .from("community_members")
       .select("user_id", { count: "exact", head: true })
-      .eq("community_id", community.id),
+      .eq("community_id", community.id)
+      .is("left_at", null),
     supabase
       .from("community_category_links")
       .select("category_id")
@@ -123,6 +124,7 @@ export default async function CommunityPage({
       .select("role")
       .eq("community_id", community.id)
       .eq("user_id", user.id)
+      .is("left_at", null)
       .maybeSingle();
     currentRole = (myMembership as { role: typeof currentRole } | null)?.role ?? null;
   }

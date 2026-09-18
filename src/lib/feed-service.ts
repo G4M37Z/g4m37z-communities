@@ -86,7 +86,8 @@ export async function getDiscoveryFeed(
       const { data: memberships } = await supabase
         .from("community_members")
         .select("community_id")
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .is("left_at", null);
       communityIds = (memberships ?? []).map((m: { community_id: string }) => m.community_id);
     }
 

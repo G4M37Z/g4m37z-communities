@@ -51,6 +51,7 @@ export async function getCommunityContext(slug: string, userId?: string): Promis
       .select("role")
       .eq("community_id", community.id)
       .eq("user_id", userId)
+      .is("left_at", null)
       .maybeSingle();
     role = membership?.role ?? null;
     isMember = Boolean(membership);

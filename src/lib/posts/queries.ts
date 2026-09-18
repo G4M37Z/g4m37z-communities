@@ -108,7 +108,8 @@ export async function getHomeFeed(
       supabase
         .from("community_members")
         .select("community_id")
-        .eq("user_id", userId),
+        .eq("user_id", userId)
+        .is("left_at", null),
       supabase
         .from("follows")
         .select("followed_id")

@@ -56,6 +56,7 @@ export default async function HomePage({
     .from("community_members")
     .select("community_id, joined_at, communities:community_id ( slug, name )")
     .eq("user_id", user.id)
+    .is("left_at", null)
     .order("joined_at", { ascending: false })
     .limit(6);
 
