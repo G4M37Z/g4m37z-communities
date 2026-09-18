@@ -53,6 +53,47 @@ function validateBody(body: string): string | null {
   return null;
 }
 
+/**
+ * Sniff the first bytes of an uploaded file and return the image type it
+ * actually is, or null when the bytes match no supported image signature.
+ * Browser MIME (`file.type`) is client-controlled, so we refuse anything
+ * whose content is not genuinely a JPEG/PNG/WebP/GIF.
+ */
+async function sniffImageType(file: File): Promise<(typeof IMAGE_MIME)[number] | null> {
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch {
+    return null;
+  }
+  const b = (i: number) => bytes[i];
+  if (bytes.length >= 3 && b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    bytes.length >= 8 &&
+    b(0) === 0x89 && b(1) === 0x50 && b(2) === 0x4e && b(3) === 0x47 &&
+    b(4) === 0x0d && b(5) === 0x0a && b(6) === 0x1a && b(7) === 0x0a
+  ) {
+    return "image/png";
+  }
+  if (
+    bytes.length >= 12 &&
+    b(0) === 0x52 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x46 &&
+    b(8) === 0x57 && b(9) === 0x45 && b(10) === 0x42 && b(11) === 0x50
+  ) {
+    return "image/webp";
+  }
+  if (
+    bytes.length >= 6 &&
+    b(0) === 0x47 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x38 &&
+    (b(4) === 0x37 || b(4) === 0x39) && b(5) === 0x61
+  ) {
+    return "image/gif";
+  }
+  return null;
+}
+
 function validateImage(file: File): string | null {
   if (file.size === 0) return "Image file is empty.";
   if (file.size > IMAGE_MAX_BYTES) return "Image must be 5 MB or smaller.";
@@ -61,6 +102,64 @@ function validateImage(file: File): string | null {
   }
   return null;
 }
+
+/**
+ * Extract the object path inside the post-images bucket from a public URL,
+ * or null when the URL is not a post-images object URL.
+ */
+function postImagePathFromUrl(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const configuredHost = (() => {
+    try {
+      return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
+    } catch {
+      return "";
+    }
+  })();
+  if (configuredHost && parsed.host !== configuredHost) return null;
+  const m = parsed.pathname.match(/^\/storage\/v1\/object\/public\/post-images\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/** Validate that an imageUrl is a real post-images object owned by `ownerId`. */
+function validateOwnedImageUrl(imageUrl: string, ownerId: string): string | null {
+  const path = postImagePathFromUrl(imageUrl);
+  if (!path) return "That image doesn't look like a valid upload.";
+  const owner = path.split("/")[0];
+  if (!owner || owner !== ownerId) {
+    return "That image isn't one of your uploads.";
+  }
+  return null;
+}
+
+/** Best-effort remove of an author's own post-images object (RLS-scoped). */
+async function removeAuthorPostImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  imageUrl: string | null,
+  ownerId: string
+): Promise<void> {
+  if (!imageUrl) return;
+  const path = postImagePathFromUrl(imageUrl);
+  if (!path) return;
+  if (path.split("/")[0] !== ownerId) return;
+  try {
+    await supabase.storage.from("post-images").remove([path]);
+  } catch (err) {
+    console.error("removeAuthorPostImage failed:", err);
+  }
+}
+
+// Exported for deterministic unit coverage (tests/launch-hardening.test.ts).
+export const __postImageTest = {
+  sniffImageType,
+  postImagePathFromUrl,
+  validateOwnedImageUrl,
+};
 
 // ---------------------------------------------------------------------------
 // uploadPostImage
@@ -80,6 +179,13 @@ function validateImage(file: File): string | null {
 export async function uploadPostImage(file: File) {
   const imageErr = validateImage(file);
   if (imageErr) return { error: imageErr };
+
+  // Content sniff: reject files whose bytes are not a real JPEG/PNG/WebP/GIF
+  // even if the browser-supplied MIME says otherwise.
+  const sniffed = await sniffImageType(file);
+  if (!sniffed) {
+    return { error: "That file doesn't look like a valid image." };
+  }
 
   try {
     const supabase = await createClient();
@@ -138,6 +244,25 @@ export async function createPost(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in to create a post." };
+
+  // Posting is gated on active community membership (mirrors the 045 RLS
+  // policy; surfaced here for a friendly message instead of a 42501).
+  const { data: membership } = await supabase
+    .from("community_members")
+    .select("user_id")
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
+    .is("left_at", null)
+    .maybeSingle();
+  if (!membership) {
+    return { error: "Join the community before posting there." };
+  }
+
+  // A post's image must be a real object the user uploaded themselves.
+  if (imageUrl) {
+    const imgErr = validateOwnedImageUrl(imageUrl, user.id);
+    if (imgErr) return { error: imgErr };
+  }
 
   const { data: post, error } = await supabase
     .from("posts")
@@ -198,13 +323,34 @@ export async function editPost(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
+  // Replacement images must be real objects the caller uploaded themselves.
+  if (imageUrlRaw) {
+    const imgErr = validateOwnedImageUrl(imageUrlRaw, user.id);
+    if (imgErr) return { error: imgErr };
+  }
+
   const patch: Record<string, unknown> = {
     title,
     body: body || null,
     updated_at: new Date().toISOString(),
   };
-  if (removeImage) patch.image_url = null;
-  else if (imageUrlRaw) patch.image_url = imageUrlRaw;
+  let imageChanging = false;
+  const oldImageUrl = await (async () => {
+    const { data: existing } = await supabase
+      .from("posts")
+      .select("image_url")
+      .eq("id", postId)
+      .maybeSingle();
+    return (existing as { image_url: string | null } | null)?.image_url ?? null;
+  })();
+
+  if (removeImage) {
+    patch.image_url = null;
+    imageChanging = oldImageUrl !== null;
+  } else if (imageUrlRaw) {
+    patch.image_url = imageUrlRaw;
+    imageChanging = oldImageUrl !== imageUrlRaw;
+  }
 
   const { data: post, error } = await supabase
     .from("posts")
@@ -216,6 +362,11 @@ export async function editPost(formData: FormData) {
   if (error) {
     console.error("editPost update failed:", error);
     return { error: "Couldn't update the post. Try again." };
+  }
+
+  // The previous image is orphaned the moment the slot changes — delete it.
+  if (imageChanging && oldImageUrl) {
+    await removeAuthorPostImage(supabase, oldImageUrl, user.id);
   }
 
   const community = (post as unknown as {
@@ -244,10 +395,11 @@ export async function deletePost(postId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
-  // Fetch the community slug first so we can revalidate the feed.
+  // Fetch the post (and its image) first so we can revalidate the feed and
+  // clean up the storage object afterwards.
   const { data: post } = await supabase
     .from("posts")
-    .select("id, communities:community_id(slug)")
+    .select("id, image_url, communities:community_id(slug)")
     .eq("id", postId)
     .maybeSingle();
 
@@ -256,6 +408,12 @@ export async function deletePost(postId: string) {
   if (error) {
     console.error("deletePost failed:", error);
     return { error: "Couldn't delete the post. Try again." };
+  }
+
+  // Delete the uploaded image object so it isn't left orphaned in storage.
+  const imageUrl = (post as unknown as { image_url: string | null } | null)?.image_url ?? null;
+  if (imageUrl) {
+    await removeAuthorPostImage(supabase, imageUrl, user.id);
   }
 
   const community = (post as unknown as {
