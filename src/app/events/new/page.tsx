@@ -22,6 +22,7 @@ export default async function NewEventPage() {
       .from("community_members")
       .select("role, communities:community_id ( id, name )")
       .eq("user_id", user.id)
+      .is("left_at", null)
       .in("role", ["admin", "moderator"]),
   ]);
 
