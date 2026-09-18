@@ -119,6 +119,31 @@ export function VoiceRoomView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joined, roomId, supabase, refreshParticipants]);
 
+  // Best-effort cleanup when the tab is navigated away or closed: drop the
+  // participant row and presence. Without this, leaving by closing the tab
+  // (or bfcache navigation) would leave a stale participant behind, and a
+  // room whose creator leaves that way would never empty out. Deliberately
+  // NOT wired to visibilitychange: switching tabs should not drop audio.
+  useEffect(() => {
+    if (!joined) return;
+    let sent = false;
+    const bailOut = () => {
+      if (sent) return;
+      sent = true;
+      void leaveVoiceRoom(roomId);
+      void closePeer();
+      if (mediaStreamRef.current) {
+        const tracks = mediaStreamRef.current.getTracks();
+        tracks.forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+      }
+    };
+    window.addEventListener("pagehide", bailOut);
+    return () => {
+      window.removeEventListener("pagehide", bailOut);
+    };
+  }, [joined, roomId, closePeer]);
+
   // Keep joinRoom err state tidy while room auto-joins.
   const connected = state.connectionState === "connected";
   const connLabel =

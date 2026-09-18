@@ -37,6 +37,7 @@ export async function createVoiceRoom(
     .select("user_id")
     .eq("community_id", communityId)
     .eq("user_id", user.id)
+    .is("left_at", null)
     .maybeSingle();
   if (!membership) return { ok: false, error: "Join the community to create a room." };
 
@@ -72,6 +73,39 @@ export async function joinVoiceRoom(roomId: string): Promise<VoiceActionResult> 
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in to join." };
 
+  // Room + owner community. Locked / inactive rooms are not joinable, and
+  // private communities are only joinable by active members.
+  const { data: room } = await supabase
+    .from("voice_rooms")
+    .select(
+      "id, is_active, is_locked, community_id, communities:community_id ( id, is_private )"
+    )
+    .eq("id", roomId)
+    .maybeSingle();
+  const roomRow = room as unknown as
+    | {
+        id: string;
+        is_active: boolean;
+        is_locked: boolean;
+        community_id: string;
+        communities: { id: string; is_private: boolean } | null;
+      }
+    | null;
+  if (!roomRow) return { ok: false, error: "That voice room doesn't exist." };
+  if (!roomRow.is_active) return { ok: false, error: "That voice room is no longer active." };
+  if (roomRow.is_locked) return { ok: false, error: "That voice room is locked." };
+
+  const { data: membership } = await supabase
+    .from("community_members")
+    .select("user_id")
+    .eq("community_id", roomRow.community_id)
+    .eq("user_id", user.id)
+    .is("left_at", null)
+    .maybeSingle();
+  if (!membership) {
+    return { ok: false, error: "Join the community to enter this voice room." };
+  }
+
   const { data: existing } = await supabase
     .from("voice_room_participants")
     .select("user_id")
@@ -79,6 +113,23 @@ export async function joinVoiceRoom(roomId: string): Promise<VoiceActionResult> 
     .eq("user_id", user.id)
     .maybeSingle();
   if (!existing) {
+    // Capacity: honor the community's per-room participant cap.
+    const { data: settings } = await supabase
+      .from("voice_room_settings")
+      .select("max_participants")
+      .eq("community_id", roomRow.community_id)
+      .maybeSingle();
+    const max = (settings as { max_participants: number | null } | null)
+      ?.max_participants;
+    if (max != null && max > 0) {
+      const { count } = await supabase
+        .from("voice_room_participants")
+        .select("user_id", { count: "exact", head: true })
+        .eq("room_id", roomId);
+      if ((count ?? 0) >= max) {
+        return { ok: false, error: "This voice room is full." };
+      }
+    }
     const { error } = await supabase.from("voice_room_participants").insert({
       room_id: roomId,
       user_id: user.id,
