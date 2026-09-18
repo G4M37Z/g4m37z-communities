@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listGames } from "@/lib/games/service";
+import { listFrameworks } from "@/lib/tournaments/frameworks-service";
 import { TournamentCreateForm } from "@/components/tournaments/TournamentCreateForm";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,10 @@ export default async function NewTournamentPage() {
     redirect("/login?next=/tournaments/new");
   }
 
-  const games = await listGames(supabase, { limit: 100 });
+  const [games, frameworks] = await Promise.all([
+    listGames(supabase, { limit: 100 }),
+    listFrameworks(supabase),
+  ]);
 
   return (
     <main className="container-x py-8 pb-20">
@@ -33,7 +37,12 @@ export default async function NewTournamentPage() {
         start in REGISTRATION.
       </p>
       <TournamentCreateForm
-        games={games.map((g) => ({ id: g.id, name: g.name }))}
+        games={games.map((g) => ({
+          id: g.id,
+          name: g.name,
+          default_framework_id: g.default_framework_id,
+        }))}
+        frameworks={frameworks}
       />
     </main>
   );

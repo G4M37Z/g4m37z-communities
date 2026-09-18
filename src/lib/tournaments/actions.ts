@@ -12,6 +12,8 @@ import {
   createDispute as svcCreateDispute,
   resolveDispute as svcResolveDispute,
   withdrawDispute as svcWithdrawDispute,
+  updateTournamentScore as svcUpdateScore,
+  advanceTournamentStage as svcAdvanceStage,
   type CreateTournamentInput,
   type UpdateTournamentInput,
   type RegisterTeamInput,
@@ -19,7 +21,12 @@ import {
   type SubmitResultInput,
   type CreateDisputeInput,
   type ResolveDisputeInput,
+  type UpdateScoreInput,
 } from "@/lib/tournaments/service";
+import {
+  createCustomFramework as svcCreateFramework,
+  type CreateCustomFrameworkInput,
+} from "@/lib/tournaments/frameworks-service";
 
 export interface ActionResult {
   ok: boolean;
@@ -96,4 +103,24 @@ export async function withdrawDisputeAction(
   disputeId: string,
 ): Promise<ActionResult> {
   return toAction(await svcWithdrawDispute(disputeId));
+}
+
+export async function createCustomFrameworkAction(
+  input: CreateCustomFrameworkInput,
+): Promise<ActionResult> {
+  const res = await svcCreateFramework(input);
+  if (!res.ok) return { ok: false, status: "error", error: res.error };
+  return { ok: true, status: "inserted", id: res.id };
+}
+
+export async function updateTournamentScoreAction(
+  input: UpdateScoreInput,
+): Promise<ActionResult> {
+  return toAction(await svcUpdateScore(input));
+}
+
+export async function advanceTournamentStageAction(
+  tournamentId: string,
+): Promise<ActionResult> {
+  return toAction(await svcAdvanceStage(tournamentId));
 }

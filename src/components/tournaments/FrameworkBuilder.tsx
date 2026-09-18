@@ -5,7 +5,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { createCustomFramework, type Framework, type ProgressionRule, type ScoringType } from "@/lib/tournaments/frameworks";
+import { createCustomFrameworkAction } from "@/lib/tournaments/actions";
+import type { ProgressionRule, ScoringType } from "@/lib/tournaments/frameworks";
 
 interface StageDraft {
   name: string;
@@ -13,11 +14,16 @@ interface StageDraft {
   rule: { top_n?: number; min_points?: number; min_rank?: number };
 }
 
-export function FrameworkBuilder() {
+export function FrameworkBuilder({
+  games,
+}: {
+  games: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [category, setCategory] = useState("General");
+  const [gameId, setGameId] = useState("");
   const [scoringType, setScoringType] = useState<"points" | "win_loss" | "rank">("points");
   const [description, setDescription] = useState("");
   const [stages, setStages] = useState<StageDraft[]>([
@@ -58,12 +64,13 @@ export function FrameworkBuilder() {
     setError(null);
     setPending(true);
 
-    const res = await createCustomFramework({
+    const res = await createCustomFrameworkAction({
       name,
       slug,
       category,
       scoring_type: scoringType,
       description,
+      gameId: gameId || null,
       stages: stages.map((s) => ({
         name: s.name,
         order: s.order,
@@ -73,9 +80,9 @@ export function FrameworkBuilder() {
 
     if (res.ok) {
       router.refresh();
-      router.push("/settings");
+      router.push("/tournaments/new");
     } else {
-      setError(res.error);
+      setError(res.error ?? "Failed to create framework");
     }
     setPending(false);
   }
@@ -114,6 +121,21 @@ export function FrameworkBuilder() {
             placeholder="e.g. Fortnite"
             className="h-10 rounded-md border border-border bg-bg px-3 text-sm text-fg focus:border-accent focus:outline-none"
           />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wider text-text-muted">Game (optional)</span>
+          <select
+            value={gameId}
+            onChange={(e) => setGameId(e.target.value)}
+            className="h-10 rounded-md border border-border bg-bg px-3 text-sm text-fg focus:border-accent focus:outline-none"
+          >
+            <option value="">General / any game</option>
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-wider text-text-muted">Scoring Type</span>

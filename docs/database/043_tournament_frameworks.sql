@@ -82,13 +82,29 @@ CREATE POLICY scores_select ON public.tournament_scores
   FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS scores_upsert ON public.tournament_scores;
+-- Organiser ownership (mirrors 018_tournaments_policies.sql): derive the
+-- owner via tournament → event → community.creator_id. tournaments has NO
+-- creator_id column, so never reference it directly here.
 CREATE POLICY scores_upsert ON public.tournament_scores
   FOR ALL TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.tournaments t
+      LEFT JOIN public.events e ON e.id = t.event_id
+      LEFT JOIN public.communities c ON c.id = e.community_id
       WHERE t.id = tournament_id
-      AND (t.creator_id = auth.uid() OR t.event_id IS NULL) -- simplified ownership
+        AND (t.event_id IS NULL
+             OR (e.community_id IS NOT NULL AND c.creator_id = auth.uid()))
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.tournaments t
+      LEFT JOIN public.events e ON e.id = t.event_id
+      LEFT JOIN public.communities c ON c.id = e.community_id
+      WHERE t.id = tournament_id
+        AND (t.event_id IS NULL
+             OR (e.community_id IS NOT NULL AND c.creator_id = auth.uid()))
     )
   );
 
@@ -113,7 +129,8 @@ ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO public.tournament_stages (framework_id, stage_order, stage_name, progression_rule)
 SELECT id, 1, 'Main Tournament', '{"top_n": 1}'::jsonb
-FROM public.tournament_frameworks WHERE slug = 'classic';
+FROM public.tournament_frameworks WHERE slug = 'classic'
+ON CONFLICT (framework_id, stage_order) DO NOTHING;
 
 UPDATE public.tournaments
 SET framework_id = (SELECT id FROM public.tournament_frameworks WHERE slug = 'classic')

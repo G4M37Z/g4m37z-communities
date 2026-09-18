@@ -1,18 +1,40 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createTournamentAction } from "@/lib/tournaments/actions";
 import { FrameworkSelector } from "./FrameworkSelector";
+import {
+  describeMatchFormat,
+  describeScoring,
+  suggestedFramework,
+  type Framework,
+} from "@/lib/tournaments/frameworks";
 
 export function TournamentCreateForm({
   games,
+  frameworks,
 }: {
-  games: { id: string; name: string }[];
+  games: { id: string; name: string; default_framework_id: string | null }[];
+  frameworks: Framework[];
 }) {
   const router = useRouter();
+  const [gameId, setGameId] = useState("");
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const selected = suggestedFramework(games, frameworks, gameId || null, selectedFramework);
+
+  function onGameChange(value: string) {
+    setGameId(value);
+    // Surface the game's own "way of gaming" unless the organiser already
+    // picked a framework deliberately.
+    if (!selectedFramework) {
+      const pick = suggestedFramework(games, frameworks, value || null, null);
+      if (pick) setSelectedFramework(pick.id);
+    }
+  }
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -69,6 +91,8 @@ export function TournamentCreateForm({
           <select
             name="gameId"
             required
+            value={gameId}
+            onChange={(e) => onGameChange(e.target.value)}
             className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
           >
             <option value="">Select a game</option>
@@ -93,24 +117,59 @@ export function TournamentCreateForm({
             className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
           />
         </label>
+
+        <label className="flex flex-col gap-1 sm:col-span-1">
+          <span className="text-xs uppercase tracking-wider text-text-muted">
+            Format
+          </span>
+          <select
+            name="format"
+            defaultValue="SINGLE_ELIMINATION"
+            className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
+          >
+            <option value="SINGLE_ELIMINATION">Single elimination</option>
+            <option value="DOUBLE_ELIMINATION">Double elimination</option>
+            <option value="ROUND_ROBIN">Round robin</option>
+            <option value="SWISS">Swiss</option>
+          </select>
+        </label>
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-wider text-text-muted">
-          Framework / Format *
-        </span>
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs uppercase tracking-wider text-text-muted">
+            Framework (optional)
+          </span>
+          <Link
+            href="/tournaments/frameworks/new"
+            className="text-xs font-semibold text-accent-text hover:underline"
+          >
+            Create a custom framework
+          </Link>
+        </div>
         <FrameworkSelector
+          frameworks={frameworks}
           selectedId={selectedFramework}
           onSelect={setSelectedFramework}
         />
-        <input type="hidden" name="frameworkId" value={selectedFramework ?? ""} />
-        <input type="hidden" name="format" value="SINGLE_ELIMINATION" />
+        {selected && (describeScoring(selected) || describeMatchFormat(selected)) && (
+          <div className="mt-2 rounded-md border border-border bg-bg p-2.5 text-xs text-text-secondary">
+            <p className="font-semibold text-fg">{selected.name}</p>
+            {describeScoring(selected) && <p>{describeScoring(selected)}</p>}
+            {describeMatchFormat(selected) && <p>{describeMatchFormat(selected)}</p>}
+          </div>
+        )}
+        <p className="text-xs text-text-muted">
+          A framework sets the competition pipeline (stages, points, who
+          advances). Pick one for framework-driven tournaments, or leave it
+          unset to use the classic bracket format.
+        </p>
       </div>
 
       <div className="sm:col-span-2">
         <button
           type="submit"
-          disabled={pending || !selectedFramework}
+          disabled={pending}
           className="press inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
         >
           {pending ? "Creating…" : "Create tournament"}

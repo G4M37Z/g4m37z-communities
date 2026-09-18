@@ -245,6 +245,7 @@ export interface Game {
   description: string | null;
   cover_url: string | null;
   release_date: string | null;
+  default_framework_id: string | null;
   created_at: string;
 }
 
@@ -534,6 +535,8 @@ export interface Tournament {
   format: string;
   status: string;
   max_teams: number | null;
+  framework_id: string | null;
+  current_stage_id: string | null;
   created_at: string;
 }
 

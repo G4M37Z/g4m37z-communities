@@ -1,20 +1,51 @@
 // ============================================================================
 // src/lib/tournaments/frameworks.ts
-// Tournament Frameworks — Logic for game-specific scoring and progression.
+// Tournament Frameworks — PURE rules, types, and scoring/progression logic.
+// NO server imports here: this module must stay importable from Client
+// Components and tests. Data access lives in ./frameworks-service.ts.
 // ============================================================================
 
-import { createClient } from "@/lib/supabase/server";
-
 export type ScoringType = "points" | "win_loss" | "rank";
+
+export type MatchFormatMode = "single" | "best_of" | "multi_match" | "league" | "racing";
+
+/**
+ * Point awards for a framework. Descriptive metadata, rendered as human
+ * guidance (see describeScoring); the platform never simulates standings.
+ */
+export interface ScoringSchedule {
+  win?: number; // football league: points for a win
+  draw?: number; // football league: points for a draw
+  loss?: number; // football league: points for a loss
+  win_points?: number; // series-based formats: points per series win
+  loss_points?: number; // series-based formats: points per series loss
+  placement?: number[]; // battle royale / racing: points by finish place (index 0 = 1st)
+  kill_points?: number; // battle royale: bonus per elimination
+  per_match?: boolean; // true => the schedule applies per match and is aggregated
+  matches?: number; // matches / races in a session
+  tiebreak?: string[]; // ordering tiebreaks, e.g. ['goal_difference','goals_for','head_to_head']
+}
+
+/** How individual matches are played inside the framework. */
+export interface GameMatchFormat {
+  mode: MatchFormatMode;
+  games?: number; // best_of: number of games/maps needed to win a set
+  finals_games?: number; // fighting: finals sets stretch to best-of-N
+  matches?: number; // multi_match / racing: matches per session
+  modes?: string[]; // fixed mode order, e.g. CDL map rotation
+}
 
 export interface Framework {
   id: string;
   slug: string;
   name: string;
-  category: string;
+  category: string | null;
   scoring_type: ScoringType;
   description: string | null;
-  created_by: string;
+  game_id: string | null;
+  scoring_schedule: ScoringSchedule | null;
+  match_format: GameMatchFormat | null;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -23,7 +54,7 @@ export interface Stage {
   framework_id: string;
   stage_order: number;
   stage_name: string;
-  progression_rule: Record<string, unknown>;
+  progression_rule: unknown;
   created_at: string;
 }
 
@@ -42,6 +73,7 @@ export interface ProgressionRule {
 /**
  * Calculate which users advance to the next stage based on the progression rule.
  * This is the core logic for Battle Royale / Point-based global stages.
+ * Pure: sorts a copy of the input, never mutates it.
  */
 export function calculateAdvancement(
   scores: ScoreEntry[],
@@ -72,75 +104,116 @@ export function calculateAdvancement(
   return filtered.map((s) => s.userId);
 }
 
-/**
- * Creates a custom framework and its associated stages.
- */
-export async function createCustomFramework(
-  data: {
-    name: string;
-    slug: string;
-    category: string;
-    scoring_type: ScoringType;
-    description: string;
-    stages: { name: string; order: number; rule: ProgressionRule }[];
+// ---------------------------------------------------------------------------
+// Human-readable renderers for a framework's "way of gaming". Pure; null-safe
+// so a bare { scoring_schedule } or { match_format } object works in tests.
+// ---------------------------------------------------------------------------
+
+function ordinal(n: number): string {
+  const j = n % 10;
+  const k = n % 100;
+  if (j === 1 && k !== 11) return `${n}st`;
+  if (j === 2 && k !== 12) return `${n}nd`;
+  if (j === 3 && k !== 13) return `${n}rd`;
+  return `${n}th`;
+}
+
+function tiebreakLabel(key: string): string {
+  switch (key) {
+    case "goal_difference":
+      return "goal difference";
+    case "goals_for":
+      return "goals scored";
+    case "head_to_head":
+      return "head-to-head";
+    default:
+      return key.replace(/_/g, " ");
   }
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const { data: u, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !u?.user) return { ok: false, error: "Not authenticated" };
-
-  // 1. Create framework
-  const { data: framework, error: fErr } = await supabase
-    .from("tournament_frameworks")
-    .insert({
-      name: data.name,
-      slug: data.slug,
-      category: data.category,
-      scoring_type: data.scoring_type,
-      description: data.description,
-      created_by: u.user.id,
-    })
-    .select()
-    .single();
-
-  if (fErr) return { ok: false, error: fErr.message };
-
-  // 2. Create stages
-  const stagesToInsert = data.stages.map((s) => ({
-    framework_id: framework.id,
-    stage_name: s.name,
-    stage_order: s.order,
-    progression_rule: s.rule,
-  }));
-
-  const { error: sErr } = await supabase
-    .from("tournament_stages")
-    .insert(stagesToInsert);
-
-  if (sErr) return { ok: false, error: sErr.message };
-
-  return { ok: true, id: framework.id };
 }
 
-export async function listFrameworks(): Promise<Framework[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("tournament_frameworks")
-    .select("*")
-    .order("name");
-  if (error || !data) return [];
-  return data as Framework[];
+export function describeScoring(fw: {
+  scoring_schedule?: ScoringSchedule | null;
+}): string | null {
+  const s = fw.scoring_schedule;
+  if (!s) return null;
+  const parts: string[] = [];
+
+  if (typeof s.win === "number") {
+    let base = `Win ${s.win} pts`;
+    if (typeof s.draw === "number") base += `, draw ${s.draw}`;
+    if (typeof s.loss === "number") base += `, loss ${s.loss}`;
+    parts.push(base);
+  } else if (typeof s.win_points === "number") {
+    parts.push(`${s.win_points} per series win`);
+  }
+
+  if (s.placement && s.placement.length > 0) {
+    const head = s.placement
+      .slice(0, 3)
+      .map((p, i) => `${ordinal(i + 1)}: ${p}`)
+      .join(", ");
+    const tail =
+      s.placement.length > 3
+        ? ` · ${ordinal(s.placement.length)}: ${s.placement[s.placement.length - 1]}`
+        : "";
+    parts.push(`Placement ${head}${tail}`);
+    if (typeof s.kill_points === "number") {
+      parts.push(`${s.kill_points} per elimination`);
+    }
+  }
+
+  if (s.matches && s.matches > 0) {
+    parts.push(`over ${s.matches} match${s.matches === 1 ? "" : "es"}`);
+  }
+  if (s.tiebreak && s.tiebreak.length > 0) {
+    parts.push(`ties broken by ${s.tiebreak.map(tiebreakLabel).join(", ")}`);
+  }
+
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-export async function getFrameworkStages(frameworkId: string): Promise<Stage[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("tournament_stages")
-    .select("*")
-    .eq("framework_id", frameworkId)
-    .order("stage_order");
-  if (error || !data) return [];
-  return data as Stage[];
+export function describeMatchFormat(fw: {
+  match_format?: GameMatchFormat | null;
+}): string | null {
+  const m = fw.match_format;
+  if (!m) return null;
+  switch (m.mode) {
+    case "best_of": {
+      let s = `Best-of-${m.games ?? 3}`;
+      if (m.modes && m.modes.length > 0) s += ` (${m.modes.join(" → ")})`;
+      if (m.finals_games) s += ` · finals best-of-${m.finals_games}`;
+      return s;
+    }
+    case "multi_match":
+      return m.matches ? `${m.matches} matches per round` : "Multi-match";
+    case "racing":
+      return m.matches ? `${m.matches} races per round` : "Racing";
+    case "league":
+      return "League phase";
+    default:
+      return "Single-match / bracket";
+  }
+}
+
+/**
+ * The framework a tournament should start with: the user's current selection
+ * if any, otherwise the selected game's default_framework_id (its "way of
+ * gaming"). Returns null when nothing sensible is available.
+ */
+export function suggestedFramework(
+  games: { id: string; default_framework_id: string | null }[],
+  frameworks: Framework[],
+  gameId: string | null,
+  selectedId: string | null,
+): Framework | null {
+  if (selectedId) {
+    return frameworks.find((f) => f.id === selectedId) ?? null;
+  }
+  if (!gameId) return null;
+  const game = games.find((g) => g.id === gameId);
+  if (!game?.default_framework_id) return null;
+  const fw = frameworks.find((f) => f.id === game.default_framework_id);
+  return fw && fw.game_id === gameId ? fw : null;
 }
 
 export const __frameworks = { calculateAdvancement };

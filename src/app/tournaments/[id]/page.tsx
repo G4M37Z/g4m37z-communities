@@ -7,11 +7,21 @@ import {
   getTeamCount,
   getResultForMatch,
   listDisputes,
+  getTournamentScores,
 } from "@/lib/tournaments/service";
+import { getFrameworkStages } from "@/lib/tournaments/frameworks-service";
+import {
+  describeMatchFormat,
+  describeScoring,
+  type GameMatchFormat,
+  type ScoringSchedule,
+} from "@/lib/tournaments/frameworks";
 import { TournamentRegisterButton } from "@/components/tournaments/TournamentRegisterButton";
 import { TournamentOrgControls } from "@/components/tournaments/TournamentOrgControls";
 import { TournamentDisputeForm } from "@/components/tournaments/TournamentDisputeForm";
 import { TournamentResolveButton } from "@/components/tournaments/TournamentResolveButton";
+import { ScoreEntryForm } from "@/components/tournaments/ScoreEntryForm";
+import { TournamentAdvanceButton } from "@/components/tournaments/TournamentAdvanceButton";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +96,70 @@ export default async function TournamentDetailPage({
     listMatches(supabase, tournament.id),
   ]);
 
+  // Framework / stage / scores for the tournament's current stage.
+  let frameworkName: string | null = null;
+  let frameworkSlug: string | null = null;
+  let scoringNote: string | null = null;
+  let matchFormatNote: string | null = null;
+  let currentStage: { id: string; stage_order: number; stage_name: string } | null = null;
+  let stageScores: { userId: string; name: string; score: number }[] = [];
+
+  if (tournament.framework_id) {
+    const { data: fw } = await supabase
+      .from("tournament_frameworks")
+      .select("name, slug, scoring_type, scoring_schedule, match_format")
+      .eq("id", tournament.framework_id)
+      .maybeSingle();
+    if (fw) {
+      frameworkName = (fw as { name: string }).name;
+      frameworkSlug = (fw as { slug: string }).slug;
+      const scheduled = fw as {
+        scoring_schedule: ScoringSchedule | null;
+        match_format: GameMatchFormat | null;
+      };
+      scoringNote = describeScoring(scheduled);
+      matchFormatNote = describeMatchFormat(scheduled);
+    }
+
+    const stages = await getFrameworkStages(supabase, tournament.framework_id);
+    if (tournament.current_stage_id) {
+      const cur = stages.find((s) => s.id === tournament.current_stage_id);
+      if (cur) {
+        currentStage = {
+          id: cur.id,
+          stage_order: cur.stage_order,
+          stage_name: cur.stage_name,
+        };
+
+        const rawScores = await getTournamentScores(
+          supabase,
+          tournament.id,
+          tournament.current_stage_id,
+        );
+        const userIds = rawScores.map((s) => s.user_id);
+        const names = new Map<string, string>();
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, username, display_name")
+            .in("id", userIds);
+          for (const p of (profiles ?? []) as Array<{
+            id: string;
+            username: string;
+            display_name: string | null;
+          }>) {
+            names.set(p.id, p.display_name || p.username);
+          }
+        }
+        stageScores = rawScores.map((s) => ({
+          userId: s.user_id,
+          name: names.get(s.user_id) ?? "",
+          score: Number(s.score),
+        }));
+      }
+    }
+  }
+
   // Discover the captain's own team (if they're registered as captain).
   if (userId) {
     const myTeam = teams.find((t) => t.captain_id === userId);
@@ -159,6 +233,24 @@ export default async function TournamentDetailPage({
               {teamCount} / {tournament.max_teams}
             </dd>
           </div>
+          {frameworkName && (
+            <div data-testid="tournament-framework">
+              <dt className="text-xs uppercase tracking-wider text-text-muted">
+                Framework
+              </dt>
+              <dd className="text-fg">{frameworkName}</dd>
+            </div>
+          )}
+          {currentStage && (
+            <div data-testid="tournament-current-stage">
+              <dt className="text-xs uppercase tracking-wider text-text-muted">
+                Current stage
+              </dt>
+              <dd className="text-fg">
+                {currentStage.stage_name} (#{currentStage.stage_order})
+              </dd>
+            </div>
+          )}
           {tournament.event_title && (
             <div>
               <dt className="text-xs uppercase tracking-wider text-text-muted">
@@ -204,6 +296,90 @@ export default async function TournamentDetailPage({
           )}
         </div>
       </header>
+
+      {currentStage && (
+        <section
+          className="mb-8 rounded-lg border border-border bg-surface"
+          aria-label="Tournament stage"
+        >
+          <header className="border-b border-border px-4 py-3 flex flex-wrap items-center gap-3">
+            <h2 className="text-base font-semibold text-fg">
+              {currentStage.stage_name}
+            </h2>
+            <div className="flex items-center gap-2">
+              {frameworkName && (
+                <span className="rounded bg-border px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
+                  {frameworkName}
+                </span>
+              )}
+              <span className="text-xs text-text-muted">
+                Stage {currentStage.stage_order}
+              </span>
+            </div>
+            {isOrganiser && tournament.status === "IN_PROGRESS" && (
+              <TournamentAdvanceButton
+                tournamentId={tournament.id}
+                disabledReason={
+                  stageScores.length === 0
+                    ? "Enter scores for this stage before advancing."
+                    : undefined
+                }
+              />
+            )}
+          </header>
+
+          {(scoringNote || matchFormatNote) && (
+            <div className="flex flex-col gap-0.5 border-b border-border px-4 py-2 text-xs text-text-secondary">
+              {scoringNote && (
+                <p data-testid="tournament-scoring-note">
+                  <span className="uppercase tracking-wider text-text-muted">Scoring: </span>
+                  {scoringNote}
+                </p>
+              )}
+              {matchFormatNote && (
+                <p data-testid="tournament-match-format-note">
+                  <span className="uppercase tracking-wider text-text-muted">Format: </span>
+                  {matchFormatNote}
+                </p>
+              )}
+            </div>
+          )}
+
+          {stageScores.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-text-secondary">
+              No scores recorded for this stage yet.
+            </div>
+          ) : (
+            <ol className="divide-y divide-border">
+              {stageScores.map((s, i) => (
+                <li
+                  key={s.userId}
+                  className="flex items-center gap-3 px-4 py-2 text-sm"
+                >
+                  <span className="w-6 shrink-0 text-center text-xs font-bold text-text-muted">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-fg">
+                    {s.name || `User ${s.userId.slice(0, 8)}`}
+                  </span>
+                  <span className="font-semibold text-fg">{s.score}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {isOrganiser && (
+            <div className="border-t border-border p-4">
+              <ScoreEntryForm
+                tournamentId={tournament.id}
+                stageId={currentStage.id}
+                stageLabel={`${currentStage.stage_name} (stage ${currentStage.stage_order})`}
+                initialScores={stageScores}
+              />
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="mb-8 rounded-lg border border-border bg-surface">
         <header className="border-b border-border px-4 py-3">

@@ -131,6 +131,8 @@ export interface Tournament {
   format: TournamentFormat;
   status: TournamentStatus;
   max_teams: number;
+  framework_id: string | null;
+  current_stage_id: string | null;
   created_at: string;
 }
 
@@ -281,7 +283,7 @@ export async function listTournaments(
   let q = supabase
     .from("tournaments")
     .select(
-      "id, event_id, game_id, name, format, status, max_teams, created_at, games:games!tournaments_game_id_fkey ( name ), events:events!tournaments_event_id_fkey ( title )",
+      "id, event_id, game_id, name, format, status, max_teams, framework_id, current_stage_id, created_at, games:games!tournaments_game_id_fkey ( name ), events:events!tournaments_event_id_fkey ( title )",
     )
     .order("created_at", { ascending: false })
     .limit(clamp(options.limit ?? 24, 1, MAX_PAGE));
@@ -328,7 +330,7 @@ export async function getTournament(
   const { data, error } = await supabase
     .from("tournaments")
     .select(
-      "id, event_id, game_id, name, format, status, max_teams, created_at, games:games!tournaments_game_id_fkey ( name ), events:events!tournaments_event_id_fkey ( title )",
+      "id, event_id, game_id, name, format, status, max_teams, framework_id, current_stage_id, created_at, games:games!tournaments_game_id_fkey ( name ), events:events!tournaments_event_id_fkey ( title )",
     )
     .eq("id", id)
     .maybeSingle();
@@ -435,6 +437,22 @@ export async function getResultForMatch(
   return data as TournamentResult;
 }
 
+export async function getTournamentScores(
+  supabase: SupabaseClient,
+  tournamentId: string,
+  stageId: string,
+): Promise<TournamentScore[]> {
+  if (!isUuid(tournamentId) || !isUuid(stageId)) return [];
+  const { data, error } = await supabase
+    .from("tournament_scores")
+    .select("id, tournament_id, stage_id, user_id, score, created_at, updated_at")
+    .eq("tournament_id", tournamentId)
+    .eq("stage_id", stageId)
+    .order("score", { ascending: false });
+  if (error || !data) return [];
+  return data as TournamentScore[];
+}
+
 export async function listDisputes(
   supabase: SupabaseClient,
   matchId: string,
@@ -462,6 +480,7 @@ export async function createTournament(
   if (name.length === 0) return { ok: false, status: "invalid_input" };
   if (input.gameId && !isUuid(input.gameId)) return { ok: false, status: "invalid_input" };
   if (input.eventId && !isUuid(input.eventId)) return { ok: false, status: "invalid_input" };
+  if (input.frameworkId && !isUuid(input.frameworkId)) return { ok: false, status: "invalid_input" };
 
   let maxTeams: number | null = null;
   if (input.maxTeams !== undefined && input.maxTeams !== null) {
@@ -476,12 +495,29 @@ export async function createTournament(
   }
 
   const session = createAdminClient();
+
+  // A framework-linked tournament starts at its framework's first stage, so a
+  // fresh tournament immediately "knows" its pipeline (SPEC success criterion 2).
+  let currentStageId: string | null = null;
+  if (input.frameworkId) {
+    const { data: firstStage, error: stageErr } = await session
+      .from("tournament_stages")
+      .select("id")
+      .eq("framework_id", input.frameworkId)
+      .order("stage_order", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (stageErr) return { ok: false, status: "error", error: stageErr.message };
+    currentStageId = (firstStage as { id: string } | null)?.id ?? null;
+  }
+
   const payload = {
     event_id: input.eventId ?? null,
     game_id: input.gameId ?? null,
     name,
     format: (input.format ?? "SINGLE_ELIMINATION") as TournamentFormat,
     framework_id: input.frameworkId ?? null,
+    current_stage_id: currentStageId,
     status: "REGISTRATION" as TournamentStatus,
     max_teams: maxTeams ?? 8,
   };
@@ -802,6 +838,9 @@ export async function updateTournamentScore(
   input: UpdateScoreInput,
 ): Promise<OpResult> {
   if (!isUuid(input.tournamentId) || !isUuid(input.stageId) || !isUuid(input.userId)) {
+    return { ok: false, status: "invalid_input" };
+  }
+  if (typeof input.score !== "number" || !Number.isFinite(input.score)) {
     return { ok: false, status: "invalid_input" };
   }
   const userId = await resolveUserId();

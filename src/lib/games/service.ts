@@ -50,6 +50,7 @@ export interface Game {
   description: string | null;
   release_date: string | null;
   cover_url: string | null;
+  default_framework_id: string | null;
   created_at: string;
 }
 export interface Genre {
@@ -72,7 +73,7 @@ export async function listGames(
   const limit = clamp(options.limit ?? 24, 1, MAX_PAGE);
   let query = supabase
     .from("games")
-    .select("id, name, slug, description, release_date, cover_url, created_at")
+    .select("id, name, slug, description, release_date, cover_url, default_framework_id, created_at")
     .order("name")
     .limit(limit);
   const term = (options.search ?? "").trim().toLowerCase().slice(0, MAX_QUERY_LEN);
@@ -95,7 +96,7 @@ export async function getGameById(
   if (!isUuid(id)) return null;
   const { data, error } = await supabase
     .from("games")
-    .select("id, name, slug, description, release_date, cover_url, created_at")
+    .select("id, name, slug, description, release_date, cover_url, default_framework_id, created_at")
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;
@@ -109,7 +110,7 @@ export async function getGameBySlug(
   if (!isValidSlug(slug)) return null;
   const { data, error } = await supabase
     .from("games")
-    .select("id, name, slug, description, release_date, cover_url, created_at")
+    .select("id, name, slug, description, release_date, cover_url, default_framework_id, created_at")
     .eq("slug", slug)
     .maybeSingle();
   if (error || !data) return null;
@@ -123,7 +124,7 @@ export async function getGameByName(
   if (!name || name.length === 0 || name.length > 200) return null;
   const { data, error } = await supabase
     .from("games")
-    .select("id, name, slug, description, release_date, cover_url, created_at")
+    .select("id, name, slug, description, release_date, cover_url, default_framework_id, created_at")
     .eq("name", name)
     .maybeSingle();
   if (error || !data) return null;
@@ -295,7 +296,7 @@ export async function getFollowedGames(
   const ids = rows.map((r: { game_id: string }) => r.game_id);
   const { data, error: gerr } = await supabase
     .from("games")
-    .select("id, name, slug, description, release_date, cover_url, created_at")
+    .select("id, name, slug, description, release_date, cover_url, default_framework_id, created_at")
     .in("id", ids);
   if (gerr || !data) return [];
   return data as Game[];
