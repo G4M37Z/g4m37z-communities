@@ -15,6 +15,9 @@ import {
   sanitizeNextPath,
 } from "@/lib/supabase/auth-urls";
 import { validateUsername } from "@/lib/profiles/username";
+import { normalizeUsername } from "@/lib/profiles/username";
+import { validateTerms } from "@/lib/terms";
+import { rateLimit } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // signUpWithPassword
@@ -49,11 +52,24 @@ export async function signUpWithPassword(formData: FormData) {
     }
 
     // Terms acceptance guard (UI also requires the checkbox, but server
-    // double-checks so a forged request can never bypass it).
-    const accepted = formData.get("acceptTerms");
+    // double-checks so a forged request can never bypass it). The transmitted
+    // version must equal CURRENT_TERMS_VERSION (src/lib/terms.ts).
+    const acceptedRaw = formData.get("acceptTerms");
+    const accepted = typeof acceptedRaw === "string" ? acceptedRaw : null;
     const termsVersion = String(formData.get("termsVersion") ?? "");
-    if (accepted !== "true" || termsVersion.length === 0) {
-    return { error: "You must accept the Terms of Service to create an account." };
+    const termsErr = validateTerms(accepted, termsVersion);
+    if (termsErr) {
+    return { error: termsErr };
+    }
+
+    // Account-creation spam guard (no-op unless Vercel KV is configured).
+    const { allowed: signupAllowed } = await rateLimit(
+      `signup:${normalizeUsername(String(formData.get("username") ?? ""))}`,
+      5,
+      3600,
+    );
+    if (!signupAllowed) {
+      return { error: "Too many sign-up attempts. Try again later." };
     }
 
   const supabase = await createClient();

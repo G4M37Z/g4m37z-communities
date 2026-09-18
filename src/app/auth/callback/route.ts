@@ -12,6 +12,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
+import { CURRENT_TERMS_VERSION } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
@@ -77,10 +78,12 @@ export async function GET(request: NextRequest) {
       console.error("auth/callback ensure_profile failed:", ensureErr);
     }
 
-    // Audit log: every ToS acceptance is recorded (best-effort).
+    // Audit log: every ToS acceptance is recorded (best-effort). The recorded
+    // version must equal CURRENT_TERMS_VERSION so the audit trail can't claim
+    // acceptance of a version that never existed.
     const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
     if (
-      typeof meta.terms_version === "string" &&
+      meta.terms_version === CURRENT_TERMS_VERSION &&
       typeof meta.terms_accepted_at === "string"
     ) {
       const headers = request.headers;
