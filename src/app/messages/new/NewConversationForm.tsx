@@ -42,7 +42,16 @@ export function NewConversationForm({
   const [recipient, setRecipient] = useState("");
   const [results, setResults] = useState<RecipientSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  // Submit stays disabled until React is attached: a pre-hydration click must
+  // not fall through to a native form GET (which leaks the message body into
+  // the URL and aborts any in-flight server action).
+  const [hydrated, setHydrated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    // Deferred per react-hooks/set-state-in-effect (house pattern, cf. ThemeToggle).
+    queueMicrotask(() => setHydrated(true));
+  }, []);
 
   const q = recipient.trim().replace(/^@+/, "").toLowerCase();
 
@@ -177,11 +186,11 @@ export function NewConversationForm({
         />
       </div>
 
-      {!state.ok && <p className="text-xs text-red">{state.error}</p>}
+      {!state.ok && <p className="text-xs text-red-500">{state.error}</p>}
 
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isPending || !hydrated}
         className="press inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
       >
         {isPending ? "Starting…" : "Start conversation"}
