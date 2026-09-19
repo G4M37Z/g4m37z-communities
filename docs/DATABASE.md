@@ -71,8 +71,9 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
   execution interface on the current Termux host.
 - The script sources `~/.supabase_env` and invokes `psql`; never invoke
   `psql` directly with credentials on the command line.
-- Legacy Windows host used `C:/Users/KKF/bin/run-sql.cmd` (Hermes only);
-  Termux does NOT use it.
+- Windows host: `C:/Users/KKF/bin/run-sql.cmd` (wraps `run-sql.ps1`, same
+  contract — sources `~/.supabase_env`, no credentials on the command line,
+  `psql -v ON_ERROR_STOP=1`, executes exactly once). Hermes uses this path.
 
 ---
 

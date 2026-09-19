@@ -13,15 +13,53 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `03b2d77` (full audit checkpoint; prior `7e2e6a4` bell race fix, `935fa44` V6 polish, prior `a1f2838` PostgREST fix) |
+| Last verified HEAD | `8a32bf3` (messaging hydration-gate fix; prior `aee3494` 045 acceptance harnesses, `487dfcb` launch-hardening series) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
-| Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` |
-| Documentation version | 4 (full audit sync 2026-09-16) |
-| Last verified date | 2026-09-16 (session) |
+| Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
+| Documentation version | 5 (launch-readiness sync 2026-09-19; governance layer: DECISIONS/DATA_SOURCES/TEST_MATRIX/SECURITY_MODEL/GAP_REGISTER added) |
+| Last verified date | 2026-09-19 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Launch-hardening acceptance + messaging send fix (2026-09-19) — VERIFIED.**
+
+HEAD `8a32bf3`. Everything below is evidence-backed (commands + live outputs),
+not inferred:
+
+- **Migration 045 launch-hardening applied and accepted against the live DB**
+  (`b820f05` + series through `487dfcb`): join/leave SECURITY DEFINER RPCs,
+  soft-leave (`left_at`) with role preservation on rejoin, membership-gated
+  posting, block-enforced `create_direct_conversation` (P0002, no state leak),
+  storage hardening. Transaction-scoped acceptance (rolled back, zero
+  persistent changes): `sql/resume-verify.sql`, `sql/accept-045-messaging.sql`,
+  `sql/accept-045-leave-rejoin.sql` (committed `aee3494`).
+- **Messaging send defect root-caused and fixed (`8a32bf3`):** the interrupted
+  session's "native GET + aborted action POST" was a **pre-hydration native
+  form submit** on client-component forms whose only submit path was React's
+  `onSubmit` (the ERR_ABORTED entries in the network log are benign aborted
+  RSC prefetches — a red herring). Fix: submit controls stay `disabled` until
+  React is attached (hydration gate, deferred `queueMicrotask` per the house
+  `react-hooks/set-state-in-effect` rule), plus `text-red` → `text-red-500`
+  (bare `text-red` generates no CSS in this Tailwind v4 theme, so action
+  errors rendered unstyled).
+- **Messaging: TWO-USER RUNTIME VERIFIED** on the production build
+  (`next start -p 3000`): autotest sends via UI → 1 action POST → redirect to
+  thread, no native GET, rows confirmed in live DB (conversation
+  `26bdebc3-1522-488f-9edb-0ccf6507843a`, both members, both messages);
+  autotest2 sees the thread in `/messages` with unread badge and both
+  messages, correct attribution. Gates: tsc PASS · eslint PASS · vitest
+  258/258 · build PASS (49 routes).
+- **Governance layer established (2026-09-19):** `docs/DECISIONS.md`,
+  `docs/DATA_SOURCES.md`, `docs/TEST_MATRIX.md`, `docs/SECURITY_MODEL.md`,
+  `docs/GAP_REGISTER.md` (consolidates `ERRORS.md` open items).
+
+Still open (see `docs/GAP_REGISTER.md`): email-confirmation toggle must be
+re-enabled before launch (dashboard action); WebRTC two-peer audio
+runtime-blocked by single-endpoint environment; two non-messaging files still
+use bare `text-red`; ~35 untracked one-off diagnostic SQL scripts to triage;
+digests 3702571692 / 943033484@E352 need a user hard-refresh re-test.
 
 **Brand & visual identity redesign (2026-09-16) — SHIPPED.**
 

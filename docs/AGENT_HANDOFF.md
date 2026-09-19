@@ -239,5 +239,56 @@ can pick up where you left off without losing any context.
 
 NOTE — SQL interface (this host):
 - Termux (current agent): `run-sql <file>` sources `~/.supabase_env` (NEVER printed/committed). SELECT/information_schema verification. Never expose DB credentials.
+- Windows (Hermes host): `C:/Users/KKF/bin/run-sql.cmd <file>` — same contract.
+
+---
+
+## HANDOFF LOG
+
+Most recent first. Add an entry at the end of every substantial session.
+
+### 2026-09-19 — Launch-hardening acceptance + messaging send fix (Buffy/Codebuff)
+
+```text
+Agent: Buffy (Codebuff)
+Environment: Windows host, Git Bash; repo C:/Users/KKF/Projects/g4m37z-communities
+Branch: main
+Starting HEAD: 487dfcb
+Ending HEAD: 8a32bf3
+Task: Resume interrupted acceptance of migration 045; root-cause and fix the
+      messaging send defect; establish the governance doc layer.
+Changes:
+  - aee3494 test(db): transaction-scoped 045 acceptance harnesses
+    (sql/resume-verify.sql, sql/accept-045-messaging.sql,
+    sql/accept-045-leave-rejoin.sql)
+  - 8a32bf3 fix(messaging): hydration-gate submit on both messaging forms
+    (NewConversationForm, MessageForm); text-red -> text-red-500
+  - docs: PROJECT_STATE.md checkpoint v5; DATABASE.md Windows run-sql note;
+    NEW docs/DECISIONS.md, docs/DATA_SOURCES.md, docs/TEST_MATRIX.md,
+    docs/SECURITY_MODEL.md, docs/GAP_REGISTER.md
+Root cause (messaging): client-component forms with React onSubmit as the
+  only submit path fall through to a native form GET when submitted before
+  hydration — body leaks into URL, action POST aborts client-side, no rows.
+  The ERR_ABORTED entries in the network log are benign aborted RSC
+  prefetches (red herring). Fix: submit disabled until mounted
+  (queueMicrotask-deferred per house set-state-in-effect rule).
+Tests: tsc PASS; eslint PASS (0 errors); vitest 258/258 (unit);
+  next build --webpack PASS (49 routes). Live DB (run-sql.cmd, all
+  transaction-scoped ROLLBACK): join/leave/rejoin soft-leave + role
+  preservation PASS; create_direct_conversation new/reuse PASS; block
+  enforcement P0002 PASS.
+Runtime verification: TWO-USER messaging on the production build — autotest
+  sent via UI (1 action POST, no native GET, rows confirmed by
+  sql/verify-surface-send.sql, redirect + checkmark), autotest2 saw the
+  thread with unread badge and both messages. Logged in as both seeded users.
+Known limitations: email confirmation disabled (GAP-EMAIL-01, dashboard
+  action pre-launch); WebRTC two-peer audio environment-blocked
+  (GAP-WEBRTC-01); 2 non-messaging files still use bare text-red
+  (GAP-UI-01); ~35 untracked diagnostic SQL scripts to triage (GAP-SQL-01);
+  rate limits env-gated dormant (GAP-RATE-01, needs pre-launch decision).
+Next recommended action: pre-launch punch list in docs/GAP_REGISTER.md —
+  re-enable email confirmation last (it re-triggers the 429), run the
+  two-device voice test, triage sql/.
+```
 - Migrations 022–030 are applied to the live DB and are the source of truth. `docs/database/` files are the canonical migration log.
 - **PostgREST embeds** (`?select=...,author:profiles!posts_author_id_fkey`): the FK hint name must match a real FK that targets the embedded table. Do not add bare inline `REFERENCES auth.users(id)` on user columns — see `docs/DATABASE.md` warning and `030_fix_posts_profiles_relationship.sql`.
