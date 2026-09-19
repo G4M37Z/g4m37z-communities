@@ -17,6 +17,8 @@ import {
   markConversationRead,
     getUnreadCounts,
   blockedUserIds,
+  MAX_ATTACHMENT_BYTES,
+  ATTACHMENT_MIME,
   type RecipientSuggestion,
 } from "@/lib/messaging/service";
 
@@ -110,12 +112,68 @@ export async function searchRecipients(query: string): Promise<RecipientSuggesti
   } catch {
     return [];
   }
-}export async function sendMessage(
+}
+
+/**
+ * Upload an image/GIF/sticker for a direct-thread message into the
+ * message-attachments bucket (047). Same trust model as post images: the
+ * browser MIME is client-controlled, so bytes are sniffed; the object is
+ * stored under auth.uid()/ and the URL returned for the send action.
+ */
+export async function uploadMessageAttachment(
+  file: File,
+): Promise<{ ok: true; url: string; type: "image" | "gif" | "sticker" } | { ok: false; error: string }> {
+  try {
+    if (file.size === 0) return { ok: false, error: "File is empty." };
+    if (file.size > MAX_ATTACHMENT_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
+    if (!ATTACHMENT_MIME.includes(file.type as (typeof ATTACHMENT_MIME)[number])) {
+      return { ok: false, error: "Image must be JPEG, PNG, WebP, or GIF." };
+    }
+
+    // Content sniff — reject files whose bytes are not a real image.
+    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    const b = (i: number) => head[i];
+    const isJpeg = head.length >= 3 && b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff;
+    const isPng = head.length >= 8 && b(0) === 0x89 && b(1) === 0x50 && b(2) === 0x4e && b(3) === 0x47;
+    const isWebp = head.length >= 12 && b(0) === 0x52 && b(8) === 0x57 && b(9) === 0x45 && b(10) === 0x42;
+    const isGif = head.length >= 6 && b(0) === 0x47 && b(1) === 0x49 && b(2) === 0x46;
+    if (!isJpeg && !isPng && !isWebp && !isGif) {
+      return { ok: false, error: "That file doesn't look like a valid image." };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Sign in to attach images." };
+
+    const ext = file.type.split("/")[1]?.replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    const { error } = await supabase.storage
+      .from("message-attachments")
+      .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+    if (error) {
+      console.error("uploadMessageAttachment failed:", error);
+      return { ok: false, error: "Couldn't upload the image. Try again." };
+    }
+
+    const { data } = supabase.storage.from("message-attachments").getPublicUrl(path);
+    // Animated GIFs are surfaced as "gif" so the UI can badge them; every
+    // other still image is "image". (Stickers reuse the same renderer.)
+    return { ok: true, url: data.publicUrl, type: isGif ? "gif" : "image" };
+  } catch (err) {
+    console.error("uploadMessageAttachment unexpected error:", err);
+    return { ok: false, error: "Couldn't upload the image. Try again." };
+  }
+}
+
+export async function sendMessage(
   conversationId: string,
   body: string,
+  attachment?: { url: string; type: "image" | "gif" | "sticker" },
 ): Promise<MessageActionState> {
   try {
-    const result = await sendMessageService(conversationId, body);
+    const result = await sendMessageService(conversationId, body, attachment);
     if (!result.ok) return { ok: false, error: result.error };
 
     revalidatePath(`/messages/${conversationId}`);

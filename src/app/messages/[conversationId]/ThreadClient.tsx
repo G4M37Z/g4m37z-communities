@@ -169,7 +169,20 @@ export function ThreadClient({
                       {p?.display_name ?? p?.username ?? "Unknown"}
                     </p>
                   )}
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  {m.attachment_url && (
+                    // Attachment bubble (047). Renders above any caption text;
+                    // the public-read bucket URL is safe to embed directly.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={m.attachment_url}
+                      alt={m.attachment_type === "gif" ? "GIF" : "Shared image"}
+                      className={`mb-1 block max-h-64 w-full rounded-md object-cover ${own ? "rounded-md" : ""}`}
+                      loading="lazy"
+                    />
+                  )}
+                  {(m.body || !m.attachment_url) && (
+                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  )}
                   {m.created_at && (
                     <div className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-60">
                       <time dateTime={m.created_at}>

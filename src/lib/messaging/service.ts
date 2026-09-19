@@ -24,6 +24,9 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_BODY = 4000;
 const MAX_PAGE = 50;
+export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+export const ATTACHMENT_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+export type AttachmentType = "image" | "gif" | "sticker";
 
 function isUuid(v: string): boolean {
   return UUID_RE.test(v);
@@ -49,6 +52,8 @@ export interface Message {
   read: boolean | null;
   delivered: boolean | null;
   created_at: string | null;
+  attachment_url: string | null;
+  attachment_type: AttachmentType | null;
 }
 
 export type ConversationResult =
@@ -197,7 +202,7 @@ export async function listMessages(
   const supabase = await createClient();
   const { data } = await supabase
     .from("messages")
-    .select("id, conversation_id, sender_id, body, read, delivered, created_at")
+    .select("id, conversation_id, sender_id, body, read, delivered, created_at, attachment_url, attachment_type")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .range(from, to);
@@ -331,13 +336,21 @@ export async function getReadState(
     map.set(row.user_id, row.last_read_at);
   }
   return map;
-}
-
-export async function sendMessage(  conversationId: string,  body: string,): Promise<MessageResult> {
+}export async function sendMessage(
+  conversationId: string,
+  body: string,
+  attachment?: { url: string; type: AttachmentType },
+): Promise<MessageResult> {
   if (!isUuid(conversationId)) return { ok: false, status: "invalid", error: "Invalid conversation." };
 
-  const verdict = messageBodyVerdict(body);
-  if (!verdict.ok) return { ok: false, status: "invalid", error: verdict.error };
+  // A message is body, attachment, or both — but not an empty shell.
+  const trimmed = body.trim();
+  if (!attachment && trimmed.length === 0) {
+    return { ok: false, status: "invalid", error: "Message cannot be empty." };
+  }
+  if (trimmed.length > MAX_BODY) {
+    return { ok: false, status: "invalid", error: `Message must be ${MAX_BODY} characters or fewer.` };
+  }
 
   const { uid, error: authError } = await resolveUserId();
   if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
@@ -380,7 +393,12 @@ export async function sendMessage(  conversationId: string,  body: string,): 
 
   const { data: inserted, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversationId, sender_id: uid, body: verdict.body })
+    .insert({
+      conversation_id: conversationId,
+      sender_id: uid,
+      body: trimmed,
+      ...(attachment ? { attachment_url: attachment.url, attachment_type: attachment.type } : {}),
+    })
     .select("id")
     .single();
   if (error) {
