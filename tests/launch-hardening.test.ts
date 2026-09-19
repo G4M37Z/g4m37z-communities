@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { __postImageTest } from "@/lib/posts/actions";
+import { __postImageTest } from "@/lib/posts/image-validation-test";
 import { validateTerms } from "@/lib/terms";
 import { rateLimit } from "@/lib/rate-limit";
 

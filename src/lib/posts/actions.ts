@@ -4,6 +4,14 @@
 //
 // All mutations run through the cookie-bound Supabase client so RLS continues
 // to enforce ownership (auth.uid() = author_id, etc.).
+//
+// NOTE: a "use server" file may only export async functions. Pure helpers
+// (image sniffing / path validation) live in ./image-validation so they can
+// be unit-tested directly (tests/launch-hardening.test.ts). The previous
+// `export const __postImageTest = {...}` here made Next.js throw
+// 'A "use server" file can only export async functions, found object.' and
+// took down every action in the bundle (reposts, votes, reactions, image
+// uploads) with digest …@E352.
 // ============================================================================
 
 "use server";
@@ -11,6 +19,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  postImagePathFromUrl,
+  sniffImageType,
+  validateOwnedImageUrl,
+} from "./image-validation";
+import { __postImageTest } from "./image-validation-test";
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -53,86 +67,11 @@ function validateBody(body: string): string | null {
   return null;
 }
 
-/**
- * Sniff the first bytes of an uploaded file and return the image type it
- * actually is, or null when the bytes match no supported image signature.
- * Browser MIME (`file.type`) is client-controlled, so we refuse anything
- * whose content is not genuinely a JPEG/PNG/WebP/GIF.
- */
-async function sniffImageType(file: File): Promise<(typeof IMAGE_MIME)[number] | null> {
-  let bytes: Uint8Array;
-  try {
-    bytes = new Uint8Array(await file.arrayBuffer());
-  } catch {
-    return null;
-  }
-  const b = (i: number) => bytes[i];
-  if (bytes.length >= 3 && b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 8 &&
-    b(0) === 0x89 && b(1) === 0x50 && b(2) === 0x4e && b(3) === 0x47 &&
-    b(4) === 0x0d && b(5) === 0x0a && b(6) === 0x1a && b(7) === 0x0a
-  ) {
-    return "image/png";
-  }
-  if (
-    bytes.length >= 12 &&
-    b(0) === 0x52 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x46 &&
-    b(8) === 0x57 && b(9) === 0x45 && b(10) === 0x42 && b(11) === 0x50
-  ) {
-    return "image/webp";
-  }
-  if (
-    bytes.length >= 6 &&
-    b(0) === 0x47 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x38 &&
-    (b(4) === 0x37 || b(4) === 0x39) && b(5) === 0x61
-  ) {
-    return "image/gif";
-  }
-  return null;
-}
-
 function validateImage(file: File): string | null {
   if (file.size === 0) return "Image file is empty.";
   if (file.size > IMAGE_MAX_BYTES) return "Image must be 5 MB or smaller.";
   if (!IMAGE_MIME.includes(file.type)) {
     return "Image must be JPEG, PNG, WebP, or GIF.";
-  }
-  return null;
-}
-
-/**
- * Extract the object path inside the post-images bucket from a public URL,
- * or null when the URL is not a post-images object URL.
- */
-function postImagePathFromUrl(url: string): string | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return null;
-  }
-  const configuredHost = (() => {
-    try {
-      return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
-    } catch {
-      return "";
-    }
-  })();
-  if (configuredHost && parsed.host !== configuredHost) return null;
-  const m = parsed.pathname.match(/^\/storage\/v1\/object\/public\/post-images\/(.+)$/);
-  return m ? decodeURIComponent(m[1]) : null;
-}
-
-/** Validate that an imageUrl is a real post-images object owned by `ownerId`. */
-function validateOwnedImageUrl(imageUrl: string, ownerId: string): string | null {
-  const path = postImagePathFromUrl(imageUrl);
-  if (!path) return "That image doesn't look like a valid upload.";
-  const owner = path.split("/")[0];
-  if (!owner || owner !== ownerId) {
-    return "That image isn't one of your uploads.";
   }
   return null;
 }
@@ -154,12 +93,11 @@ async function removeAuthorPostImage(
   }
 }
 
-// Exported for deterministic unit coverage (tests/launch-hardening.test.ts).
-export const __postImageTest = {
-  sniffImageType,
-  postImagePathFromUrl,
-  validateOwnedImageUrl,
-};
+// Re-exported (non-export at runtime) for the unit tests that previously
+// imported `__postImageTest` from this module. The const itself lives in
+// ./image-validation-test — a non-function local binding in a "use server"
+// file is illegal even when not exported, so it must not be declared here.
+void __postImageTest;
 
 // ---------------------------------------------------------------------------
 // uploadPostImage

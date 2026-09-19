@@ -44,11 +44,13 @@ export function validateRepostComment(comment: string | null | undefined): {
   comment: string | null;
   error?: string;
 } {
+  // A null/empty comment is a plain repost and is VALID (the column is
+  // nullable). Only an over-length quip is invalid.
   const trimmed = String(comment ?? "").trim();
   if (trimmed.length > COMMENT_MAX) {
     return { ok: false, comment: null, error: `Comment must be ${COMMENT_MAX} characters or fewer.` };
   }
-  return { ok: trimmed.length > 0, comment: trimmed.length > 0 ? trimmed : null };
+  return { ok: true, comment: trimmed.length > 0 ? trimmed : null };
 }
 
 /** Create a repost (share-to-feed). Idempotent per (user, post). */

@@ -24,7 +24,7 @@ const MAX_USERNAME = 32;
 const MIN_USERNAME = 2;
 
 export type MessageActionState =
-  | { ok: true }
+  | { ok: true; message_id?: string }
   | { ok: false; error: string };
 
 const initialState: MessageActionState = { ok: true };
@@ -119,7 +119,7 @@ export async function searchRecipients(query: string): Promise<RecipientSuggesti
     if (!result.ok) return { ok: false, error: result.error };
 
     revalidatePath(`/messages/${conversationId}`);
-    return { ok: true };
+    return { ok: true, message_id: result.message_id };
   } catch (err) {
     console.error("sendMessage failed:", err);
     return { ok: false, error: "Your message didn't send. Please try again." };

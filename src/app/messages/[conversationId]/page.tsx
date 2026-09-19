@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listMessages, isConversationMember } from "@/lib/messaging/service";
 import { PageEnter } from "@/components/PageEnter";
-import { MessageForm } from "./MessageForm";
 import { ThreadLive } from "./ThreadLive";
+import { ThreadClient } from "./ThreadClient";
 
 export const dynamic = "force-dynamic";
 
@@ -71,70 +71,12 @@ export default async function MessageThreadPage({
 
         <ThreadLive conversationId={conversationId} />
 
-        {messages.length === 0 && (
-          <p className="mb-4 text-center text-sm text-text-muted">
-            No messages yet — say hello.
-          </p>
-        )}
-
-        <ul className="space-y-2 mb-4 max-h-[60vh] overflow-y-auto">
-          {messages.map((m) => (
-            <li
-              key={m.id}
-              className={`flex items-end gap-2 ${m.sender_id === user.id ? "justify-end" : ""}`}
-            >
-              {m.sender_id !== user.id &&
-                (() => {
-                  const p = profiles.get(m.sender_id ?? "");
-                  return p?.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={p.avatar_url}
-                      alt={p.display_name ?? p.username}
-                      className="h-7 w-7 shrink-0 rounded-full object-cover border border-border"
-                    />
-                  ) : (
-                    <div className="h-7 w-7 shrink-0 rounded-full bg-surface border border-border flex items-center justify-center text-[10px] font-bold text-fg">
-                      {((p?.display_name ?? p?.username ?? "U"))
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-                  );
-                })()}
-              <div
-                className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                  m.sender_id === user.id
-                    ? "bg-accent text-white"
-                    : "border border-border bg-surface text-fg"
-                }`}
-              >
-                {m.sender_id !== user.id && (
-                  <p className="mb-0.5 text-[10px] font-semibold text-text-muted">
-                    {(() => {
-                      const p = profiles.get(m.sender_id ?? "");
-                      return p?.display_name ?? p?.username ?? "Unknown";
-                    })()}
-                  </p>
-                )}
-                <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                {m.created_at && (
-                  <div className="mt-1 flex items-center gap-1 text-[10px] opacity-60">
-                    <time dateTime={m.created_at}>
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </time>
-                    {m.sender_id === user.id && (
-                      <span title={m.read ? "Read" : "Sent"}>
-                        {m.read ? "✓✓" : "✓"}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        <MessageForm conversationId={conversationId} />
+        <ThreadClient
+          conversationId={conversationId}
+          currentUserId={user.id}
+          initialMessages={messages}
+          profiles={profiles}
+        />
       </main>
     </PageEnter>
   );
