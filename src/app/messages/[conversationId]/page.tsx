@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { listMessages, isConversationMember } from "@/lib/messaging/service";
+import { listMessages, isConversationMember, getReadState } from "@/lib/messaging/service";
 import { PageEnter } from "@/components/PageEnter";
 import { ThreadLive } from "./ThreadLive";
 import { ThreadClient } from "./ThreadClient";
@@ -44,6 +44,11 @@ export default async function MessageThreadPage({
 
   const messages = await listMessages(conversationId, 1);
 
+  // Receipts (046): the partner's last_read_at turns the sender's ✓✓ blue.
+  // conversation_members RLS hides the partner's row, so this comes from the
+  // SECURITY DEFINER RPC instead of a client-side join.
+  const readState = await getReadState(conversationId);
+
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter(Boolean))] as string[];
   const profiles = new Map<
     string,
@@ -76,6 +81,7 @@ export default async function MessageThreadPage({
           currentUserId={user.id}
           initialMessages={messages}
           profiles={profiles}
+          readState={readState}
         />
       </main>
     </PageEnter>

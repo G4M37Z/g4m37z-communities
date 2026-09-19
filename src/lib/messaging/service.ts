@@ -313,6 +313,26 @@ export async function getUnreadCounts(): Promise<Map<string, number>> {
   return unread;
 }
 
+/** Partner read state for message receipts (046). get_conversation_read_state
+ * is a SECURITY DEFINER RPC (046, 041 pattern): conversation_members RLS only
+ * exposes the caller's own row, but receipts need the partner's last_read_at.
+ * Returns the caller's and the partner's read instants; empty on any error. */
+export async function getReadState(
+  conversationId: string,
+): Promise<Map<string, string | null>> {
+  const map = new Map<string, string | null>();
+  if (!isUuid(conversationId)) return map;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_conversation_read_state", {
+    p_conv_id: conversationId,
+  });
+  if (error || !data) return map;
+  for (const row of data as Array<{ user_id: string; last_read_at: string | null }>) {
+    map.set(row.user_id, row.last_read_at);
+  }
+  return map;
+}
+
 export async function sendMessage(  conversationId: string,  body: string,): Promise<MessageResult> {
   if (!isUuid(conversationId)) return { ok: false, status: "invalid", error: "Invalid conversation." };
 

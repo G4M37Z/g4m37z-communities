@@ -22,12 +22,21 @@ export function ThreadClient({
   currentUserId,
   initialMessages,
   profiles,
+  readState,
 }: {
   conversationId: string;
   currentUserId: string;
   initialMessages: Message[];
   profiles: ProfileMap;
+  readState: Map<string, string | null>;
 }) {
+  // Receipts (046): a direct thread has exactly one partner; their
+  // last_read_at is the instant the sender's ✓✓ turns blue. Falls back to
+  // the legacy per-row `read` flag when the RPC returns no partner row
+  // (non-direct or RPC error), preserving the old behaviour.
+  const partnerReadAt = [...readState.entries()].find(
+    ([id]) => id !== currentUserId
+  )?.[1];
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   // Render-phase reconciliation with server truth (the documented
   // "adjust state when a prop changes" pattern — no effect needed).
@@ -114,11 +123,26 @@ export function ThreadClient({
                   <time dateTime={m.created_at}>
                     {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </time>
-                  {m.sender_id === currentUserId && (
-                    <span title={m.read ? "Read" : "Sent"}>
-                      {m.read ? "✓✓" : "✓"}
-                    </span>
-                  )}
+                  {m.sender_id === currentUserId &&
+                    (() => {
+                      // Blue ✓✓ = partner's last_read_at is at/after the
+                      // message; grey ✓ = sent, grey ✓✓ = delivered.
+                      const isRead =
+                        partnerReadAt != null &&
+                        m.created_at != null &&
+                        partnerReadAt >= m.created_at;
+                      const isDelivered = m.read === true;
+                      return (
+                        <span
+                          title={isRead ? "Read" : isDelivered ? "Delivered" : "Sent"}
+                          className={
+                            isRead ? "text-sky-400" : undefined
+                          }
+                        >
+                          {isRead || isDelivered ? "✓✓" : "✓"}
+                        </span>
+                      );
+                    })()}
                 </div>
               )}
             </div>
