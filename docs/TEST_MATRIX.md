@@ -31,9 +31,11 @@ vitest **258/258** (unit, browser excluded) · `next build --webpack` PASS
 | Username search / recipient discovery | L3 (FINAL_REPORT D/H) | FINAL_REPORT matrix | 2026-09-17 |
 | Repost idempotency + undo | L2 + L3 (033 contract) | FINAL_REPORT matrix L | 2026-09-17 |
 | Repost UI full loop (create → row + notification → undo → clean) | L3 (prod build, real click) | `sql/check-repost-fixtures.sql` + notif query; fixed use-server export + comment validation | 2026-09-19 |
+| Post votes via UI (up → +1 row; switch → same row −1; clear → row deleted, 0/0) | L3 (prod build, real clicks) | Network log clean; `/tmp/vote-check.sql` live-DB output; no stale rows | 2026-09-19 |
 | Message send latency (click → bubble) | L3 (prod build, timed) | 1504 ms measured (was 14.9s: realtime-echo dependency); optimistic append via ThreadClient | 2026-09-19 |
 | Mark-all-read reconciliation | L3 (FINAL_REPORT N) | FINAL_REPORT matrix | 2026-09-17 |
 | Post media upload/edit | L3 (FINAL_REPORT K) | FINAL_REPORT matrix | 2026-09-17 |
+| Reactions via UI (add love → row; toggle-off → row gone; laugh switch → row; toggle-off → row gone) | L3 (prod build, real clicks) | `/tmp/react-check.sql` live-DB output; toggle-off/switch fixed in `reactions/actions.ts` (DELETE, not RLS-blocked UPDATE) | 2026-09-19 |
 | WebRTC two-peer audio | **BLOCKED — environment** (single audio endpoint) | FINAL_REPORT O/P; re-test on two devices required | — |
 | Voice room single-peer runtime (join, Go Live, signaling write, leave cleanup) | L3 (prod build, headless Chromium, live DB) | `sql/verify-voice-runtime.sql` + network log; GAP-WEBRTC-01 narrowed | 2026-09-19 |
 | Browser smoke (8 routes) | L3 (WebDriver, same-shell invocation) | FINAL_REPORT; Android low-memory-killer note | 2026-09-17 |
