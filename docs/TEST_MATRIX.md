@@ -35,6 +35,7 @@ vitest **258/258** (unit, browser excluded) · `next build --webpack` PASS
 | Message send latency (click → bubble) | L3 (prod build, timed) | 1504 ms measured (was 14.9s: realtime-echo dependency); optimistic append via ThreadClient | 2026-09-19 |
 | Mark-all-read reconciliation | L3 (FINAL_REPORT N) | FINAL_REPORT matrix | 2026-09-17 |
 | Post media upload/edit | L3 (FINAL_REPORT K) | FINAL_REPORT matrix | 2026-09-17 |
+| Post image upload → post → render → persistence (UI, prod build) | L3 (prod build, real upload) | Canvas-generated PNG via real file input → preview → publish → redirect to `/post/<id>`; row `has_img=t`, storage object served `200 image/png`; remove-image + delete-post both cleaned rows and storage (0 orphans) | 2026-09-19 |
 | Reactions via UI (add love → row; toggle-off → row gone; laugh switch → row; toggle-off → row gone) | L3 (prod build, real clicks) | `/tmp/react-check.sql` live-DB output; toggle-off/switch fixed in `reactions/actions.ts` (DELETE, not RLS-blocked UPDATE) | 2026-09-19 |
 | WebRTC two-peer audio | **BLOCKED — environment** (single audio endpoint) | FINAL_REPORT O/P; re-test on two devices required | — |
 | Voice room single-peer runtime (join, Go Live, signaling write, leave cleanup) | L3 (prod build, headless Chromium, live DB) | `sql/verify-voice-runtime.sql` + network log; GAP-WEBRTC-01 narrowed | 2026-09-19 |

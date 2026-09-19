@@ -105,6 +105,34 @@
 
 # Feature requests logged 2026-09-19 (user: "ill attend to them later")
 
+## GAP-POST-01 — First Save/Publish click on a fresh post form occasionally swallowed — OPEN
+
+**ID:** GAP-POST-01
+**Area:** Posts (create/edit submit)
+**Severity:** P3 (works on retry; no data loss)
+**Description:** The first Save/Publish click on a freshly mounted create/edit post form is occasionally swallowed — the action POST returns 200 but no row mutation occurs and the edit form stays open. Reproduced once during the 2026-09-19 image-upload verification (remove-image save needed a second click). The earlier "create-post never submits" report is now believed to be the same hydration-timing race; server logs and DB were clean throughout.
+**Reproduction:** Open `/create/post` or a post's edit form, attach an image, click Save/Publish immediately after mount.
+**Root cause:** UNKNOWN — suspected React transition event-timing race, not an action bug. Needs instrumentation.
+**Status:** OPEN
+**Fix:** —
+**Verification:** —
+**Owner/Agent:** next agent
+**Next action:** Probe the submit transition in `CreatePostForm`/`PostActions` EditForm against the hydration timeline.
+
+## GAP-POST-02 — Orphaned post-images object from failed create — OPEN (DEFERRED cleanup)
+
+**ID:** GAP-POST-02
+**Area:** Posts storage hygiene
+**Severity:** P4 (cosmetic debris, no user impact)
+**Description:** One orphaned post-images object (`d1eeb9c0-...007/0a987ab8-...png`, ~26 KB) remains in storage from the interrupted session's failed create-post attempt. Current remove-image and delete-post flows are verified to clean their own objects (0 new orphans).
+**Reproduction:** `SELECT name FROM storage.objects WHERE bucket_id='post-images' AND owner='d1eeb9c0-0000-4000-8000-000000000007';`
+**Root cause:** Failed create-post during the interrupted session, before cleanup ran.
+**Status:** OPEN (DEFERRED)
+**Fix:** Delete the object via SQL/dashboard when convenient.
+**Verification:** —
+**Owner/Agent:** next agent
+**Next action:** Remove the orphan object.
+
 ## GAP-MSG-UI-01 — Inside-messaging UI polish
 
 - Area: Messaging UI
