@@ -47,8 +47,11 @@ export async function setReaction(
     .maybeSingle();
 
   if (existing) {
-    if (existing.reaction_type === reactionType) {
-      // Toggle off.
+    if (reactionType === null || existing.reaction_type === reactionType) {
+      // Toggle off. The client sends reactionType=null to clear; the previous
+      // UPDATE-based path silently no-oped because the reactions RLS grants
+      // SELECT/INSERT/DELETE but no UPDATE (0 rows affected, no error),
+      // leaving a stale row behind.
       const { error } = await supabase
         .from("reactions")
         .delete()
@@ -58,13 +61,21 @@ export async function setReaction(
       revalidatePath(`/post/${postId}`);
       return { ok: true, reaction: null };
     }
-    // Switch type.
-    const { error } = await supabase
+    // Switch type. Same RLS constraint: no UPDATE policy, so an UPDATE here
+    // affects 0 rows silently. Delete + insert stays inside the granted
+    // policies and keeps the single-reaction-per-user invariant.
+    const { error: delErr } = await supabase
       .from("reactions")
-      .update({ reaction_type: reactionType })
+      .delete()
       .eq("post_id", postId)
       .eq("user_id", user.id);
-    if (error) return { ok: false, error: "Could not update reaction." };
+    if (delErr) return { ok: false, error: "Could not update reaction." };
+    const { error: insErr } = await supabase.from("reactions").insert({
+      post_id: postId,
+      user_id: user.id,
+      reaction_type: reactionType,
+    });
+    if (insErr) return { ok: false, error: "Could not update reaction." };
     revalidatePath(`/post/${postId}`);
     return { ok: true, reaction: reactionType as ReactionType };
   }
