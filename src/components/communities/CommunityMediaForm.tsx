@@ -97,7 +97,7 @@ export function CommunityMediaForm({ communityId, iconUrl, bannerUrl }: Props) {
         ))}
       </div>
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red">
+        <p role="alert" className="mt-3 text-sm text-red-500">
           {error}
         </p>
       )}

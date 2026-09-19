@@ -74,7 +74,7 @@ export default async function CreatorAnalyticsPage() {
       <PageEnter>
         <main className="container-x py-8">
           <h1 className="text-2xl font-bold tracking-tight text-fg">Creator analytics</h1>
-          <p className="mt-4 text-sm text-red">{result.error}</p>
+          <p className="mt-4 text-sm text-red-500">{result.error}</p>
         </main>
       </PageEnter>
     );
