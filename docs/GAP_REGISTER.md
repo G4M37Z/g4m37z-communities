@@ -19,40 +19,45 @@
 - Next action: re-enable "Confirm email" in `authentication → providers →
   email` immediately before launch; remove the seeded-user workaround notes.
 
-## GAP-WEBRTC-01 — Two-peer voice audio never heard end-to-end
+## GAP-WEBRTC-01 — Two-peer voice audio remains unheard end-to-end
 
 - Area: Voice / WebRTC
-- Severity: P1 (core social feature, unproven at runtime)
-- Description: `webrtc-peer.tsx` rewritten and RLS verified (FINAL_REPORT
-  O/P), but a real two-device audio call has never been executed — this
-  environment exposes one audio endpoint.
-- Status: BLOCKED — environment. Do not mark PASS without the two-device run.
+- Severity: P1 (core social feature; single-peer path now proven, pairwise
+  audio still unproven)
+- Description: Single-peer runtime verified 2026-09-19 on the production
+  build + live DB (headless Chromium, autotest2): room join created the
+  participant row and flipped presence to busy; Go Live ran getUserMedia +
+  RTCPeerConnection and published a PEER_JOIN signal that passed the 045
+  `webrtc_signals` RLS (sender must be a participant; row persisted);
+  Leave deleted the participant row cleanly (no stale rows) and restored
+  presence. What remains blocked: the answer/ICE exchange and mutual audio
+  between two endpoints — this environment exposes one audio endpoint.
+- Evidence: network log (`POST webrtc_signals → 201`),
+  `sql/verify-voice-runtime.sql` output, `sql/seed-voice-room.sql`.
+- Status: BLOCKED — environment (single-endpoint). Do not mark PASS without
+  the two-device run.
 - Next action: two authenticated sessions in one room; verify connect, mutual
   audio, mute, leave/rejoin, stale-peer cleanup, no console errors (per
   AGENT_HANDOFF voice checklist).
 
-## GAP-UI-01 — Bare `text-red` remains in two non-messaging files
+## GAP-UI-01 — Bare `text-red` error classes — CLOSED
 
 - Area: UI (error rendering)
-- Severity: P3 (cosmetic — no CSS is generated for the bare token)
-- Description: `src/app/settings/analytics/page.tsx` and
-  `src/components/communities/CommunityMediaForm.tsx` still use `text-red`.
-  The messaging forms were fixed in `8a32bf3`; these two were deliberately
-  left (change minimization — unrelated to the messaging defect).
-- Status: OPEN
-- Next action: swap to `text-red-500` in the next touch of either file (or as
-  a one-line standalone fix).
+- Severity: P3 (cosmetic — no CSS was generated for the bare token)
+- Fix: messaging forms in `8a32bf3`; analytics page + CommunityMediaForm in
+  `e02968d`. `grep -rn "text-red\b" src/` now returns only `text-red-500`.
+- Status: FIXED (gates PASS).
 
-## GAP-SQL-01 — ~35 untracked one-off diagnostic SQL scripts
+## GAP-SQL-01 — Diagnostic SQL script triage — CLOSED
 
 - Area: Repository hygiene
 - Severity: P3
-- Description: `sql/` contains untracked one-off inspection scripts from the
-  Sep 17–19 sessions (plus `inspect-posts-fk.sql` at repo root). The reusable
-  acceptance harnesses were committed in `aee3494`; the rest await triage.
-- Status: OPEN
-- Next action: commit genuinely reusable checks (e.g. `seed-second-user.sql`,
-  `join-rls-policy-audit.sql`), delete the rest.
+- Fix: 2026-09-19 (`d988d5f`) — kept the 3 reusable scripts
+  (`seed-second-user.sql`, `join-rls-policy-audit.sql`, `check-membership.sql`)
+  alongside the committed acceptance harnesses; deleted the 31 one-off
+  inspection scripts and `inspect-posts-fk.sql` per the AGENT_HANDOFF rule
+  that temporary inspection files do not persist.
+- Status: FIXED.
 
 ## GAP-DIGEST-01/02 — Legacy production digests need user re-test
 
