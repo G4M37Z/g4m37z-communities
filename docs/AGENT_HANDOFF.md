@@ -270,16 +270,19 @@ Changes:
   - brand placement (GAP-BRAND-01): Logo on 4 auth headers, BrandMark on
     BottomNav Home + 404 + error
   - docs: GAP_REGISTER, PROJECT_STATE, AGENT_HANDOFF, TEST_MATRIX, DECISIONS
+  - server-side sticker guard (GAP-MSG-RICH-02): attachmentVerdict helper in
+    src/lib/messaging/service.ts + tests/messaging-service.test.ts (5)
 Tests: tsc PASS; eslint PASS (0 errors, 15 pre-existing warnings);
-  vitest 271/271 (unit, browser excluded). Live DB: 048 idempotent
+  vitest 276/276 (unit, browser excluded). Live DB: 048 idempotent
   (UPDATE 0 x8), all 8 games has_cover=t.
 Blocked: GAP-POST-02 — Supabase storage.protect_delete() rejects direct
   storage.objects DELETE; no service-role key provisioned; needs Dashboard
   -> Storage or a service-role Storage API remove(). No guard bypass applied.
 Runtime verification owed: live visual pass (logos/brand), post-form click
   timing, and a browser pass on the new sticker picker.
-Next recommended action: wire server-side sticker validation (GAP-MSG-RICH-02),
-  then the pre-launch punch list (email confirmation last, two-device voice).
+Next recommended action: the pre-launch punch list (email confirmation last,
+  two-device voice test). Remaining feature work: GAP-MSG-UI-01, GAP-MSG-CALL-01,
+  GIF picker (API-key decision).
 ```
 
 ### 2026-09-19 — Launch-hardening acceptance + messaging send fix (Buffy/Codebuff)

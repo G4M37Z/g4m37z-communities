@@ -27,14 +27,15 @@
 
 Base HEAD `cfc66ef` (messaging image+GIF attachments). This session closed the
 flagged feature gaps; gates after: tsc PASS · eslint PASS (0 errors, 15
-pre-existing warnings) · vitest **271/271** (unit).
+pre-existing warnings) · vitest **276/276** (unit).
 
 - **GAP-MSG-RICH-01 (stickers) — SHIPPED (PARTIAL):** 10 SVG stickers in
   `public/stickers/`, `src/lib/messaging/stickers.ts`, picker in
   `MessageForm.tsx`, renderer in `ThreadClient.tsx`, `messages.attachment_type`
   widened to `"image"|"gif"|"sticker"`. `tests/messaging-stickers.test.ts` 8/8.
   GIF *picker* remains deferred (needs a Tenor/GIPHY API key decision).
-  New follow-up GAP-MSG-RICH-02: sticker URLs not yet validated server-side.
+  GAP-MSG-RICH-02 (server-side sticker URL validation in `sendMessage`) fixed
+  in the same session.
 - **GAP-GAMES-01 (covers) — FIXED + VERIFIED:** `048_game_covers.sql` seeds
   official CDN art for all 8 games (`cover_url`); re-run idempotent (`UPDATE 0`
   ×8); live DB `has_cover=t` ×8. Rendering via `cover-url.ts` allowlist +
@@ -55,8 +56,7 @@ pre-existing warnings) · vitest **271/271** (unit).
   Storage or a service-role Storage API call; only `DATABASE_URL` is provisioned.
 
 Still open: GAP-EMAIL-01 (dashboard), GAP-WEBRTC-01 (two-device), GAP-RATE-01
-(pre-launch decision), GAP-MSG-UI-01 / GAP-MSG-CALL-01 (feature work),
-GAP-MSG-RICH-02 (server-side sticker validation).
+(pre-launch decision), GAP-MSG-UI-01 / GAP-MSG-CALL-01 (feature work).
 
 **Launch-hardening acceptance + messaging send fix (2026-09-19) — VERIFIED.**
 

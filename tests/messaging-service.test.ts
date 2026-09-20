@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { __test, messageBodyVerdict, createDirectVerdict, type CreateDirectVerdict } from "@/lib/messaging/service";
+import { __test, messageBodyVerdict, createDirectVerdict, attachmentVerdict, type CreateDirectVerdict } from "@/lib/messaging/service";
 
 const { isUuid, clamp, MAX_BODY, MAX_PAGE } = __test;
 
@@ -48,6 +48,31 @@ describe("messageBodyVerdict", () => {
 
   it("accepts a body exactly at the cap", () => {
     expect(messageBodyVerdict("x".repeat(MAX_BODY)).ok).toBe(true);
+  });
+});
+
+describe("attachmentVerdict (GAP-MSG-RICH-02)", () => {
+  it("accepts a known catalog sticker URL", () => {
+    expect(attachmentVerdict({ url: "/stickers/fire.svg", type: "sticker" }).ok).toBe(true);
+  });
+
+  it("rejects an arbitrary URL posing as a sticker", () => {
+    const verdict = attachmentVerdict({ url: "https://evil.example/x.svg", type: "sticker" });
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.error).toBe("Unknown sticker.");
+  });
+
+  it("rejects an unknown sticker id under /stickers/", () => {
+    expect(attachmentVerdict({ url: "/stickers/not-a-sticker.svg", type: "sticker" }).ok).toBe(false);
+  });
+
+  it("rejects a path-traversal sticker reference", () => {
+    expect(attachmentVerdict({ url: "/stickers/../secret.svg", type: "sticker" }).ok).toBe(false);
+  });
+
+  it("does not gate image/gif attachments (validated on the upload path)", () => {
+    expect(attachmentVerdict({ url: "https://cdn.example/pic.png", type: "image" }).ok).toBe(true);
+    expect(attachmentVerdict({ url: "https://cdn.example/clip.gif", type: "gif" }).ok).toBe(true);
   });
 });
 

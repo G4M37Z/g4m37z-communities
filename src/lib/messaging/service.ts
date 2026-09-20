@@ -19,6 +19,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { stickerVerdict } from "@/lib/messaging/stickers";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -77,6 +78,23 @@ export function messageBodyVerdict(body: string): BodyVerdict {
   if (trimmed.length === 0) return { ok: false, error: "Message cannot be empty." };
   if (trimmed.length > MAX_BODY) return { ok: false, error: `Message must be ${MAX_BODY} characters or fewer.` };
   return { ok: true, body: trimmed };
+}
+
+// Server-side guard for message attachments at the service boundary.
+// Stickers carry a first-party catalog URL directly (never uploaded), so a
+// crafted client must not be able to inject an arbitrary attachment_url with
+// type "sticker" (GAP-MSG-RICH-02). Image/GIF URLs come from the ownership-
+// scoped storage upload path and are validated there.
+export type AttachmentVerdict = { ok: true } | { ok: false; error: string };
+
+export function attachmentVerdict(attachment: {
+  url: string;
+  type: AttachmentType;
+}): AttachmentVerdict {
+  if (attachment.type === "sticker" && !stickerVerdict(attachment.url).ok) {
+    return { ok: false, error: "Unknown sticker." };
+  }
+  return { ok: true };
 }
 
 export interface CreateDirectArgs {
@@ -351,6 +369,10 @@ export async function getReadState(
   if (trimmed.length > MAX_BODY) {
     return { ok: false, status: "invalid", error: `Message must be ${MAX_BODY} characters or fewer.` };
   }
+  if (attachment) {
+    const verdict = attachmentVerdict(attachment);
+    if (!verdict.ok) return { ok: false, status: "invalid", error: verdict.error };
+  }
 
   const { uid, error: authError } = await resolveUserId();
   if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
@@ -417,4 +439,5 @@ export const __test = {
   UUID_RE,
   messageBodyVerdict,
   createDirectVerdict,
+  attachmentVerdict,
 };

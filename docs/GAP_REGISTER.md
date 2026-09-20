@@ -179,8 +179,9 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
 - Area: Messaging content / abuse
 - Severity: P3 (defense-in-depth; UI picker is the only sender today)
 - Description: `stickerVerdict` exists in `src/lib/messaging/stickers.ts` but is not wired into `sendMessage` (`src/lib/messaging/service.ts`), so a crafted client could send `attachment_type: "sticker"` with an arbitrary `attachment_url`.
-- Status: OPEN
-- Next action: validate sticker URLs server-side in `sendMessage` (reject non-pack URLs / enforce `stickerVerdict`) before insert.
+- Status: FIXED (2026-09-20)
+- Fix: `sendMessage` now runs a pure `attachmentVerdict` helper (`src/lib/messaging/service.ts`) that enforces `stickerVerdict` when `attachment.type === "sticker"`, rejecting arbitrary URLs, unknown ids, and path traversal before insert. Exported through `__test`.
+- Verification: `tests/messaging-service.test.ts` adds 5 cases (known URL accepted; arbitrary URL, unknown id, and `/stickers/../` traversal rejected; image/gif untouched) — PASS; `npm run check` 276/276.
 
 ## GAP-BRAND-01 — Logo placement across required sections
 
