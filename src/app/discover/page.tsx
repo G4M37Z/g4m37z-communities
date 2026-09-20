@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listGames } from "@/lib/games/service";
+import { GameCover } from "@/components/games/GameCover";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,8 @@ export default async function DiscoverPage({
               href={`/game/${g.slug}`}
               className="block rounded-xl border border-border bg-surface p-4 transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              <h3 className="text-base font-semibold text-fg">{g.name}</h3>
+              <GameCover title={g.name} url={g.cover_url} />
+              <h3 className="mt-3 text-base font-semibold text-fg">{g.name}</h3>
               {g.description && (
                 <p className="mt-1 line-clamp-2 text-xs text-text-secondary">
                   {g.description}

@@ -12,6 +12,7 @@ import {
   getUserReviewsForGame,
 } from "@/lib/games/service";
 import { FollowGameButton } from "@/components/games/FollowGameButton";
+import { GameCover } from "@/components/games/GameCover";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,11 @@ export default async function GameDetailPage({
   return (
     <PageEnter>
       <main className="container-x py-8 pb-20">
-        <header className="mb-8 flex flex-col gap-3">
+        <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="w-full sm:w-72 shrink-0">
+            <GameCover title={game.name} url={game.cover_url} />
+          </div>
+          <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-baseline gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-fg">
               {game.name}
@@ -102,6 +107,7 @@ export default async function GameDetailPage({
               {followerCount.toLocaleString()}{" "}
               {followerCount === 1 ? "follower" : "followers"}
             </span>
+          </div>
           </div>
         </header>
 
