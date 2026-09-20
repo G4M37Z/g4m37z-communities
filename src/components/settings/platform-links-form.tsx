@@ -9,6 +9,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Link2, Check } from "lucide-react";
 import { savePlatformLinksAction } from "@/lib/profiles/actions";
+import { PlatformIcon } from "@/components/platform-icon";
 import {
   PLATFORMS,
   PLATFORM_LABELS,
@@ -95,7 +96,8 @@ export function PlatformLinksForm({ initial = null }: Props) {
         {PLATFORMS.map((platform) => (
           <fieldset key={platform} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <label className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-wider text-text-muted">
+              <span className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-text-muted">
+                <PlatformIcon platform={platform} className="h-3.5 w-3.5" labelHidden />
                 {PLATFORM_LABELS[platform]}
               </span>
               <input

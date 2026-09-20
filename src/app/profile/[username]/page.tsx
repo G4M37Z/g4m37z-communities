@@ -14,6 +14,7 @@ import {
   listAchievements,
 } from "@/lib/achievements/service";
 import { listPlatformLinks, PLATFORM_LABELS } from "@/lib/profiles/platform-links";
+import { PlatformIcon } from "@/components/platform-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -270,7 +271,12 @@ supabase
           </div>
           <ul className="flex flex-col gap-2">
             {platformLinks.map((link) => (
-              <li key={link.id} className="flex items-baseline gap-2 text-sm">
+              <li key={link.id} className="flex items-center gap-2 text-sm">
+                <PlatformIcon
+                  platform={link.platform}
+                  className="h-4 w-4 shrink-0 text-text-muted"
+                  labelHidden
+                />
                 <span className="w-40 shrink-0 text-text-muted">
                   {PLATFORM_LABELS[link.platform]}
                 </span>
