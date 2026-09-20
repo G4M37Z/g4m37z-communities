@@ -2,7 +2,7 @@
 // Email + password sign-up. Server Component shell that renders the form
 // (a client component for the in-flight state).
 
-import { UserPlus } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { SignupForm } from "./SignupForm";
 import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
 
@@ -27,8 +27,8 @@ export default async function SignupPage({
     <main className="container-x flex min-h-[80vh] items-center justify-center py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent-text">
-            <UserPlus size={26} />
+          <div className="mb-5 flex w-fit mx-auto text-fg">
+            <Logo height={34} />
           </div>
           <h1 className="mb-2 text-2xl font-black text-fg sm:text-3xl">
             Create your G4M37Z account

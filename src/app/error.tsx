@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle, RotateCw, Home } from "lucide-react";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 export default function GlobalError({
   error,
@@ -24,6 +25,7 @@ export default function GlobalError({
   return (
     <main className="flex min-h-[70vh] items-center justify-center bg-bg px-4">
       <div className="container-x max-w-xl text-center">
+        <BrandMark size={36} className="mx-auto mb-5 block text-fg" />
         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-surface">
           <AlertTriangle size={28} className="text-accent-text" />
         </div>

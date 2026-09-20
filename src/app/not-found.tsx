@@ -4,11 +4,13 @@
 
 import Link from "next/link";
 import { Home, Compass } from "lucide-react";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 export default function NotFound() {
   return (
     <main className="flex min-h-[70vh] items-center justify-center bg-bg px-4">
       <div className="container-x max-w-xl text-center">
+        <BrandMark size={44} className="mx-auto mb-5 block text-accent-text" />
         <p className="mb-2 text-sm font-bold uppercase tracking-widest text-accent-text">
           Error 404
         </p>

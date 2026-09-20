@@ -1,5 +1,5 @@
 // src/app/forgot-password/page.tsx — request a password reset email
-import { KeyRound } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
 
@@ -22,8 +22,8 @@ export default async function ForgotPasswordPage({
     <main className="container-x flex min-h-[80vh] items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent-text">
-            <KeyRound size={26} />
+          <div className="mb-5 flex w-fit mx-auto text-fg">
+            <Logo height={34} />
           </div>
           <h1 className="mb-2 text-2xl font-bold tracking-tight text-fg sm:text-3xl">
             Forgot your password?

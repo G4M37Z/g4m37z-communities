@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 const NAV = [
   { label: "Home", href: "/home", icon: Home },
@@ -29,7 +30,11 @@ export function BottomNav({ username }: { username?: string }) {
             href={href}
             className="press flex min-h-[44px] w-16 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium text-text-muted transition-colors hover:bg-surface hover:text-fg"
           >
-            <Icon size={20} strokeWidth={1.8} />
+            {href === "/home" ? (
+              <BrandMark size={20} />
+            ) : (
+              <Icon size={20} strokeWidth={1.8} />
+            )}
             <span>{label}</span>
           </Link>
         ))}

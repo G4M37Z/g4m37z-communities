@@ -4,7 +4,7 @@
 // session, the link was invalid/expired — send them back to the reset flow.
 
 import { redirect } from "next/navigation";
-import { KeyRound } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { createClient } from "@/lib/supabase/server";
 import { UpdatePasswordForm } from "./UpdatePasswordForm";
 
@@ -29,8 +29,8 @@ export default async function ResetPasswordPage() {
     <main className="container-x flex min-h-[80vh] items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent-text">
-            <KeyRound size={26} />
+          <div className="mb-5 flex w-fit mx-auto text-fg">
+            <Logo height={34} />
           </div>
           <h1 className="mb-2 text-2xl font-bold tracking-tight text-fg sm:text-3xl">
             Set a new password
