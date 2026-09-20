@@ -3,7 +3,7 @@
 // src/app/post/[id]/PostActions.tsx
 // Edit + delete controls for post owners.
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Pencil,
@@ -125,11 +125,20 @@ function EditForm({
   onSaved: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  // GAP-POST-01: submit stays disabled until React is attached so the first
+  // Save click on a freshly mounted edit form can never fall through to a
+  // native form GET (house hydration-gate pattern, cf. MessageForm).
+  const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(post.image_url ?? null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    // Deferred per react-hooks/set-state-in-effect (house pattern, cf. ThemeToggle).
+    queueMicrotask(() => setHydrated(true));
+  }, []);
 
   async function onFile(file: File) {
     setUploading(true);
@@ -253,7 +262,7 @@ function EditForm({
         </button>
         <button
           type="submit"
-          disabled={pending || uploading}
+          disabled={pending || uploading || !hydrated}
           className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
         >
           {pending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
