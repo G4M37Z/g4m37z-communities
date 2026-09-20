@@ -142,10 +142,9 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
   Current thread is a plain list (`ThreadClient.tsx`) — no day dividers,
   no grouping of consecutive messages from one sender, no delivery states
   beyond ✓/✓✓, minimal empty state.
-- Status: OPEN
-- Next action: restyle per docs/BRAND.md (dark, restrained, accent on own
-  messages): day dividers, sender-grouped bubbles, hover timestamps,
-  delivery ticks consistent with read state, mobile widths.
+- Status: FIXED + VERIFIED (2026-09-20) — implemented in `2984c3e`
+- Fix: `ThreadClient.tsx` renders day dividers (Today / Yesterday / locale date), groups consecutive same-sender bubbles within 5 minutes (spacer alignment for grouped runs), and has a dedicated empty state. Receipts (046) already drive ✓/✓✓ from the partner's read state.
+- Verification: code inspection (`dayLabel`, `showDivider`, `grouped` in `ThreadClient.tsx`) + commit `2984c3e`; `npm run check` PASS.
 
 ## GAP-MSG-CALL-01 — Voice + video calls inside the messages UI
 

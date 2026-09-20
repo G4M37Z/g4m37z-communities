@@ -272,6 +272,8 @@ Changes:
   - docs: GAP_REGISTER, PROJECT_STATE, AGENT_HANDOFF, TEST_MATRIX, DECISIONS
   - server-side sticker guard (GAP-MSG-RICH-02): attachmentVerdict helper in
     src/lib/messaging/service.ts + tests/messaging-service.test.ts (5)
+  - reconciled GAP-MSG-UI-01: already shipped in 2984c3e (day dividers,
+    5-min grouping, empty state) — register entry closed, no code change
 Tests: tsc PASS; eslint PASS (0 errors, 15 pre-existing warnings);
   vitest 276/276 (unit, browser excluded). Live DB: 048 idempotent
   (UPDATE 0 x8), all 8 games has_cover=t.

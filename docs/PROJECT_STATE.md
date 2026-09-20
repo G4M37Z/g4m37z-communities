@@ -50,13 +50,16 @@ pre-existing warnings) · vitest **276/276** (unit).
 - **GAP-BRAND-01 (logo placement) — FIXED:** `Logo` lockup on the four auth
   card headers; `BrandMark` on the BottomNav Home tab and the 404/error pages;
   `loading.tsx` + OG image were already branded.
+- **GAP-MSG-UI-01 (thread polish) — CLOSED (was a stale register entry):** day
+  dividers, 5-minute same-sender grouping, and the empty state already shipped
+  in `2984c3e`; 046 receipts drive ✓/✓✓.
 - **GAP-POST-02 (orphan storage object) — BLOCKED (environment):** direct
   `storage.objects` DELETE is rejected by Supabase's `protect_delete()` guard;
   no bypass applied (it would leave a dangling S3 object). Needs Dashboard →
   Storage or a service-role Storage API call; only `DATABASE_URL` is provisioned.
 
 Still open: GAP-EMAIL-01 (dashboard), GAP-WEBRTC-01 (two-device), GAP-RATE-01
-(pre-launch decision), GAP-MSG-UI-01 / GAP-MSG-CALL-01 (feature work).
+(pre-launch decision), GAP-MSG-CALL-01 (feature work).
 
 **Launch-hardening acceptance + messaging send fix (2026-09-19) — VERIFIED.**
 
