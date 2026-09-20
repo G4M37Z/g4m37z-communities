@@ -81,15 +81,27 @@
   action.
 - Status: NOT REPRODUCED (awaiting user re-test)
 
-## GAP-RATE-01 — Env-gated rate limits dormant by default
+## GAP-RATE-01 — Env-gated rate limits dormant by default — CLOSED
 
 - Area: Abuse hardening
-- Severity: P2 (pre-launch decision)
-- Description: application-side rate limits (`44d7cde`) only activate when
-  env-configured. Nothing currently configures them in production.
-- Status: OPEN (decision required)
-- Next action: decide before launch: configure limits in prod env vs. rely on
-  Supabase-side auth rate limits + dashboard controls; record in DECISIONS.md.
+- Severity: P2 (pre-launch decision) — RESOLVED
+- Description: application-side rate limits (`44d7cde`) only activated when KV
+  env vars were configured; the limiter was a no-op otherwise.
+- Decision + fix (2026-09-20): reworked `src/lib/rate-limit.ts`. The
+  **in-process fixed-window limiter is now the default backend**, so limits are
+  active out of the box on any single process; the shared **Vercel KV (Upstash)
+  backend is used automatically when `KV_REST_API_URL` / `KV_REST_API_TOKEN`
+  are set** (counters shared across instances). `RATE_LIMIT_BACKEND=memory|kv`
+  forces a backend; forced-KV-unconfigured and all infra errors still fail
+  open (logged), never a self-inflicted outage. Current limits: messaging
+  `msg-send:<uid>` 60/60s, signup `signup:<username>` 5/3600.
+- Verification: tsc/eslint PASS; `tests/rate-limit.test.ts` 8 cases +
+  updated `tests/launch-hardening.test.ts` (in-process window enforcement,
+  KV fail-open) — vitest **285/285**.
+- Caveat: in-process counters are per instance; configure the shared KV store
+  before relying on limits at scale. Remaining extensions per V3_ARCHITECTURE
+  8.2 (report 1/day, comment 10/min, LFG 2/day, tournament 1/day) tracked
+  separately if those surfaces are enabled.
 
 ## GAP-VERIFY-01 — Acceptance harnesses are psql-driven, not CI
 

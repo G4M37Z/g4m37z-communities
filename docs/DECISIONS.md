@@ -159,3 +159,34 @@ Reason: Same minimal diff and contract; removes the native-GET path.
 
 Consequences: Any remaining client-component form with a submit control must
 adopt the gate or be proven to render no uncontrolled submit control.
+
+## Decision: Rate limiting uses an in-process backend by default, KV as the shared upgrade
+
+Date: 2026-09-20
+Status: ACTIVE
+
+Context: GAP-RATE-01 — the app-side limiter (`44d7cde`) was a no-op unless
+Vercel KV env vars were configured, so account-spam and message-flood guards
+were dormant in production.
+
+Decision: `src/lib/rate-limit.ts` now ships two backends. The in-process
+fixed-window limiter is the default, so limits are active on any deployment
+out of the box (per-instance counters). When `KV_REST_API_URL` +
+`KV_REST_API_TOKEN` are both set, the shared Upstash/Vercel-KV backend is used
+instead (counters shared across instances). `RATE_LIMIT_BACKEND=memory|kv`
+forces a backend. All infra/forced-KV failures fail open and log — a store
+outage is never a self-inflicted outage. Limits: `msg-send:<uid>` 60/60s,
+`signup:<username>` 5/3600.
+
+Alternatives: keep limits dormant until KV is provisioned (rejected — the gap
+was exactly that nothing was configured, and unset env is the common case);
+dependency-inject a Redis/Postgres limiter (heavier infra than the launch
+surface needs; KV / in-process cover single- and multi-instance today).
+
+Reason: Working limits by default with a documented, zero-code switch to a
+shared store at scale; fail-open preserves availability.
+
+Consequences: In-process counters reset per instance and on restarts — not a
+hard security boundary for multi-instance traffic; configure KV (or enforce
+Supabase-side limits) before relying on them at scale. New limit surfaces
+should reuse `rateLimit` with per-user keys and clearly named windows.

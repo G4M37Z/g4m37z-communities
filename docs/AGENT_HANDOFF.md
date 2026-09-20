@@ -274,6 +274,11 @@ Changes:
     src/lib/messaging/service.ts + tests/messaging-service.test.ts (5)
   - reconciled GAP-MSG-UI-01: already shipped in 2984c3e (day dividers,
     5-min grouping, empty state) — register entry closed, no code change
+  - rate limiting (GAP-RATE-01): src/lib/rate-limit.ts reworked — in-process
+    fixed-window backend is now the default (active out of the box), shared
+    Vercel KV backend auto-selected when configured, lazy env reads,
+    RATE_LIMIT_BACKEND=memory|kv; tests/rate-limit.test.ts (8), launch
+    hardening test updated
 Tests: tsc PASS; eslint PASS (0 errors, 15 pre-existing warnings);
   vitest 276/276 (unit, browser excluded). Live DB: 048 idempotent
   (UPDATE 0 x8), all 8 games has_cover=t.

@@ -42,7 +42,7 @@
 | Surface | Protection | State |
 |---|---|---|
 | Auth email sends | Supabase rate limit | 429 hit in testing; workaround = confirmation off (temporary) |
-| Signup/login abuse | Env-gated rate limits (`44d7cde`) | Off unless env configured — decide before launch |
+| Signup/login abuse | Rate limits (in-process default, Vercel KV shared backend) | Active by default since 2026-09-20 (GAP-RATE-01) |
 | Message/post/comment spam | Body length caps, membership gates, block enforcement | Active |
 | Upload abuse | Storage policies, magic-byte sniffing, ownership validation (`f52d86d`) | Active |
 | Security headers | Set in `44d7cde` | Active — re-verify CSP on any new external origin |
@@ -50,7 +50,8 @@
 
 ## Known limitations
 
-- Rate limits are dormant by default (env-gated): a deliberate pre-launch
-  decision is required (enable vs. rely on Supabase-side limits).
+- Rate limits are active in-process by default since 2026-09-20 (GAP-RATE-01).
+  Counters are per instance; configure shared Vercel KV before relying on the
+  limits at multi-instance scale.
 - Two non-messaging files still use bare `text-red` for error text (cosmetic;
   tracked in GAP_REGISTER).

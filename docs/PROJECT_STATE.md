@@ -27,7 +27,7 @@
 
 Base HEAD `cfc66ef` (messaging image+GIF attachments). This session closed the
 flagged feature gaps; gates after: tsc PASS · eslint PASS (0 errors, 15
-pre-existing warnings) · vitest **276/276** (unit).
+pre-existing warnings) · vitest **285/285** (unit).
 
 - **GAP-MSG-RICH-01 (stickers) — SHIPPED (PARTIAL):** 10 SVG stickers in
   `public/stickers/`, `src/lib/messaging/stickers.ts`, picker in
@@ -53,13 +53,19 @@ pre-existing warnings) · vitest **276/276** (unit).
 - **GAP-MSG-UI-01 (thread polish) — CLOSED (was a stale register entry):** day
   dividers, 5-minute same-sender grouping, and the empty state already shipped
   in `2984c3e`; 046 receipts drive ✓/✓✓.
+- **GAP-RATE-01 (rate limits) — CLOSED (decision + fix):** the limiter is no
+  longer dormant — an in-process fixed-window backend is the default (active
+  on any deployment) and the shared Vercel KV backend is auto-selected when
+  `KV_REST_API_URL`/`KV_REST_API_TOKEN` are set; `RATE_LIMIT_BACKEND=memory|kv`
+  forces a backend, infra errors fail open (logged). Limits active: messaging
+  60/60s per user, signup 5/h per username.
 - **GAP-POST-02 (orphan storage object) — BLOCKED (environment):** direct
   `storage.objects` DELETE is rejected by Supabase's `protect_delete()` guard;
   no bypass applied (it would leave a dangling S3 object). Needs Dashboard →
   Storage or a service-role Storage API call; only `DATABASE_URL` is provisioned.
 
-Still open: GAP-EMAIL-01 (dashboard), GAP-WEBRTC-01 (two-device), GAP-RATE-01
-(pre-launch decision), GAP-MSG-CALL-01 (feature work).
+Still open: GAP-EMAIL-01 (dashboard), GAP-WEBRTC-01 (two-device),
+GAP-MSG-CALL-01 (feature work).
 
 **Launch-hardening acceptance + messaging send fix (2026-09-19) — VERIFIED.**
 

@@ -27,5 +27,5 @@
 | Voice rooms / participants | `public.voice_rooms`, `public.voice_room_participants` | Lock/capacity/membership enforced on join |
 | Creator analytics | `public.creator_analytics` (033-era) | Do not derive elsewhere |
 | Terms acceptance | Server-validated terms version (commit `44d7cde`) | Version bump invalidates stale acceptances |
-| Rate limits | Env-gated (commit `44d7cde`) | Off unless configured — see SECURITY_MODEL |
+| Rate limits | In-process by default (GAP-RATE-01, 2026-09-20) | Active per instance; shared via Vercel KV when configured — see SECURITY_MODEL |
 | Live SQL access | `run-sql.cmd` (Windows host) / `~/.local/bin/run-sql` (Termux), creds in `~/.supabase_env` | Only authorized SQL interface; never print credentials |

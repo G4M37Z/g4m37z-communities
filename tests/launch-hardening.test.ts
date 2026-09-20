@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { __postImageTest } from "@/lib/posts/image-validation-test";
 import { validateTerms } from "@/lib/terms";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, resetRateLimitMemory } from "@/lib/rate-limit";
 
 const MIGRATION = readFileSync(
   join(process.cwd(), "docs/database/045_launch_hardening.sql"),
@@ -103,10 +103,15 @@ describe("validateTerms", () => {
 });
 
 describe("rateLimit (env-gated)", () => {
-  it("fails open when KV env vars are absent", async () => {
-    const r = await rateLimit("k", 5, 60);
-    expect(r.allowed).toBe(true);
-    expect(r.remaining).toBe(5);
+  beforeEach(() => {
+    resetRateLimitMemory();
+  });
+
+  it("enforces the window in-process when KV is absent (GAP-RATE-01)", async () => {
+    for (let i = 0; i < 5; i += 1) {
+      expect((await rateLimit("k", 5, 60)).allowed).toBe(true);
+    }
+    expect((await rateLimit("k", 5, 60)).allowed).toBe(false);
   });
 
   it("fails open when the KV endpoint errors", async () => {

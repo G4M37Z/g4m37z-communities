@@ -11,7 +11,7 @@ vitest **258/258** (unit, browser excluded) · `next build --webpack` PASS
 (49 routes).
 
 Last partial gate run: **2026-09-20** — tsc PASS · eslint PASS (0 errors) ·
-vitest **276/276** (unit, browser excluded). Build not re-run (no build-affecting
+vitest **285/285** (unit, browser excluded). Build not re-run (no build-affecting
 change; prefer the CI/Vercel cloud build per AGENTS.md).
 
 ## Gates (always run after code changes)
@@ -20,7 +20,7 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 |---|---|---|---|---|
 | Typecheck | `npx tsc --noEmit` | L2 | 2026-09-20 | PASS |
 | Lint | `npx eslint .` | L2 | 2026-09-20 | PASS (0 errors, 15 warnings) |
-| Unit tests | `npx vitest run --exclude 'tests/browser/**'` | L2 | 2026-09-20 | PASS 276/276 |
+| Unit tests | `npx vitest run --exclude 'tests/browser/**'` | L2 | 2026-09-20 | PASS 285/285 |
 | Build | `./node_modules/.bin/next build --webpack` | L2 | 2026-09-19 | PASS (49 routes) |
 
 ## Critical flows
@@ -46,6 +46,7 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Browser smoke (8 routes) | L3 (WebDriver, same-shell invocation) | FINAL_REPORT; Android low-memory-killer note | 2026-09-17 |
 | Sticker send + render in DMs | L2 | `tests/messaging-stickers.test.ts` 8/8; picker in `MessageForm.tsx`, renderer in `ThreadClient.tsx` | 2026-09-20 |
 | Sticker URL server-side validation (`sendMessage`) | L2 | `tests/messaging-service.test.ts` 5 cases (arbitrary URL / unknown id / traversal rejected) | 2026-09-20 |
+| Rate limiting active by default (msg 60/min/user, signup 5/hr/username) | L2 | `tests/rate-limit.test.ts` 8 cases (backend selection, window enforce/reset, KV fail-open) | 2026-09-20 |
 | Official platform logos on profile + platform-links form | L2 | `src/components/platform-icon.tsx`; tsc/eslint clean; live visual pass owed | 2026-09-20 |
 | Seeded game covers (all 8 games) | L3 (live DB) + L2 | 048 idempotent (`UPDATE 0` ×8); live `has_cover=t` ×8; `tests/game-cover-url.test.ts` 5/5 | 2026-09-20 |
 | Post create/edit pre-hydration submit gate | L2 | `CreatePostForm.tsx` + `PostActions.tsx` hydration gate; `npm run check` PASS; live click re-test owed | 2026-09-20 |
