@@ -83,3 +83,79 @@ Reason: Same trust contract as the documented Termux path, matches the host.
 Consequences: DATABASE.md should gain a Windows-host note; anything needing
 write access to the DB must go through this interface and produce a
 committed, reviewable SQL file.
+
+## Decision: Platform icons are official marks rendered monochrome via currentColor
+
+Date: 2026-09-20
+Status: ACTIVE
+
+Context: Platform links (Steam, PlayStation, Xbox, Google Play, Apple Game
+Center) rendered text-only; the user required official logos ("dont hand
+draw use official logos"). Official marks ship in brand colors, but
+`docs/BRAND.md` forbids hardcoded hex in components.
+
+Decision: `src/components/platform-icon.tsx` bundles official marks only —
+Steam/PlayStation/Google Play from Simple Icons (CC0); Xbox from
+`simple-icons@12.4.0` (removed in v13+, brand hex `#107C10`); Apple Game
+Center = Apple's official four-circle mark (Wikimedia, sourced from
+`developer.apple.com/game-center`; PD-ineligible/trademarked). All render
+monochrome `fill="currentColor"` with a per-platform `viewBox` and a
+`Record<Platform, …>` map (compile-time coverage guard). Text labels remain
+for accessibility.
+
+Alternatives: brand-colored marks (would require hardcoded hex, violating
+BRAND.md and clashing with the theme); `next/image` PNGs (hotlinks, larger
+payload, no theming); hand-drawn marks (rejected by the user).
+
+Reason: Official provenance, theme-aware, zero hardcoded color, one
+component, trademark printed as monochrome glyphs (common nominative use).
+
+Consequences: New platforms must add an official mark + map entry or the
+build breaks (by design). Do not recolor marks or hotlink vendor CDNs.
+
+## Decision: Do not bypass Supabase's direct-storage-delete guard
+
+Date: 2026-09-20
+Status: ACTIVE
+
+Context: GAP-POST-02 removes one orphaned `post-images` object. A
+`DELETE FROM storage.objects` migration failed with
+`storage.protect_delete()`: "Direct deletion from storage tables is not
+allowed. Use the Storage API instead." The guard can be disabled via the
+`storage.allow_delete_query` GUC, and only `DATABASE_URL` is provisioned
+(no service-role key).
+
+Decision: Do not disable the guard and delete via SQL. A metadata delete
+leaves the underlying S3 object dangling, so it would not actually fix the
+orphan. Remediation is a Dashboard → Storage delete or a service-role
+Storage API `remove()` call.
+
+Alternatives: `SET storage.allow_delete_query = 'true'` then delete (rejected
+— incomplete cleanup, silently creates a worse orphan); direct S3 access (no
+credentials).
+
+Reason: The guard exists to keep the object store and its metadata in sync;
+subverting it trades a visible, harmless orphan for an invisible one.
+
+Consequences: Storage hygiene gaps are BLOCKED-ENVIRONMENT for this agent
+until either dashboard access or a service-role key is provided. New cleanup
+needs must use the Storage API, never `storage.objects` DML.
+
+## Decision: Extend the pre-hydration submit gate to post create/edit forms
+
+Date: 2026-09-20
+Status: ACTIVE
+
+Context: GAP-POST-01 (first Save/Publish click swallowed) shares the root
+cause of the 2026-09-19 messaging decision — `action={onSubmit}` forms can
+submit natively before React hydrates.
+
+Decision: Apply the house hydration gate (`hydrated` state via
+`useEffect` + `queueMicrotask`; submit control `disabled={pending || uploading
+|| !hydrated}`) to `CreatePostForm.tsx` and the `EditForm` in
+`PostActions.tsx`, per the existing decision's consequence note.
+
+Reason: Same minimal diff and contract; removes the native-GET path.
+
+Consequences: Any remaining client-component form with a submit control must
+adopt the gate or be proven to render no uncontrolled submit control.

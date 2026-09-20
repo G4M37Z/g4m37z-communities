@@ -10,13 +10,17 @@ Last full gate run: **2026-09-19** — tsc PASS · eslint PASS (0 errors) ·
 vitest **258/258** (unit, browser excluded) · `next build --webpack` PASS
 (49 routes).
 
+Last partial gate run: **2026-09-20** — tsc PASS · eslint PASS (0 errors) ·
+vitest **271/271** (unit, browser excluded). Build not re-run (no build-affecting
+change; prefer the CI/Vercel cloud build per AGENTS.md).
+
 ## Gates (always run after code changes)
 
 | Gate | Command | Level | Last run | Result |
 |---|---|---|---|---|
-| Typecheck | `npx tsc --noEmit` | L2 | 2026-09-19 | PASS |
-| Lint | `npx eslint .` | L2 | 2026-09-19 | PASS (0 errors) |
-| Unit tests | `npx vitest run --exclude 'tests/browser/**'` | L2 | 2026-09-19 | PASS 258/258 |
+| Typecheck | `npx tsc --noEmit` | L2 | 2026-09-20 | PASS |
+| Lint | `npx eslint .` | L2 | 2026-09-20 | PASS (0 errors, 15 warnings) |
+| Unit tests | `npx vitest run --exclude 'tests/browser/**'` | L2 | 2026-09-20 | PASS 271/271 |
 | Build | `./node_modules/.bin/next build --webpack` | L2 | 2026-09-19 | PASS (49 routes) |
 
 ## Critical flows
@@ -40,6 +44,11 @@ vitest **258/258** (unit, browser excluded) · `next build --webpack` PASS
 | WebRTC two-peer audio | **BLOCKED — environment** (single audio endpoint) | FINAL_REPORT O/P; re-test on two devices required | — |
 | Voice room single-peer runtime (join, Go Live, signaling write, leave cleanup) | L3 (prod build, headless Chromium, live DB) | `sql/verify-voice-runtime.sql` + network log; GAP-WEBRTC-01 narrowed | 2026-09-19 |
 | Browser smoke (8 routes) | L3 (WebDriver, same-shell invocation) | FINAL_REPORT; Android low-memory-killer note | 2026-09-17 |
+| Sticker send + render in DMs | L2 | `tests/messaging-stickers.test.ts` 8/8; picker in `MessageForm.tsx`, renderer in `ThreadClient.tsx` | 2026-09-20 |
+| Official platform logos on profile + platform-links form | L2 | `src/components/platform-icon.tsx`; tsc/eslint clean; live visual pass owed | 2026-09-20 |
+| Seeded game covers (all 8 games) | L3 (live DB) + L2 | 048 idempotent (`UPDATE 0` ×8); live `has_cover=t` ×8; `tests/game-cover-url.test.ts` 5/5 | 2026-09-20 |
+| Post create/edit pre-hydration submit gate | L2 | `CreatePostForm.tsx` + `PostActions.tsx` hydration gate; `npm run check` PASS; live click re-test owed | 2026-09-20 |
+| Brand logo placement (auth, BottomNav, 404, error) | L2 | `Logo`/`BrandMark` wired; `npm run check` PASS; live visual pass owed | 2026-09-20 |
 
 ## Regression protection rule
 

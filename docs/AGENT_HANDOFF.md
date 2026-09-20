@@ -247,6 +247,41 @@ NOTE — SQL interface (this host):
 
 Most recent first. Add an entry at the end of every substantial session.
 
+### 2026-09-20 — Feature-gap closure (stickers, covers, platform logos, post gate, brand)
+
+```text
+Agent: opencode (big-pickle)
+Environment: Termux Android arm64; repo /data/data/com.termux/files/home/g4m37z-communities
+Branch: main
+Starting HEAD: cfc66ef (feat(messaging): image and GIF attachments)
+Task: Close the user-highlighted feature gaps, update the governance docs, push.
+Changes:
+  - stickers (GAP-MSG-RICH-01): public/stickers/*.svg (10), src/lib/messaging/
+    stickers.ts, MessageForm picker, ThreadClient renderer, database.ts
+    attachment_type widened; tests/messaging-stickers.test.ts (8)
+  - game covers (GAP-GAMES-01): docs/database/048_game_covers.sql,
+    src/lib/games/cover-url.ts, src/components/games/GameCover.tsx,
+    tests/game-cover-url.test.ts (5); wired into discover + game/[slug]
+  - official platform logos (GAP-PLATFORM-01): src/components/platform-icon.tsx
+    (Simple Icons CC0; Xbox simple-icons@12.4.0; Apple Game Center official),
+    monochrome currentColor; wired into profile + platform-links form
+  - post hydration gate (GAP-POST-01): CreatePostForm.tsx + PostActions.tsx
+    EditForm
+  - brand placement (GAP-BRAND-01): Logo on 4 auth headers, BrandMark on
+    BottomNav Home + 404 + error
+  - docs: GAP_REGISTER, PROJECT_STATE, AGENT_HANDOFF, TEST_MATRIX, DECISIONS
+Tests: tsc PASS; eslint PASS (0 errors, 15 pre-existing warnings);
+  vitest 271/271 (unit, browser excluded). Live DB: 048 idempotent
+  (UPDATE 0 x8), all 8 games has_cover=t.
+Blocked: GAP-POST-02 — Supabase storage.protect_delete() rejects direct
+  storage.objects DELETE; no service-role key provisioned; needs Dashboard
+  -> Storage or a service-role Storage API remove(). No guard bypass applied.
+Runtime verification owed: live visual pass (logos/brand), post-form click
+  timing, and a browser pass on the new sticker picker.
+Next recommended action: wire server-side sticker validation (GAP-MSG-RICH-02),
+  then the pre-launch punch list (email confirmation last, two-device voice).
+```
+
 ### 2026-09-19 — Launch-hardening acceptance + messaging send fix (Buffy/Codebuff)
 
 ```text

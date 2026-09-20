@@ -13,15 +13,50 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `8a32bf3` (messaging hydration-gate fix; prior `aee3494` 045 acceptance harnesses, `487dfcb` launch-hardening series) |
+| Last verified HEAD | `cfc66ef` (messaging image/GIF attachments); 2026-09-20 gap-fix series lands on top (`8a32bf3` messaging hydration gate, `aee3494` 045 harnesses, `487dfcb` launch-hardening) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 5 (launch-readiness sync 2026-09-19; governance layer: DECISIONS/DATA_SOURCES/TEST_MATRIX/SECURITY_MODEL/GAP_REGISTER added) |
-| Last verified date | 2026-09-19 (session) |
+| Documentation version | 6 (feature-gap sync 2026-09-20: stickers, official platform logos, game covers, post hydration gate, brand placement; GAP-POST-02 blocked) |
+| Last verified date | 2026-09-20 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Feature-gap closure (2026-09-20) — code-complete, static-verified; live visual/click passes owed.**
+
+Base HEAD `cfc66ef` (messaging image+GIF attachments). This session closed the
+flagged feature gaps; gates after: tsc PASS · eslint PASS (0 errors, 15
+pre-existing warnings) · vitest **271/271** (unit).
+
+- **GAP-MSG-RICH-01 (stickers) — SHIPPED (PARTIAL):** 10 SVG stickers in
+  `public/stickers/`, `src/lib/messaging/stickers.ts`, picker in
+  `MessageForm.tsx`, renderer in `ThreadClient.tsx`, `messages.attachment_type`
+  widened to `"image"|"gif"|"sticker"`. `tests/messaging-stickers.test.ts` 8/8.
+  GIF *picker* remains deferred (needs a Tenor/GIPHY API key decision).
+  New follow-up GAP-MSG-RICH-02: sticker URLs not yet validated server-side.
+- **GAP-GAMES-01 (covers) — FIXED + VERIFIED:** `048_game_covers.sql` seeds
+  official CDN art for all 8 games (`cover_url`); re-run idempotent (`UPDATE 0`
+  ×8); live DB `has_cover=t` ×8. Rendering via `cover-url.ts` allowlist +
+  `GameCover.tsx`. `tests/game-cover-url.test.ts` 5/5.
+- **GAP-PLATFORM-01 (official platform logos) — FIXED:** `platform-icon.tsx`
+  bundles official marks only (Simple Icons CC0; Xbox from `simple-icons@12.4.0`;
+  Apple Game Center = Apple's official four-circle mark), rendered monochrome
+  `currentColor` per BRAND.md; wired into profile + platform-links form.
+- **GAP-POST-01 (swallowed first save) — FIXED:** hydration gate applied to
+  `CreatePostForm.tsx` + `PostActions.tsx` EditForm (same root cause as the
+  2026-09-19 messaging defect).
+- **GAP-BRAND-01 (logo placement) — FIXED:** `Logo` lockup on the four auth
+  card headers; `BrandMark` on the BottomNav Home tab and the 404/error pages;
+  `loading.tsx` + OG image were already branded.
+- **GAP-POST-02 (orphan storage object) — BLOCKED (environment):** direct
+  `storage.objects` DELETE is rejected by Supabase's `protect_delete()` guard;
+  no bypass applied (it would leave a dangling S3 object). Needs Dashboard →
+  Storage or a service-role Storage API call; only `DATABASE_URL` is provisioned.
+
+Still open: GAP-EMAIL-01 (dashboard), GAP-WEBRTC-01 (two-device), GAP-RATE-01
+(pre-launch decision), GAP-MSG-UI-01 / GAP-MSG-CALL-01 (feature work),
+GAP-MSG-RICH-02 (server-side sticker validation).
 
 **Launch-hardening acceptance + messaging send fix (2026-09-19) — VERIFIED.**
 
