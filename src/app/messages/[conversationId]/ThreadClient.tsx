@@ -116,6 +116,9 @@ export function ThreadClient({
               : Infinity;
           const grouped = sameSender && gapMins < 5 && !showDivider;
           const p = profiles.get(m.sender_id ?? "");
+          // Sticker messages (GAP-MSG-RICH-01) render as a plain centred
+          // asset — no bubble chrome on an already-accent-coloured bubble.
+          const isSticker = m.attachment_type === "sticker";
 
           return (
             <li key={m.id}>
@@ -151,20 +154,24 @@ export function ThreadClient({
                   ))}
                 <div
                   className={`max-w-[75%] px-3 py-2 text-sm ${
-                    own
-                      ? "bg-accent text-white"
-                      : "border border-border bg-surface text-fg"
+                    isSticker
+                      ? "bg-transparent px-0 py-0"
+                      : own
+                        ? "bg-accent text-white"
+                        : "border border-border bg-surface text-fg"
                   } ${
-                    own
-                      ? grouped
-                        ? "rounded-lg rounded-tr-sm"
-                        : "rounded-lg"
-                      : grouped
-                        ? "rounded-lg rounded-tl-sm"
-                        : "rounded-lg"
+                    isSticker
+                      ? ""
+                      : own
+                        ? grouped
+                          ? "rounded-lg rounded-tr-sm"
+                          : "rounded-lg"
+                        : grouped
+                          ? "rounded-lg rounded-tl-sm"
+                          : "rounded-lg"
                   }`}
                 >
-                  {m.sender_id !== currentUserId && !grouped && (
+                  {m.sender_id !== currentUserId && !grouped && !isSticker && (
                     <p className="mb-0.5 text-[10px] font-semibold text-text-muted">
                       {p?.display_name ?? p?.username ?? "Unknown"}
                     </p>
@@ -172,15 +179,27 @@ export function ThreadClient({
                   {m.attachment_url && (
                     // Attachment bubble (047). Renders above any caption text;
                     // the public-read bucket URL is safe to embed directly.
+                    // Stickers are first-party /public/stickers assets and get
+                    // the compact centred treatment.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={m.attachment_url}
-                      alt={m.attachment_type === "gif" ? "GIF" : "Shared image"}
-                      className={`mb-1 block max-h-64 w-full rounded-md object-cover ${own ? "rounded-md" : ""}`}
+                      alt={
+                        isSticker
+                          ? "Sticker"
+                          : m.attachment_type === "gif"
+                            ? "GIF"
+                            : "Shared image"
+                      }
+                      className={
+                        isSticker
+                          ? "block h-28 w-28 object-contain"
+                          : `mb-1 block max-h-64 w-full rounded-md object-cover ${own ? "rounded-md" : ""}`
+                      }
                       loading="lazy"
                     />
                   )}
-                  {(m.body || !m.attachment_url) && (
+                  {!isSticker && (m.body || !m.attachment_url) && (
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                   )}
                   {m.created_at && (

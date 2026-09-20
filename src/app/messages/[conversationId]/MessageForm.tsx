@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Loader2, Smile, X } from "lucide-react";
 import {
   sendMessage,
   uploadMessageAttachment,
   type MessageActionState,
 } from "@/lib/messaging/actions";
+import { STICKERS } from "@/lib/messaging/stickers";
 import type { Message } from "@/lib/messaging/service";
 
 export function MessageForm({
@@ -33,11 +34,21 @@ export function MessageForm({
     { url: string; type: "image" | "gif" | "sticker" } | null
   >(null);
   const [uploading, setUploading] = useState(false);
+  // Sticker picker (GAP-MSG-RICH-01): toggles the inline grid. Picking a
+  // sticker sets the pending attachment directly (no upload — the asset is
+  // first-party in /public/stickers).
+  const [showStickers, setShowStickers] = useState(false);
 
   useEffect(() => {
     // Deferred per react-hooks/set-state-in-effect (house pattern, cf. ThemeToggle).
     queueMicrotask(() => setHydrated(true));
   }, []);
+
+  function onPickSticker(url: string) {
+    setAttachment({ url, type: "sticker" });
+    setShowStickers(false);
+    setState({ ok: true });
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -100,10 +111,14 @@ export function MessageForm({
           <img
             src={attachment.url}
             alt=""
-            className="h-14 w-14 rounded-md object-cover"
+            className={`rounded-md object-cover ${attachment.type === "sticker" ? "h-12 w-12" : "h-14 w-14"}`}
           />
           <span className="text-xs text-text-muted">
-            {attachment.type === "gif" ? "GIF" : "Image"} ready
+            {attachment.type === "sticker"
+              ? "Sticker ready"
+              : attachment.type === "gif"
+                ? "GIF ready"
+                : "Image ready"}
           </span>
           <button
             type="button"
@@ -115,7 +130,37 @@ export function MessageForm({
           </button>
         </div>
       )}
+      {showStickers && (
+        <div className="mb-2 grid grid-cols-5 gap-1 rounded-lg border border-border bg-surface p-2">
+          {STICKERS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPickSticker(s.url)}
+              aria-label={s.name}
+              title={s.name}
+              className="flex items-center justify-center rounded-md p-1 hover:bg-white/5"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.url} alt={s.name} className="h-10 w-10" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
       <form ref={formRef} onSubmit={onSubmit} className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (!hydrated || uploading) return;
+            setShowStickers((v) => !v);
+          }}
+          aria-label="Add a sticker"
+          aria-expanded={showStickers}
+          title="Stickers"
+          className={`inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border text-text-muted hover:border-accent/60 hover:text-fg ${!hydrated ? "pointer-events-none" : ""}`}
+        >
+          <Smile size={16} />
+        </button>
         <label
           htmlFor="message-attachment"
           aria-label="Attach an image or GIF"

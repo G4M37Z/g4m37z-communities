@@ -645,6 +645,8 @@ export interface Message {
   read: boolean;
   delivered: boolean;
   created_at: string;
+  attachment_url: string | null;
+  attachment_type: "image" | "gif" | "sticker" | null;
 }
 
 // ----------------------------------------------------------------------------
