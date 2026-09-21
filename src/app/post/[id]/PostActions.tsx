@@ -175,7 +175,9 @@ function EditForm({
   }
 
   return (
-    <form action={onSubmit} className="w-full space-y-2">
+    // GAP-POST-01 hardening: no action until hydrated — implicit native
+    // submission (Enter) has nothing to fall through to.
+    <form action={hydrated ? onSubmit : undefined} className="w-full space-y-2">
       <input type="hidden" name="postId" value={post.id} />
       <input
         name="title"

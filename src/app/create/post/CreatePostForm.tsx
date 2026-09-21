@@ -64,7 +64,11 @@ export function CreatePostForm({ communities, defaultCommunityId }: Props) {
   }
 
   return (
-    <form action={onSubmit} className="space-y-5">
+    // GAP-POST-01 hardening: while !hydrated the form has action={undefined},
+    // so even a native submit path (Enter in a field, double-fire around
+    // hydration) has nothing to fall through to — the button gate alone
+    // missed the implicit-submission route.
+    <form action={hydrated ? onSubmit : undefined} className="space-y-5">
       <div>
         <label
           htmlFor="communityId"
