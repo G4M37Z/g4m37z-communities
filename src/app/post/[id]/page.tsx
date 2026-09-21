@@ -36,6 +36,7 @@ interface JoinedPost extends Post {
     avatar_url: string | null;
   } | null;
   community: { slug: string; name: string } | null;
+  game: { id: string; name: string; slug: string } | null;
 }
 
 export async function generateMetadata({
@@ -94,7 +95,8 @@ export default async function PostPage({
     .select(
       `id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count,
        author:profiles!posts_author_id_fkey ( username, display_name, avatar_url )
-       community:communities!posts_community_id_fkey ( slug, name )`
+       community:communities!posts_community_id_fkey ( slug, name )
+       game:games!posts_game_id_fkey ( id, name, slug )`
     )
     .eq("id", id)
     .maybeSingle();
@@ -242,6 +244,14 @@ export default async function PostPage({
               <h1 className="text-2xl font-black leading-tight text-fg sm:text-3xl">
                 {post.title}
               </h1>
+              {post.game && (
+                <Link
+                  href={`/game/${post.game.slug}`}
+                  className="mt-2 inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-text transition-colors hover:border-accent"
+                >
+                  {post.game.name}
+                </Link>
+              )}
             </header>
 
             {post.image_url && typeof post.image_url === "string" && (

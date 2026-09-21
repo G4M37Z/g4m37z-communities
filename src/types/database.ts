@@ -111,6 +111,8 @@ export interface Community {
   category_id: string | null;
   capabilities?: string[];
   is_private?: boolean;
+  /** Game Graph (053): optional primary game (joined when selected). */
+  game?: { id: string; name: string; slug: string } | null;
 }
 
 export interface CommunityMember {

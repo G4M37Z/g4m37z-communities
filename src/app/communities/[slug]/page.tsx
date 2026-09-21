@@ -80,7 +80,7 @@ export default async function CommunityPage({
   const { data: communityRaw, error: communityError } = await supabase
     .from("communities")
     .select(
-      "id, name, slug, description, icon_url, banner_url, creator_id, created_at, updated_at, capabilities"
+      "id, name, slug, description, icon_url, banner_url, creator_id, created_at, updated_at, capabilities, game:games!communities_game_id_fkey ( id, name, slug )"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -169,6 +169,14 @@ export default async function CommunityPage({
               {community.name}
             </h1>
             <p className="text-xs text-text-muted">/{community.slug}</p>
+            {community.game && (
+              <Link
+                href={`/game/${community.game.slug}`}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-text transition-colors hover:border-accent"
+              >
+                {community.game.name}
+              </Link>
+            )}
             {community.description && (
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">
                 {community.description}
