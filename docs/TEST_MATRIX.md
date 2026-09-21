@@ -44,7 +44,7 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | WebRTC two-peer audio | **BLOCKED — environment** (single audio endpoint) | FINAL_REPORT O/P; re-test on two devices required | — |
 | Voice room single-peer runtime (join, Go Live, signaling write, leave cleanup) | L3 (prod build, headless Chromium, live DB) | `sql/verify-voice-runtime.sql` + network log; GAP-WEBRTC-01 narrowed | 2026-09-19 |
 | Browser smoke (8 routes) | L3 (WebDriver, same-shell invocation) | FINAL_REPORT; Android low-memory-killer note | 2026-09-17 |
-| Sticker send + render in DMs | L2 | `tests/messaging-stickers.test.ts` 8/8; picker in `MessageForm.tsx`, renderer in `ThreadClient.tsx` | 2026-09-20 |
+| Sticker send + render in DMs | L3 (prod build, real clicks) + L2 | picker → Fire → send → row (`attachment_type=sticker`) → renders in thread; `tests/messaging-stickers.test.ts` 8/8 | 2026-09-21 |
 | Sticker URL server-side validation (`sendMessage`) | L2 | `tests/messaging-service.test.ts` 5 cases (arbitrary URL / unknown id / traversal rejected) | 2026-09-20 |
 | Rate limiting active by default (msg 60/min/user, signup 5/hr/username) | L2 | `tests/rate-limit.test.ts` 8 cases (backend selection, window enforce/reset, KV fail-open) | 2026-09-20 |
 | Official platform logos on profile + platform-links form | L2 | `src/components/platform-icon.tsx`; tsc/eslint clean; live visual pass owed | 2026-09-20 |
@@ -52,6 +52,7 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Post create/edit pre-hydration submit gate | L2 | `CreatePostForm.tsx` + `PostActions.tsx` hydration gate; `npm run check` PASS; live click re-test owed | 2026-09-20 |
 | Brand logo placement (auth, BottomNav, 404, error) | L2 | `Logo`/`BrandMark` wired; `npm run check` PASS; live visual pass owed | 2026-09-20 |
 | DM call helpers + 049 authorization contract | L2 | `tests/dm-calls.test.ts` 22/22 (duration, start guards, error mapping, outcome labels, RLS/RPC contract) | 2026-09-21 |
+| DM video call single-peer runtime (Video → row `media=video` ringing; Cancel → `ended/CANCELLED` + call-log message) | L3 (prod build, real clicks) + impersonated SQL probes (050) | `/tmp/call-check.sql` live-DB output; partner-resolution fix (041 RPC in `getCallContext`) verified — Call/Video buttons render | 2026-09-21 |
 | DM call two-peer audio (ring→accept→media→end) | **BLOCKED — environment** (single audio endpoint, same as GAP-WEBRTC-01) | two-device test owed; static + realtime wiring complete | — |
 
 ## Regression protection rule

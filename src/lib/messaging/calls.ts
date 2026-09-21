@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   describeCallError,
   type CallContext,
+  type CallMedia,
   type CallPartner,
   type CallSession,
 } from "@/lib/messaging/call-utils";
@@ -87,33 +88,23 @@ export async function getCallContext(
     return { isDirect: false, partner: null, activeCall: null };
   }
   const supabase = await createClient();
-  const [convo, members] = await Promise.all([
-    supabase.from("conversations").select("type").eq("id", conversationId).maybeSingle(),
-    supabase
-      .from("conversation_members")
-      .select("user_id")
-      .eq("conversation_id", conversationId),
-  ]);
+  const { data: convo } = await supabase
+    .from("conversations")
+    .select("type")
+    .eq("id", conversationId)
+    .maybeSingle();
 
-  const isDirect = convo.data?.type === "direct";
-  const memberIds = ((members.data ?? []) as { user_id: string }[]).map(
-    (m) => m.user_id,
-  );
+  const isDirect = convo?.type === "direct";
 
+  // conversation_members RLS only exposes the caller's own row, so the partner
+  // must come from the SECURITY DEFINER RPC (041) — the same source the
+  // conversation list uses. Non-members get null and the UI stays hidden.
   let partner: CallPartner | null = null;
   if (isDirect) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const otherId = memberIds.find((id) => id !== user?.id);
-    if (otherId) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url")
-        .eq("id", otherId)
-        .maybeSingle();
-      partner = (profile as CallPartner | null) ?? null;
-    }
+    const { data: partnerRow } = await supabase
+      .rpc("get_conversation_partner", { p_conv_id: conversationId })
+      .maybeSingle();
+    partner = (partnerRow as CallPartner | null) ?? null;
   }
 
   const activeCall = isDirect ? await getActiveCall(conversationId) : null;
@@ -146,11 +137,17 @@ async function invokeCallIdRpc(
 }
 
 /** Ring the other member of a direct conversation. Returns the call id. */
-export async function startCall(conversationId: string): Promise<CallActionResult> {
+export async function startCall(
+  conversationId: string,
+  media: CallMedia = "audio",
+): Promise<CallActionResult> {
   if (!isUuid(conversationId)) {
     return { ok: false, error: "Invalid conversation." };
   }
-  return invokeCallIdRpc("start_dm_call", { p_conv_id: conversationId });
+  return invokeCallIdRpc("start_dm_call", {
+    p_conv_id: conversationId,
+    p_media: media,
+  });
 }
 
 /** Callee accepts a ringing call. Returns the conversation id. */

@@ -36,7 +36,11 @@ import {
   formatCallDuration,
   callOutcomeLabel,
 } from "@/lib/messaging/call-utils";
-import type { CallPartner, CallSession } from "@/lib/messaging/call-utils";
+import type {
+  CallPartner,
+  CallSession,
+  CallMedia,
+} from "@/lib/messaging/call-utils";
 
 const ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
@@ -69,10 +73,14 @@ export function DmCall({
   const [error, setError] = useState<string | null>(null);
   const [endedLabel, setEndedLabel] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState("0:00");
+  const [camOn, setCamOn] = useState(true);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const remoteDescSetRef = useRef(false);
   const offeredRef = useRef(false);
@@ -106,6 +114,10 @@ export function DmCall({
       remoteAudioRef.current.srcObject = null;
       remoteAudioRef.current = null;
     }
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    remoteStreamRef.current = null;
+    setCamOn(true);
     if (pcRef.current) {
       pcRef.current.getSenders().forEach((s) => s.track?.stop());
       pcRef.current.getReceivers().forEach((r) => r.track?.stop());
@@ -242,24 +254,39 @@ export function DmCall({
       setError(null);
       setMediaState("requesting");
 
+      const wantsVideo = session.media === "video";
+
       if (!navigator.mediaDevices?.getUserMedia) {
         startingRef.current = false;
         setMediaState("denied");
-        setError("Microphone is unavailable in this browser.");
+        setError(
+          wantsVideo
+            ? "Camera/microphone are unavailable in this browser."
+            : "Microphone is unavailable in this browser.",
+        );
         return;
       }
 
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia(
+          wantsVideo ? { audio: true, video: true } : { audio: true },
+        );
       } catch (err) {
-        console.error("Microphone denied:", err);
+        console.error(wantsVideo ? "Camera/mic denied:" : "Microphone denied:", err);
         startingRef.current = false;
         setMediaState("denied");
-        setError("Microphone access was blocked.");
+        setError(
+          wantsVideo
+            ? "Camera/microphone access was blocked."
+            : "Microphone access was blocked.",
+        );
         return;
       }
       localStreamRef.current = stream;
+      if (wantsVideo && localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       pcRef.current = pc;
@@ -275,6 +302,7 @@ export function DmCall({
       pc.ontrack = (event) => {
         const remote = event.streams[0];
         if (!remote) return;
+        remoteStreamRef.current = remote;
         if (!remoteAudioRef.current) {
           remoteAudioRef.current = new Audio();
           remoteAudioRef.current.autoplay = true;
@@ -283,6 +311,7 @@ export function DmCall({
         void remoteAudioRef.current.play().catch(() => {
           // Autoplay can be blocked until a gesture; Accept/End counts.
         });
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remote;
       };
       pc.onicecandidate = async (event) => {
         if (!event.candidate) return;
@@ -465,9 +494,9 @@ export function DmCall({
   // -------------------------------------------------------------------------
   // Controls
   // -------------------------------------------------------------------------
-  const start = useCallback(async () => {
+  const start = useCallback(async (media: CallMedia = "audio") => {
     setError(null);
-    const res = await startCallAction(conversationId);
+    const res = await startCallAction(conversationId, media);
     if (!res.ok) {
       setError(res.error);
       return;
@@ -478,7 +507,7 @@ export function DmCall({
       conversation_id: conversationId,
       caller_id: currentUserId,
       callee_id: partnerId,
-      media: "audio",
+      media,
       status: "ringing",
       outcome: null,
       started_at: now,
@@ -527,6 +556,29 @@ export function DmCall({
     setMuted(next);
   }, [muted]);
 
+  const toggleCamera = useCallback(() => {
+    const next = !camOn;
+    localStreamRef.current?.getVideoTracks().forEach((t) => {
+      t.enabled = !next;
+    });
+    setCamOn(next);
+  }, [camOn]);
+
+  // Video elements mount with the overlay after the media effect runs; attach
+  // the already-captured streams on the next commit so previews never miss.
+  useEffect(() => {
+    if (call?.status !== "active" || call.media !== "video") return;
+    const t = setTimeout(() => {
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+      if (remoteVideoRef.current && remoteStreamRef.current) {
+        remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [call?.id, call?.status, call?.media, mediaState]);
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
@@ -539,6 +591,7 @@ export function DmCall({
   const isLive = call?.status === "active";
   const isEnded = call?.status === "ended";
   const overlayOpen = Boolean(call);
+  const activeMedia: CallMedia = call?.media ?? "audio";
 
   const statusText =
     connState === "connected"
@@ -551,22 +604,33 @@ export function DmCall({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => void start()}
-        disabled={Boolean(call)}
-        className="press inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-bg px-3 text-xs font-semibold text-fg hover:bg-surface disabled:opacity-40"
-        aria-label={`Call ${partnerName}`}
-      >
-        <span aria-hidden>📞</span> Call
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void start("audio")}
+          disabled={Boolean(call)}
+          className="press inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-bg px-3 text-xs font-semibold text-fg hover:bg-surface disabled:opacity-40"
+          aria-label={`Call ${partnerName}`}
+        >
+          <span aria-hidden>📞</span> Call
+        </button>
+        <button
+          type="button"
+          onClick={() => void start("video")}
+          disabled={Boolean(call)}
+          className="press inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-bg px-3 text-xs font-semibold text-fg hover:bg-surface disabled:opacity-40"
+          aria-label={`Video call ${partnerName}`}
+        >
+          <span aria-hidden>🎥</span> Video
+        </button>
+      </div>
 
       {overlayOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Voice call"
+          aria-label={activeMedia === "video" ? "Video call" : "Voice call"}
         >
           <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 text-center shadow-xl">
             <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-accent text-2xl font-bold text-white">
@@ -576,7 +640,7 @@ export function DmCall({
 
             {isIncoming && (
               <p className="mt-1 text-sm text-text-secondary">
-                Incoming voice call…
+                Incoming {activeMedia === "video" ? "video" : "voice"} call…
               </p>
             )}
             {isOutgoing && (
@@ -591,6 +655,29 @@ export function DmCall({
               <p className="mt-1 text-sm text-text-secondary">
                 {endedLabel ?? "Call ended"}
               </p>
+            )}
+
+            {isLive && activeMedia === "video" && (
+              <div className="relative mx-auto mt-3 w-full max-w-[20rem] overflow-hidden rounded-xl border border-border bg-black">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="h-48 w-full object-cover"
+                />
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute bottom-2 right-2 h-20 w-28 rounded-lg border border-border object-cover"
+                />
+                {!camOn && (
+                  <p className="absolute bottom-2 right-2 flex h-20 w-28 items-center justify-center rounded-lg bg-black/70 text-[10px] font-semibold text-white">
+                    Camera off
+                  </p>
+                )}
+              </div>
             )}
 
             {error && (
@@ -629,6 +716,16 @@ export function DmCall({
                       aria-label={muted ? "Unmute" : "Mute"}
                     >
                       {muted ? "🔇 Unmute" : "🎙️ Mute"}
+                    </button>
+                  )}
+                  {isLive && activeMedia === "video" && (
+                    <button
+                      type="button"
+                      onClick={toggleCamera}
+                      className="press inline-flex h-11 items-center rounded-full border border-border bg-bg px-5 text-sm font-semibold text-fg hover:bg-surface-subtle"
+                      aria-label={camOn ? "Turn camera off" : "Turn camera on"}
+                    >
+                      {camOn ? "📷 Camera off" : "📷 Camera on"}
                     </button>
                   )}
                   <button

@@ -38,8 +38,9 @@ async function guarded(
 
 export async function startCallAction(
   conversationId: string,
+  media: "audio" | "video" = "audio",
 ): Promise<CallActionResult> {
-  return guarded(conversationId, () => startCall(conversationId));
+  return guarded(conversationId, () => startCall(conversationId, media));
 }
 
 export async function answerCallAction(

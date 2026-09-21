@@ -166,7 +166,7 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
   conversation view. Today WebRTC exists only for community voice rooms
   (`webrtc-peer.tsx`, room-scoped signaling); DM threads have no calling
   affordance.
-- Status: PARTIAL (2026-09-21) — 1:1 voice calls shipped; video deferred
+- Status: SHIPPED (2026-09-21) — 1:1 voice + video calls; two-peer media verification still environment-blocked
 - Shipped:
   - Schema/RPC layer reconciled into the repo by `docs/database/049_dm_calls.sql`
     (the live DB already carried it): `call_sessions`, the six call RPCs, the
@@ -186,11 +186,20 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
   - `tests/dm-calls.test.ts` (22 cases) covers duration formatting, start-call
     pre-flight guards, error mapping, outcome labels and the 049 authorization
     contract.
+- Video shipped (2026-09-21, migration `050_dm_video_calls.sql`):
+  - `start_dm_call` gained `p_media text DEFAULT 'audio'` (old 1-arg signature
+    dropped); `_log_call_event` renders 'Video call …' labels for video rows.
+  - `dm-call.tsx`: Call/Video buttons, local PiP + remote `<video>` tiles,
+    camera on/off toggle, media-aware ring text and dialog label.
+  - Fixed partner resolution: `getCallContext` read `conversation_members`
+    directly, which RLS limits to the caller's own row — call buttons never
+    rendered. Now uses `get_conversation_partner` (041 SECURITY DEFINER RPC).
+  - L3 single-peer runtime (prod build, autotest): video start → row
+    (`media=video, ringing`), Cancel → `ended/CANCELLED` + call-log message;
+    impersonated SQL probes for video start + label rewriting (rolled back).
 - Deferred:
-  - Video: `media` supports `'video'` but the UI/peer is audio-only (no local
-    preview/PiP). Needs a video-track path and remote `<video>` surface.
-  - Live two-peer audio verification (same `GAP-WEBRTC-01` constraint: one
-    audio endpoint in the env).
+  - Live two-peer audio/video media verification (same `GAP-WEBRTC-01`
+    constraint: one audio/video endpoint in the env).
 - Verification: `npm run check` PASS (tsc clean, eslint 0 errors / 15
   warnings, vitest 307/307). Schema probes (`verify_migrations.sql`) PASS.
 
@@ -201,8 +210,8 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
 - Description: User wants stickers/GIF pickers and media attachments in DMs.
   Today messages are text-only (`messages.body text`), with no attachment
   storage path in DMs.
-- Status: PARTIAL (2026-09-20) — images, GIFs, and stickers shipped; GIF *picker* deferred
-- Shipped: image + GIF attachments (`cfc66ef`); sticker pack — 10 SVGs in `public/stickers/`, `src/lib/messaging/stickers.ts`, picker in `MessageForm.tsx`, renderer in `ThreadClient.tsx` (`h-28 w-28 object-contain`, no bubble), `messages.attachment_type` widened to `"image"|"gif"|"sticker"`. `tests/messaging-stickers.test.ts` 8/8 pass.
+- Status: SHIPPED (2026-09-21) — images, GIFs, and stickers shipped; GIF *picker* deferred
+- Shipped: image + GIF attachments (`cfc66ef`); sticker pack — 10 SVGs in `public/stickers/`, `src/lib/messaging/stickers.ts`, picker in `MessageForm.tsx`, renderer in `ThreadClient.tsx` (`h-28 w-28 object-contain`, no bubble), `messages.attachment_type` widened to `"image"|"gif"|"sticker"`. `tests/messaging-stickers.test.ts` 8/8 pass. L3 live (2026-09-21, prod build, autotest): picker → Fire sticker → send → row (`attachment_type=sticker`, `/stickers/fire.svg`) → renders in thread; console clean.
 - Deferred: GIF *picker* (third-party Tenor/GIPHY API key — decision required).
 - Remaining: GIF picker integration; keep attachment uploads RLS-neutral (select follows `messages_select`).
 
