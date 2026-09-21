@@ -11,6 +11,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { resolveGameIdAction } from "@/lib/games/graph-actions";
 import type { CommunityMember } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,14 @@ export async function createCommunity(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const categoryIds = formData.getAll("categoryIds").map(String).filter(Boolean);
 
+  // Game Graph (053): optional primary game, validated against the catalogue.
+  let gameId: string | null;
+  try {
+    gameId = await resolveGameIdAction(formData.get("gameId"));
+  } catch {
+    return { error: "The selected game could not be found. Try again." };
+  }
+
   const nameErr = validateName(name);
   if (nameErr) return { error: nameErr };
   const slugErr = validateSlug(slug);
@@ -73,6 +82,7 @@ export async function createCommunity(formData: FormData) {
       slug,
       description: description || null,
       creator_id: user.id,
+      game_id: gameId,
     })
     .select("id, slug")
     .maybeSingle();

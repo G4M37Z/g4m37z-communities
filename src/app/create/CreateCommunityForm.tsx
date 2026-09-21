@@ -8,6 +8,7 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { createCommunity, checkSlugAvailability } from "@/lib/communities/actions";
+import { listGamesAction } from "@/lib/games/graph-actions";
 import type { CommunityCategory } from "@/types/database";
 
 interface Props {
@@ -29,6 +30,7 @@ function slugify(name: string): string {
 export function CreateCommunityForm({ categories }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [games, setGames] = useState<Array<{ id: string; name: string }>>([]);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -45,6 +47,17 @@ export function CreateCommunityForm({ categories }: Props) {
   useEffect(() => {
     if (!slugTouched) queueMicrotask(() => setSlug(slugify(name)));
   }, [name, slugTouched]);
+
+  // Game Graph: one catalogue fetch for the "Primary game" select.
+  useEffect(() => {
+    let cancelled = false;
+    void listGamesAction().then((rows) => {
+      if (!cancelled) queueMicrotask(() => setGames(rows));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Live slug availability check.
   useEffect(() => {
@@ -190,6 +203,31 @@ export function CreateCommunityForm({ categories }: Props) {
             Slug must be 3–40 lowercase letters, numbers, or hyphens.
           </p>
         )}
+      </div>
+
+      <div>
+        <label
+          htmlFor="gameId"
+          className="mb-1.5 block text-sm font-medium text-fg"
+        >
+          Primary game <span className="text-text-muted">(optional)</span>
+        </label>
+        <select
+          id="gameId"
+          name="gameId"
+          defaultValue=""
+          className="h-11 w-full rounded-md border border-border bg-bg px-3 text-sm text-fg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+        >
+          <option value="">No specific game</option>
+          {games.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-text-muted">
+          Links this community to its game hub and shows it on the game page.
+        </p>
       </div>
 
       <div>

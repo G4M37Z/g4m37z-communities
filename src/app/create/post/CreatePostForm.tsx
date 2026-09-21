@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { createPost, uploadPostImage } from "@/lib/posts/actions";
+import { listGamesAction } from "@/lib/games/graph-actions";
 
 interface Props {
   communities: { id: string; slug: string; name: string }[];
@@ -32,10 +33,22 @@ export function CreatePostForm({ communities, defaultCommunityId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [games, setGames] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     // Deferred per react-hooks/set-state-in-effect (house pattern, cf. ThemeToggle).
     queueMicrotask(() => setHydrated(true));
+  }, []);
+
+  // Game Graph: one catalogue fetch for the "Game context" select.
+  useEffect(() => {
+    let cancelled = false;
+    void listGamesAction().then((rows) => {
+      if (!cancelled) queueMicrotask(() => setGames(rows));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function onFile(file: File) {
@@ -91,6 +104,31 @@ export function CreatePostForm({ communities, defaultCommunityId }: Props) {
         </select>
         <p className="mt-1 text-xs text-text-muted">
           You can only post in communities you&apos;ve joined.
+        </p>
+      </div>
+
+      <div>
+        <label
+          htmlFor="gameId"
+          className="mb-1.5 block text-sm font-medium text-fg"
+        >
+          Game context <span className="text-text-muted">(optional)</span>
+        </label>
+        <select
+          id="gameId"
+          name="gameId"
+          defaultValue=""
+          className="h-11 w-full rounded-md border border-border bg-bg px-3 text-sm text-fg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+        >
+          <option value="">No specific game</option>
+          {games.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-text-muted">
+          Tags the post on its game hub.
         </p>
       </div>
 

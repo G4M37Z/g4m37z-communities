@@ -18,6 +18,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { resolveGameIdAction } from "@/lib/games/graph-actions";
 import { createClient } from "@/lib/supabase/server";
 import {
   postImagePathFromUrl,
@@ -171,6 +172,14 @@ export async function createPost(formData: FormData) {
   const communityId = String(formData.get("communityId") ?? "");
   const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
 
+  // Game Graph (053): optional game context, validated against the catalogue.
+  let gameId: string | null;
+  try {
+    gameId = await resolveGameIdAction(formData.get("gameId"));
+  } catch {
+    return { error: "The selected game could not be found. Try again." };
+  }
+
   const titleErr = validateTitle(title);
   if (titleErr) return { error: titleErr };
   const bodyErr = validateBody(body);
@@ -210,6 +219,7 @@ export async function createPost(formData: FormData) {
       image_url: imageUrl,
       community_id: communityId,
       author_id: user.id,
+      game_id: gameId,
     })
     .select("id, community_id, communities:community_id(slug)")
     .maybeSingle();
