@@ -21,27 +21,26 @@
 
 ## Ranked next steps (impact-ordered)
 
-1. **Mobile nav & header density** — the header action cluster (theme,
-   notifications, account) crowds the lockup under 380px; collapse into a
-   single overflow menu below `sm`.
-2. **Card rhythm on feeds** — post cards mix 2–3 different vertical rhythms
-   (image vs text vs repost). Normalize paddings (p-5/p-4 → one scale) and
-   fix media aspect at 16/10 so feeds scan evenly.
-3. **Empty states with actions** — every empty state should carry its CTA
-   button (e.g. communities empty → "Create a community"); several still
-   end at a sentence.
-4. **Form error placement** — a few forms still render errors below the
-   fold of the submit row; standardize on inline-field errors + a single
-   summary above the submit.
-5. **Dark-theme surface hierarchy** — `bg-surface` and `bg-bg` are close on
-   some panels (settings). Introduce one more elevation step or a hairline
-   top border on cards.
+1. ✅ **SHIPPED 2026-09-21 (`7263e28`)** — header density: theme toggle hidden
+   below 380px, mirrored into the account menu at those widths.
+2. ✅ **SHIPPED 2026-09-21 (`52ea7a7`)** — feed card rhythm: paddings normalized,
+   media restored to 16/10.
+3. ✅ **SHIPPED 2026-09-21 (`0f0b918`)** — empty-state CTAs: notifications,
+   messages, community posts (member-gated "Create a post").
+4. ✅ **VERIFIED ALREADY CONFORMING** — form error placement: settings, post
+   create, and community create all render the error banner directly above the
+   submit row; no change needed.
+5. ✅ **SHIPPED 2026-09-21 (`840a6f6`)** — surface hierarchy: `brand-card`
+   elevation utility applied to settings sections.
 6. **Focus states** — audit `:focus-visible` rings on custom buttons
    (press class) for keyboard users; several are contrast-weak on accent.
-7. **Micro-transitions** — page-enter is consistent (PageEnter); add the
-   same 150–200ms treatment to sheet/dropdown mounts for coherence.
+   Note: a global `:focus-visible` ring exists in globals.css; the audit
+   item is per-component contrast tuning.
+7. ✅ **SHIPPED 2026-09-21 (`840a6f6`)** — micro-transitions: `sheet-in` mount
+   animation for sticker/GIF panels matching menu timing.
 8. **OG/social cards per route** — landing has og.png; per-route OG images
-   (community, game, profile) would lift link sharing.
+   (community, game, profile) would lift link sharing. Profile pages
+   already emit avatar-based OG images via generateMetadata.
 
 ## Deliberately not queued
 
