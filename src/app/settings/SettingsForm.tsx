@@ -125,7 +125,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
       </header>
 
       {/* Avatar */}
-      <section className="mb-6 rounded-2xl border border-border bg-bg p-6">
+      <section className="mb-6 brand-card p-6">
         <h2 className="mb-4 text-base font-semibold text-fg">Profile picture</h2>
         <div className="flex items-start gap-4">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-border bg-surface">
@@ -200,7 +200,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
 
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Username (read-only) */}
-        <section className="rounded-2xl border border-border bg-bg p-6">
+        <section className="brand-card p-6">
           <h2 className="mb-4 text-base font-semibold text-fg">Username</h2>
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center text-accent-text font-bold">
@@ -214,7 +214,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         </section>
 
         {/* Display name */}
-        <section className="rounded-2xl border border-border bg-bg p-6">
+        <section className="brand-card p-6">
           <h2 className="mb-4 text-base font-semibold text-fg">Display name</h2>
           <div className="relative">
             <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -231,7 +231,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         </section>
 
         {/* Bio */}
-        <section className="rounded-2xl border border-border bg-bg p-6">
+        <section className="brand-card p-6">
           <h2 className="mb-4 text-base font-semibold text-fg">Bio</h2>
           <textarea
             value={bio}

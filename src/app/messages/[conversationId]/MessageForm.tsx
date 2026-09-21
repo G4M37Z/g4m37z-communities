@@ -182,7 +182,7 @@ export function MessageForm({
         </div>
       )}
       {showGifs && (
-        <div className="mb-2 rounded-lg border border-border bg-surface p-2">
+        <div className="sheet-in mb-2 rounded-lg border border-border bg-surface p-2">
           <form
             className="mb-2 flex gap-2"
             onSubmit={(e) => {
@@ -238,7 +238,7 @@ export function MessageForm({
         </div>
       )}
       {showStickers && (
-        <div className="mb-2 grid grid-cols-5 gap-1 rounded-lg border border-border bg-surface p-2">
+        <div className="sheet-in mb-2 grid grid-cols-5 gap-1 rounded-lg border border-border bg-surface p-2">
           {STICKERS.map((s) => (
             <button
               key={s.id}

@@ -144,6 +144,24 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 }
 .material-bright-top { box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 12%, transparent); }
 
+/* Elevated card surface — one step above the page (settings panels, form
+   sections). Hairline top highlight gives the card an edge on dark themes
+   without inventing a new token (apple-design elevation pass). */
+.brand-card {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 10%, transparent);
+}
+
+/* Sheet/dropdown mount — one coherent 180ms entrance for picker panels
+   and popovers (matches menu-enter's timing, as a mount animation). */
+.sheet-in { animation: sheet-in 180ms var(--ease-out) both; }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
 /* Dropdown/menu entrance — scale 0.97 + opacity (never scale(0)),
    transform-origin at the trigger, transition (not keyframes) so it retargets. */
 .menu-enter {
@@ -171,6 +189,7 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
   .page-enter > * { opacity: 1; transform: none; }
   .menu-enter, .group:hover .menu-enter, .group:focus-within .menu-enter {
     transform: none; transition: opacity 150ms ease, visibility 0s; }
+  .sheet-in { animation: none; }
 }
 
 /* Reduced transparency — frostier surfaces, drop the blur (apple-design §14) */
@@ -181,6 +200,7 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
     backdrop-filter: none;
   }
   .material-bright-top { box-shadow: none; }
+  .brand-card { box-shadow: none; background: var(--color-surface); }
 }
 
 /* More contrast — near-solid surfaces with defined borders (apple-design §14) */
