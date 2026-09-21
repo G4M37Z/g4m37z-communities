@@ -9,6 +9,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { listGames } from "@/lib/games/service";
 import {
   addGameStatus,
   removeGameStatus,
@@ -19,6 +21,31 @@ import {
 import type { GameIdentityInput, GamingVisibility } from "./types";
 
 export type GamingActionResult = { ok: true } | { ok: false; error: string };
+
+export interface GamePick {
+  id: string;
+  name: string;
+  slug: string;
+  cover_url: string | null;
+}
+
+/** Catalogue search for the library manager (server-side, auth-gated). */
+export async function searchGamesAction(
+  query: string,
+): Promise<GamePick[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const games = await listGames(supabase, { search: query, limit: 12 });
+  return games.map((g) => ({
+    id: g.id,
+    name: g.name,
+    slug: g.slug,
+    cover_url: g.cover_url,
+  }));
+}
 
 export async function addGameStatusAction(input: {
   game_id: unknown;
