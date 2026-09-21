@@ -151,6 +151,24 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
 **Verification:** Re-run `SELECT name FROM storage.objects WHERE bucket_id='post-images' AND owner='d1eeb9c0-0000-4000-8000-000000000007';` → expect 0 rows.
 **Owner/Agent:** requires dashboard/service-role access (agent blocked)
 
+## GAP-MSG-LIVE-01 — New messages stop appearing in an open thread
+
+- Area: Messaging / realtime
+- Severity: P2 (user-reported: chatted, later new messages appeared only
+  after leaving/re-entering the thread — never live)
+- Root cause: `ThreadLive` subscribed once at mount; when the realtime socket
+  silently dies (network switch, sleep/wake, mobile handoff) the thread keeps
+  looking connected but never hears INSERTs again. The inbox list re-queries
+  on navigation, so messages showed up "outside chat" but not inside.
+- Status: FIXED (2026-09-21)
+- Fix: `ThreadLive` now re-subscribes with a fresh channel on CHANNEL_ERROR /
+  TIMED_OUT / CLOSED (capped retries), refreshes on tab visibility regain,
+  and runs a 30s refresh while the tab is visible as the final fallback —
+  realtime stays primary (sub-second), the fallback only bounds staleness.
+- Verification: L3 (prod build, autotest) — SQL-inserted row from the other
+  user appeared live; console clean. Long-session soak (device sleep/wake)
+  owed to user-run testing.
+
 ## GAP-MSG-UI-01 — Inside-messaging UI polish
 
 - Area: Messaging UI
