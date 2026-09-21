@@ -110,6 +110,12 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 /* Focus ring */
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
 
+/* Audit #6 — focus contrast: the copper ring reads well against page
+   surfaces but merges with accent-filled controls (primary buttons), so
+   those switch to the high-contrast foreground ring. Both themes keep a
+   ≥3:1 indicator without leaving the palette (no neon, per BRAND.md). */
+.bg-accent:focus-visible { outline-color: var(--color-fg); }
+
 /* Scrollbar — minimal */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--color-bg); }
