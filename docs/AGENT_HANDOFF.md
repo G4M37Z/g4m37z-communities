@@ -247,6 +247,47 @@ NOTE — SQL interface (this host):
 
 Most recent first. Add an entry at the end of every substantial session.
 
+### 2026-09-21 — DM voice calls + live/repo drift reconciliation
+
+```text
+Agent: opencode (big-pickle)
+Environment: Termux Android arm64; repo /data/data/com.termux/files/home/g4m37z-communities
+Branch: main
+Starting HEAD: 8d6f982
+Task: Audit and close the live-DB/repo drift, build the missing DM-call app
+  code, and update governance docs.
+Changes:
+  - drift audit: live DB was ahead with an undocumented DM-call feature
+    (call_sessions, 6 call RPCs + helpers, conversation-scoped webrtc_signals,
+    messages.attachment_type='call'); repo source had zero references to it.
+  - docs/database/049_dm_calls.sql — idempotent reconciliation of that feature
+    (guarded DDL, CREATE OR REPLACE, dynamic policies, explicit grants, anon
+    revoked). Applied to live (no-op). Verified every migration object m001->m049
+    via a read-only probe. Deliberately did NOT re-run 001-048 because
+    002c_cleanup.sql DROPs live tables.
+  - src/lib/messaging/call-utils.ts (client-safe helpers/types/constants),
+    calls.ts (server service: RPC wrappers + getCallContext),
+    call-actions.ts (server actions).
+  - src/components/dm-call.tsx — Call button + send/receive overlay
+    (Accept/Decline/Cancel/End/Mute), mic + RTCPeerConnection, caller as sole
+    offerer, ICE buffering, signal replay after subscribe, 45s ring timeout.
+  - src/lib/webrtc-signaling.ts — dual target (roomId | conversationId);
+    SignalingMessage gains conversation_id (nullable room_id).
+  - wired into src/app/messages/[conversationId]/page.tsx; call-log rows
+    render as a centred system pill in ThreadClient.tsx.
+  - tests/dm-calls.test.ts (22) — duration, pre-flight guards, error mapping,
+    outcome labels, 049 authorization contract.
+  - docs: GAP_REGISTER (GAP-MSG-CALL-01 -> PARTIAL), PROJECT_STATE, DECISIONS,
+    AGENT_HANDOFF.
+Tests: tsc PASS; eslint PASS (0 errors, 15 pre-existing warnings);
+  vitest 307/307 (unit, browser excluded).
+Blocked/owed: live two-peer audio (GAP-WEBRTC-01: env has one audio endpoint);
+  video (media='video' supported by schema, UI audio-only).
+Next recommended action: two-device audio smoke test on a Vercel preview, then
+  video-track support if desired. GAP-EMAIL-01 (dashboard) still the launch
+  blocker.
+```
+
 ### 2026-09-20 — Feature-gap closure (stickers, covers, platform logos, post gate, brand)
 
 ```text

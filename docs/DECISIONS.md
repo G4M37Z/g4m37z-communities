@@ -190,3 +190,40 @@ Consequences: In-process counters reset per instance and on restarts — not a
 hard security boundary for multi-instance traffic; configure KV (or enforce
 Supabase-side limits) before relying on them at scale. New limit surfaces
 should reuse `rateLimit` with per-user keys and clearly named windows.
+
+## Decision: DM calls reuse `webrtc_signals` addressed by `conversation_id`, over SECURITY DEFINER RPCs
+
+Date: 2026-09-21
+Status: ACTIVE
+
+Context: GAP-MSG-CALL-01 — 1:1 calls from the messages UI. The live database
+already carried a complete call feature (`call_sessions`, six call RPCs,
+conversation-scoped `webrtc_signals`, `messages.attachment_type='call'`) that
+was never committed to the migration tree, so the repo and live DB had
+diverged.
+
+Decision: adopt the live design rather than redesign it. `webrtc_signals` is
+now dual-target — `room_id` for community voice rooms (unchanged) and a new
+`conversation_id` for DM calls; RLS authorizes the sender/reader as either a
+room participant or a conversation member. Call lifecycle lives in
+`call_sessions` and is mutated only through `start/answer/decline/cancel/end/
+timeout_dm_call`, all SECURITY DEFINER with the caller resolved from
+`auth.uid()`. The caller is the deterministic offerer (no lexicographic
+glare rule, unlike the room peer). Signaling rows carry SDP/ICE only; audio is
+peer-to-peer and never stored. `docs/database/049_dm_calls.sql` is the
+idempotent reconciliation (applied to live).
+
+Alternatives: separate `dm_call_signals` table (rejected — duplicates the
+transport and its RLS); client-driven writes to `call_sessions` (rejected —
+identity/outcome forgery and no atomic pair/block guards); WebSocket server
+(rejected — adds infra for a 1:1 feature the DB already supports).
+
+Reason: keeps a single auditable signaling transport, keeps caller identity
+and business guards server-side, and closes the drift without a destructive
+migration replay.
+
+Consequences: `webrtc_signals.room_id` is nullable, so every room-scoped
+query must now tolerate `NULL`; the room peer is unaffected because it
+filters on `room_id=eq.<id>`. Video is not implemented yet (`media` supports
+`'video'` but the UI is audio-only). Two-peer audio still needs the
+`GAP-WEBRTC-01` live test.

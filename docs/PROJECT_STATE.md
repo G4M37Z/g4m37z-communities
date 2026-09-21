@@ -23,6 +23,23 @@
 
 ## Current Checkpoint
 
+**DM voice calls shipped from the messages UI (2026-09-21) — code-complete, static-verified; live two-peer audio owed.**
+
+Live DB/repo drift reconciled and `GAP-MSG-CALL-01` advanced to PARTIAL. Gates
+after: tsc PASS · eslint PASS (0 errors, 15 warnings) · vitest **307/307**.
+
+- Audited live vs repo: the live DB was ahead with a complete, undocumented
+  DM-call feature (`call_sessions`, six call RPCs + helpers, conversation-scoped
+  `webrtc_signals`, `'call'` attachment). Reconciled it into
+  `docs/database/049_dm_calls.sql`, applied it (idempotent no-op against live),
+  and verified every migration object m001→m049. Did NOT blind re-run 001–048
+  (`002c_cleanup.sql` drops live tables); used a read-only probe instead.
+- Built the app layer: `call-utils.ts` (client-safe helpers) + `calls.ts`
+  (service) + `call-actions.ts` (server actions) + `dm-call.tsx` (WebRTC UI),
+  wired into the thread page; call-log rows render as a system pill. Signaling
+  reuses `webrtc_signals` (049) addressed by `conversation_id`.
+- Deferred: video (audio-only UI) and live two-peer audio (`GAP-WEBRTC-01`).
+
 **Feature-gap closure (2026-09-20) — code-complete, static-verified; live visual/click passes owed.**
 
 Base HEAD `cfc66ef` (messaging image+GIF attachments). This session closed the
@@ -65,7 +82,7 @@ pre-existing warnings) · vitest **285/285** (unit).
   Storage or a service-role Storage API call; only `DATABASE_URL` is provisioned.
 
 Still open: GAP-EMAIL-01 (dashboard), GAP-WEBRTC-01 (two-device),
-GAP-MSG-CALL-01 (feature work).
+GAP-MSG-CALL-01 (video + live audio verification; voice shipped).
 
 **Launch-hardening acceptance + messaging send fix (2026-09-19) — VERIFIED.**
 

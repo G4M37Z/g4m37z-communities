@@ -51,6 +51,8 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Seeded game covers (all 8 games) | L3 (live DB) + L2 | 048 idempotent (`UPDATE 0` ×8); live `has_cover=t` ×8; `tests/game-cover-url.test.ts` 5/5 | 2026-09-20 |
 | Post create/edit pre-hydration submit gate | L2 | `CreatePostForm.tsx` + `PostActions.tsx` hydration gate; `npm run check` PASS; live click re-test owed | 2026-09-20 |
 | Brand logo placement (auth, BottomNav, 404, error) | L2 | `Logo`/`BrandMark` wired; `npm run check` PASS; live visual pass owed | 2026-09-20 |
+| DM call helpers + 049 authorization contract | L2 | `tests/dm-calls.test.ts` 22/22 (duration, start guards, error mapping, outcome labels, RLS/RPC contract) | 2026-09-21 |
+| DM call two-peer audio (ring→accept→media→end) | **BLOCKED — environment** (single audio endpoint, same as GAP-WEBRTC-01) | two-device test owed; static + realtime wiring complete | — |
 
 ## Regression protection rule
 

@@ -166,12 +166,33 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
   conversation view. Today WebRTC exists only for community voice rooms
   (`webrtc-peer.tsx`, room-scoped signaling); DM threads have no calling
   affordance.
-- Status: OPEN (feature work)
-- Next action: extend `webrtc_signals` usage to conversation-scoped calls
-  (call state machine: ringing → active → ended), reuse the deterministic
-  dialer + ICE-queueing from `webrtc-peer.tsx`, video = getUserMedia with
-  video track + PiP-style local preview; respect 045 signaling RLS. Two-peer
-  audio must be verified after (GAP-WEBRTC-01).
+- Status: PARTIAL (2026-09-21) — 1:1 voice calls shipped; video deferred
+- Shipped:
+  - Schema/RPC layer reconciled into the repo by `docs/database/049_dm_calls.sql`
+    (the live DB already carried it): `call_sessions`, the six call RPCs, the
+    `messages.attachment_type = 'call'` system log, conversation-scoped
+    `webrtc_signals` (nullable `room_id` + `conversation_id`) and rewritten
+    signaling RLS. Applied to live and verified.
+  - Service `src/lib/messaging/calls.ts` (RPC wrappers + `getCallContext`),
+    client-safe helpers `src/lib/messaging/call-utils.ts`, server actions
+    `src/lib/messaging/call-actions.ts`.
+  - UI `src/components/dm-call.tsx` (Call button + send/receive overlay,
+    Accept/Decline/Cancel/End/Mute, 45s client+server ring timeout), wired
+    into `src/app/messages/[conversationId]/page.tsx`; call-log rows render as
+    a centred system pill in `ThreadClient.tsx`.
+  - Signaling reuses `webrtc_signals` via `src/lib/webrtc-signaling.ts`, now
+    dual-target (`roomId` for voice rooms, `conversationId` for DM calls);
+    caller is the deterministic offerer, ICE buffers until remote description.
+  - `tests/dm-calls.test.ts` (22 cases) covers duration formatting, start-call
+    pre-flight guards, error mapping, outcome labels and the 049 authorization
+    contract.
+- Deferred:
+  - Video: `media` supports `'video'` but the UI/peer is audio-only (no local
+    preview/PiP). Needs a video-track path and remote `<video>` surface.
+  - Live two-peer audio verification (same `GAP-WEBRTC-01` constraint: one
+    audio endpoint in the env).
+- Verification: `npm run check` PASS (tsc clean, eslint 0 errors / 15
+  warnings, vitest 307/307). Schema probes (`verify_migrations.sql`) PASS.
 
 ## GAP-MSG-RICH-01 — Stickers, GIFs, media in messages
 
