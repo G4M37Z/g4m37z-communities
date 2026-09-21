@@ -224,11 +224,19 @@ export default async function CommunityPage({
             {posts.length === 0 ? (
               <div className="rounded-lg border border-border bg-surface p-10 text-center">
                 <h3 className="mb-1 text-sm font-semibold text-fg">No posts yet</h3>
-                <p className="text-sm text-text-secondary">
+                <p className="mb-4 text-sm text-text-secondary">
                   {currentRole
                     ? "Be the first to share something."
                     : "Join the community to start posting."}
                 </p>
+                {currentRole && (
+                  <Link
+                    href="/create/post"
+                    className="press inline-flex h-9 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+                  >
+                    Create a post
+                  </Link>
+                )}
               </div>
             ) : (
               <>

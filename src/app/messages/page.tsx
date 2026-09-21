@@ -69,7 +69,13 @@ export default async function MessagesPage() {
 
         {enriched.length === 0 ? (
           <section className="rounded-lg border border-border bg-surface p-10 text-center">
-            <p className="text-sm text-text-secondary">No conversations yet.</p>
+            <p className="mb-4 text-sm text-text-secondary">No conversations yet.</p>
+            <Link
+              href="/messages/new"
+              className="press inline-flex h-9 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+            >
+              Start a conversation
+            </Link>
           </section>
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border bg-surface">

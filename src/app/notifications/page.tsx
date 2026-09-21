@@ -166,10 +166,16 @@ export default async function NotificationsPage() {
         <div className="rounded-2xl border border-border bg-surface p-12 text-center">
           <Bell size={36} className="mx-auto mb-4 text-text-muted" />
           <h2 className="mb-1 text-base font-bold text-fg">No notifications yet</h2>
-          <p className="mx-auto max-w-md text-sm text-text-muted">
+          <p className="mx-auto mb-5 max-w-md text-sm text-text-muted">
             When someone comments on your posts, replies to your comments, or upvotes
             your content, you&apos;ll see it here.
           </p>
+          <Link
+            href="/communities"
+            className="press inline-flex h-9 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+          >
+            Explore communities
+          </Link>
         </div>
       ) : (
         <ul className="space-y-3" role="list" aria-label="Notifications">
