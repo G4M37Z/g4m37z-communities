@@ -9,6 +9,8 @@ import {
   type MessageActionState,
 } from "@/lib/messaging/actions";
 import { STICKERS } from "@/lib/messaging/stickers";
+import type { GifResult } from "@/lib/messaging/gifs";
+import { Film } from "lucide-react";
 import type { Message } from "@/lib/messaging/service";
 
 export function MessageForm({
@@ -38,6 +40,13 @@ export function MessageForm({
   // sticker sets the pending attachment directly (no upload — the asset is
   // first-party in /public/stickers).
   const [showStickers, setShowStickers] = useState(false);
+  // GIF picker (GAP-MSG-RICH-01 remainder): Tenor search proxied through
+  // /api/gifs so the key stays server-side.
+  const [showGifs, setShowGifs] = useState(false);
+  const [gifQuery, setGifQuery] = useState("");
+  const [gifResults, setGifResults] = useState<GifResult[]>([]);
+  const [gifState, setGifState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [gifError, setGifError] = useState<string | null>(null);
 
   useEffect(() => {
     // Deferred per react-hooks/set-state-in-effect (house pattern, cf. ThemeToggle).
@@ -48,6 +57,48 @@ export function MessageForm({
     setAttachment({ url, type: "sticker" });
     setShowStickers(false);
     setState({ ok: true });
+  }
+
+  function onPickGif(gif: GifResult) {
+    setAttachment({ url: gif.url, type: "gif" });
+    setShowGifs(false);
+    setGifQuery("");
+    setGifResults([]);
+    setGifState("idle");
+    setState({ ok: true });
+  }
+
+  async function runGifSearch(q: string) {
+    setGifState("loading");
+    setGifError(null);
+    try {
+      const res = await fetch(`/api/gifs?q=${encodeURIComponent(q)}`);
+      const data = (await res.json()) as {
+        gifs?: GifResult[];
+        error?: string;
+        reason?: string;
+      };
+      if (!res.ok) {
+        setGifState("error");
+        setGifError(data.error ?? "GIF search failed.");
+        return;
+      }
+      setGifResults(data.gifs ?? []);
+      setGifState("ready");
+    } catch {
+      setGifState("error");
+      setGifError("GIF search failed.");
+    }
+  }
+
+  function toggleGifs() {
+    const next = !showGifs;
+    setShowGifs(next);
+    if (next) {
+      setShowStickers(false);
+      // Featured load on first open.
+      if (gifState === "idle") void runGifSearch("");
+    }
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -130,6 +181,62 @@ export function MessageForm({
           </button>
         </div>
       )}
+      {showGifs && (
+        <div className="mb-2 rounded-lg border border-border bg-surface p-2">
+          <form
+            className="mb-2 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void runGifSearch(gifQuery);
+            }}
+          >
+            <input
+              value={gifQuery}
+              onChange={(e) => setGifQuery(e.target.value)}
+              placeholder="Search Tenor GIFs…"
+              maxLength={80}
+              className="h-8 flex-1 rounded-md border border-border bg-bg px-2 text-xs text-fg placeholder:text-text-muted focus:border-accent focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="press h-8 rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover"
+            >
+              Search
+            </button>
+          </form>
+          {gifState === "loading" && (
+            <p className="px-1 py-4 text-center text-xs text-text-muted">Loading GIFs…</p>
+          )}
+          {gifState === "error" && (
+            <p className="px-1 py-4 text-center text-xs text-red-500">{gifError}</p>
+          )}
+          {gifState === "ready" && gifResults.length === 0 && (
+            <p className="px-1 py-4 text-center text-xs text-text-muted">No GIFs found.</p>
+          )}
+          {gifState === "ready" && gifResults.length > 0 && (
+            <div className="grid max-h-56 grid-cols-3 gap-1 overflow-y-auto">
+              {gifResults.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => onPickGif(g)}
+                  aria-label={g.description}
+                  title={g.description}
+                  className="overflow-hidden rounded-md border border-transparent hover:border-accent/60"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={g.previewUrl}
+                    alt={g.description}
+                    className="h-24 w-full object-cover"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {showStickers && (
         <div className="mb-2 grid grid-cols-5 gap-1 rounded-lg border border-border bg-surface p-2">
           {STICKERS.map((s) => (
@@ -153,6 +260,7 @@ export function MessageForm({
           onClick={() => {
             if (!hydrated || uploading) return;
             setShowStickers((v) => !v);
+            if (showGifs) setShowGifs(false);
           }}
           aria-label="Add a sticker"
           aria-expanded={showStickers}
@@ -160,6 +268,19 @@ export function MessageForm({
           className={`inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border text-text-muted hover:border-accent/60 hover:text-fg ${!hydrated ? "pointer-events-none" : ""}`}
         >
           <Smile size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!hydrated || uploading) return;
+            toggleGifs();
+          }}
+          aria-label="Add a GIF"
+          aria-expanded={showGifs}
+          title="GIFs"
+          className={`inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border text-text-muted hover:border-accent/60 hover:text-fg ${!hydrated ? "pointer-events-none" : ""}`}
+        >
+          <Film size={16} />
         </button>
         <label
           htmlFor="message-attachment"

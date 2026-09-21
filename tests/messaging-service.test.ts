@@ -70,9 +70,39 @@ describe("attachmentVerdict (GAP-MSG-RICH-02)", () => {
     expect(attachmentVerdict({ url: "/stickers/../secret.svg", type: "sticker" }).ok).toBe(false);
   });
 
-  it("does not gate image/gif attachments (validated on the upload path)", () => {
+  it("accepts a Tenor-hosted GIF", () => {
+    expect(
+      attachmentVerdict({ url: "https://media.tenor.com/abc123/xxx.gif", type: "gif" }).ok,
+    ).toBe(true);
+  });
+
+  it("accepts a GIF uploaded to the first-party bucket", () => {
+    expect(
+      attachmentVerdict({
+        url: "https://zpirpbivhkscixbokpbt.supabase.co/storage/v1/object/public/message-attachments/uid/x.gif",
+        type: "gif",
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("rejects an arbitrary hotlinked GIF", () => {
+    const verdict = attachmentVerdict({ url: "https://evil.example/anim.gif", type: "gif" });
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.error).toBe("Unsupported GIF source.");
+  });
+
+  it("rejects a Tenor lookalike host", () => {
+    expect(
+      attachmentVerdict({ url: "https://media.tenor.com.evil.example/x.gif", type: "gif" }).ok,
+    ).toBe(false);
+  });
+
+  it("rejects a non-https Tenor URL", () => {
+    expect(attachmentVerdict({ url: "http://media.tenor.com/x.gif", type: "gif" }).ok).toBe(false);
+  });
+
+  it("does not gate image attachments (validated on the upload path)", () => {
     expect(attachmentVerdict({ url: "https://cdn.example/pic.png", type: "image" }).ok).toBe(true);
-    expect(attachmentVerdict({ url: "https://cdn.example/clip.gif", type: "gif" }).ok).toBe(true);
   });
 });
 

@@ -20,6 +20,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { stickerVerdict } from "@/lib/messaging/stickers";
+import { isTenorHost } from "@/lib/messaging/gifs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -90,12 +91,41 @@ export function messageBodyVerdict(body: string): BodyVerdict {
 // scoped storage upload path and are validated there.
 export type AttachmentVerdict = { ok: true } | { ok: false; error: string };
 
+/**
+ * True for objects in our message-attachments bucket. Matches the exact
+ * storage path on any *.supabase.co project host, so the check is
+ * deterministic even where the project URL env var is not set (unit tests).
+ */
+export function isFirstPartyAttachmentUrl(url: string): boolean {
+  const PATH = "/storage/v1/object/public/message-attachments/";
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.endsWith(".supabase.co") &&
+      parsed.pathname.startsWith(PATH)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function attachmentVerdict(attachment: {
   url: string;
   type: AttachmentType;
 }): AttachmentVerdict {
   if (attachment.type === "sticker" && !stickerVerdict(attachment.url).ok) {
     return { ok: false, error: "Unknown sticker." };
+  }
+  if (attachment.type === "gif") {
+    // Two legitimate sources: an uploaded file in the first-party bucket,
+    // or a Tenor asset picked from the GIF search. Anything else — arbitrary
+    // hotlinks, lookalike hosts, non-https — is rejected.
+    const uploaded = isFirstPartyAttachmentUrl(attachment.url);
+    const tenor = isTenorHost(attachment.url);
+    if (!uploaded && !tenor) {
+      return { ok: false, error: "Unsupported GIF source." };
+    }
   }
   return { ok: true };
 }
