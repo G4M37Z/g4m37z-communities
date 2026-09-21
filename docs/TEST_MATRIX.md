@@ -47,10 +47,10 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Sticker send + render in DMs | L3 (prod build, real clicks) + L2 | picker → Fire → send → row (`attachment_type=sticker`) → renders in thread; `tests/messaging-stickers.test.ts` 8/8 | 2026-09-21 |
 | Sticker URL server-side validation (`sendMessage`) | L2 | `tests/messaging-service.test.ts` 5 cases (arbitrary URL / unknown id / traversal rejected) | 2026-09-20 |
 | Rate limiting active by default (msg 60/min/user, signup 5/hr/username) | L2 | `tests/rate-limit.test.ts` 8 cases (backend selection, window enforce/reset, KV fail-open) | 2026-09-20 |
-| Official platform logos on profile + platform-links form | L2 | `src/components/platform-icon.tsx`; tsc/eslint clean; live visual pass owed | 2026-09-20 |
-| Seeded game covers (all 8 games) | L3 (live DB) + L2 | 048 idempotent (`UPDATE 0` ×8); live `has_cover=t` ×8; `tests/game-cover-url.test.ts` 5/5 | 2026-09-20 |
+| Official platform logos on profile + platform-links form | L3 (prod build, real clicks) | settings UI → Steam link saved (row verified in live DB) → profile renders official Steam SVG glyph beside the handle | 2026-09-21 |
+| Seeded game covers (all 8 games) | L3 (live DB + rendered page) + L2 | 048 idempotent (`UPDATE 0` ×8); live `has_cover=t` ×8; `/discover` renders 8/8 Steam CDN covers (`naturalWidth>0`); game page hero cover confirmed; `tests/game-cover-url.test.ts` 5/5 | 2026-09-21 |
 | Post create/edit pre-hydration submit gate | L2 | `CreatePostForm.tsx` + `PostActions.tsx` hydration gate; `npm run check` PASS; live click re-test owed | 2026-09-20 |
-| Brand logo placement (auth, BottomNav, 404, error) | L2 | `Logo`/`BrandMark` wired; `npm run check` PASS; live visual pass owed | 2026-09-20 |
+| Brand logo placement (auth, BottomNav, 404, error) | L3 (prod build, screenshots) | lockup on login header + 404 hero glyph + BottomNav; discover header lockup | 2026-09-21 |
 | DM call helpers + 049 authorization contract | L2 | `tests/dm-calls.test.ts` 22/22 (duration, start guards, error mapping, outcome labels, RLS/RPC contract) | 2026-09-21 |
 | DM video call single-peer runtime (Video → row `media=video` ringing; Cancel → `ended/CANCELLED` + call-log message) | L3 (prod build, real clicks) + impersonated SQL probes (050) | `/tmp/call-check.sql` live-DB output; partner-resolution fix (041 RPC in `getCallContext`) verified — Call/Video buttons render | 2026-09-21 |
 | DM call two-peer audio (ring→accept→media→end) | **BLOCKED — environment** (single audio endpoint, same as GAP-WEBRTC-01) | two-device test owed; static + realtime wiring complete | — |
