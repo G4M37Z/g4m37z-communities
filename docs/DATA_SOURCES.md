@@ -29,3 +29,18 @@
 | Terms acceptance | Server-validated terms version (commit `44d7cde`) | Version bump invalidates stale acceptances |
 | Rate limits | In-process by default (GAP-RATE-01, 2026-09-20) | Active per instance; shared via Vercel KV when configured — see SECURITY_MODEL |
 | Live SQL access | `run-sql.cmd` (Windows host) / `~/.local/bin/run-sql` (Termux), creds in `~/.supabase_env` | Only authorized SQL interface; never print credentials |
+| Game covers | `public.games.cover_url` (official CDN art; 051 = Steam `library_600x900` / IGDB `t_720p`) | Rendered 2:3 via `GameCover`; allowlist `src/lib/games/cover-url.ts` |
+| GIF search | Tenor v2 API via `/api/gifs` (server proxy; key `TENOR_API_KEY`) | Optional: without a key the picker shows a setup notice; message rows only accept Tenor-host or first-party-bucket URLs |
+
+## Tenor GIF search — setup (pending, user-run)
+
+The GIF picker ships wired but dormant. To activate:
+
+1. Get a free key: <https://developers.google.com/tenor/guides/quickstart>
+   (Google account → Cloud project → enable **Tenor API** → Credentials →
+   API key, starts with `AIza…`).
+2. Local: add `TENOR_API_KEY=AIza…` to `.env.local`, restart the server.
+3. Production: add `TENOR_API_KEY` in the host's env settings (Vercel:
+   Settings → Environment Variables → Redeploy).
+4. Server-only by design — `/api/gifs` proxies the search so the key never
+   reaches the browser. No `NEXT_PUBLIC_` prefix.
