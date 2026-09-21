@@ -28,6 +28,9 @@ const MAX_PAGE = 50;
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 export const ATTACHMENT_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 export type AttachmentType = "image" | "gif" | "sticker";
+/** `call` rows are written server-side by the call RPCs (049), never by the
+ * composer — the thread renders them as a system log, not an image. */
+export type MessageAttachmentType = AttachmentType | "call";
 
 function isUuid(v: string): boolean {
   return UUID_RE.test(v);
@@ -54,7 +57,7 @@ export interface Message {
   delivered: boolean | null;
   created_at: string | null;
   attachment_url: string | null;
-  attachment_type: AttachmentType | null;
+  attachment_type: MessageAttachmentType | null;
 }
 
 export type ConversationResult =

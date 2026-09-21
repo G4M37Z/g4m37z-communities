@@ -4,14 +4,23 @@
 // this layer authenticates the caller via Supabase session and writes rows
 // that the receiver observes through the postgres_changes subscription.
 //
+// Two target modes exist (049): voice rooms address a signal by `room_id`;
+// DM calls address it by `conversation_id` (both sides are conversation
+// members). Exactly one target is set per row.
+//
 // Authorization: RLS on webrtc_signals restricts SELECT to room participants
-// and INSERT to the row's from_user (= auth.uid()). Cross-room signaling is
-// blocked by both the SELECT policy and the realtime subscription filter
-// (room_id=eq.<id>). Service-role key is NEVER used here.
+// / conversation members and INSERT to the row's from_user (= auth.uid()).
+// Cross-target signaling is blocked by both the SELECT policy and the
+// realtime subscription filter. Service-role key is NEVER used here.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type SignalType = "OFFER" | "ANSWER" | "ICE_CANDIDATE" | "PEER_JOIN" | "PEER_LEAVE";
+
+/** A signaling row is addressed either by voice room or by DM conversation. */
+export type SignalTarget =
+  | { roomId: string; conversationId?: undefined }
+  | { roomId?: undefined; conversationId: string };
 
 export interface VoiceSignalingState {
   roomId: string;
@@ -38,7 +47,8 @@ export interface SignalPayload {
 
 export interface SignalingMessage {
   id: string;
-  room_id: string;
+  room_id: string | null;
+  conversation_id: string | null;
   from_user: string;
   to_user: string | null;
   type: SignalType;
@@ -47,26 +57,32 @@ export interface SignalingMessage {
 }
 
 /**
- * Persist a signaling message for a room participant. Server enforces RLS;
- * the row is only readable by room members via the SELECT policy.
+ * Persist a signaling message. Server enforces RLS; the row is only readable
+ * by room participants / conversation members via the SELECT policy.
+ *
+ * Pass either `roomId` (voice rooms) or `conversationId` (DM calls) — never
+ * both. Exactly one target is written.
  */
 export async function sendSignal(
   supabase: SupabaseClient,
-  args: {
-    roomId: string;
+  args: SignalTarget & {
     toUser?: string | null;
     type: SignalType;
     payload: SignalPayload;
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { roomId, toUser = null, type, payload } = args;
+  const { toUser = null, type, payload } = args;
+  const target =
+    args.roomId !== undefined
+      ? { room_id: args.roomId, conversation_id: null }
+      : { room_id: null, conversation_id: args.conversationId };
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not authenticated" };
 
   const { error } = await supabase.from("webrtc_signals").insert({
-    room_id: roomId,
+    ...target,
     from_user: user.id,
     to_user: toUser,
     type,
@@ -78,12 +94,19 @@ export async function sendSignal(
 
 /**
  * Best-effort cleanup — delete any rows authored by the current user in a
- * room. Useful on component unmount or when leaving a voice session so
- * future participants don't see stale PEER_JOIN markers.
+ * room or conversation. Useful on component unmount or when leaving a
+ * session so future participants don't see stale markers.
+ *
+ * Accepts a bare room id string (legacy call sites) or a SignalTarget.
  */
 export async function clearOwnSignals(
   supabase: SupabaseClient,
-  roomId: string,
+  target: string | SignalTarget,
 ): Promise<void> {
-  await supabase.from("webrtc_signals").delete().eq("room_id", roomId);
+  const column =
+    typeof target === "string" || target.roomId !== undefined
+      ? { key: "room_id", value: typeof target === "string" ? target : target.roomId! }
+      : { key: "conversation_id", value: target.conversationId! };
+  await supabase.from("webrtc_signals").delete().eq(column.key, column.value);
 }
+

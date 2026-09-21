@@ -119,18 +119,37 @@ export function ThreadClient({
           // Sticker messages (GAP-MSG-RICH-01) render as a plain centred
           // asset — no bubble chrome on an already-accent-coloured bubble.
           const isSticker = m.attachment_type === "sticker";
+          // Call-log rows (GAP-MSG-CALL-01) are written server-side by the
+          // call RPCs; they render as a centred system pill, not a bubble.
+          const isCallLog = m.attachment_type === "call";
+
+          const divider = showDivider ? (
+            <div className="my-3 flex items-center gap-3" role="separator">
+              <span className="h-px flex-1 bg-border" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                {label}
+              </span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          ) : null;
+
+          if (isCallLog) {
+            return (
+              <li key={m.id}>
+                {divider}
+                <div className="my-3 flex justify-center">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-text-muted">
+                    <span aria-hidden>📞</span>
+                    {m.body}
+                  </span>
+                </div>
+              </li>
+            );
+          }
 
           return (
             <li key={m.id}>
-              {showDivider && (
-                <div className="my-3 flex items-center gap-3" role="separator">
-                  <span className="h-px flex-1 bg-border" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                    {label}
-                  </span>
-                  <span className="h-px flex-1 bg-border" />
-                </div>
-              )}
+              {divider}
               <div
                 className={`flex items-end gap-2 ${own ? "justify-end" : ""} ${grouped ? "mt-0.5" : "mt-2"}`}
               >

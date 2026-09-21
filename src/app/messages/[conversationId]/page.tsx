@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listMessages, isConversationMember, getReadState } from "@/lib/messaging/service";
+import { getCallContext } from "@/lib/messaging/calls";
 import { PageEnter } from "@/components/PageEnter";
+import { DmCall } from "@/components/dm-call";
 import { ThreadLive } from "./ThreadLive";
 import { ThreadClient } from "./ThreadClient";
 
@@ -49,6 +51,11 @@ export default async function MessageThreadPage({
   // SECURITY DEFINER RPC instead of a client-side join.
   const readState = await getReadState(conversationId);
 
+  // Call affordance (GAP-MSG-CALL-01): only direct conversations can be
+  // called. The partner identity and any in-flight call render server-side;
+  // live call state takes over in the client component.
+  const callContext = await getCallContext(conversationId);
+
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter(Boolean))] as string[];
   const profiles = new Map<
     string,
@@ -72,6 +79,16 @@ export default async function MessageThreadPage({
           <Link href="/messages" className="text-sm text-accent-text hover:text-accent-text-hover">
             ← Back
           </Link>
+          {callContext.isDirect && callContext.partner && (
+            <div className="ml-auto">
+              <DmCall
+                conversationId={conversationId}
+                currentUserId={user.id}
+                partner={callContext.partner}
+                initialCall={callContext.activeCall}
+              />
+            </div>
+          )}
         </header>
 
         <ThreadLive conversationId={conversationId} />
