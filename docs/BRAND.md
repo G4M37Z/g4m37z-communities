@@ -60,8 +60,13 @@ depth via surface hierarchy + borders + spacing (never glow shadows).
 ## Typography
 
 - UI/content: **Inter** (`--font-sans`) — unchanged.
-- Signature: **Caveat 600** (`--font-signature`, via `BrandSignature`).
-- Wordmark in UI is typeset (font-sans black, tight tracking), not an image.
+- Signature: **Caveat 700** (`--font-signature`, via `BrandSignature`), slight
+  −1.5° rotation and a copper spark dot echoing the mark's dot (2026-09-21
+  restyle — user-approved "keep it, make it richer").
+- Wordmark in UI is typeset (font-sans black, tight tracking) — since
+  2026-09-21 it renders as **G4M + copper 37 + Z** via `BrandWordmark.tsx`
+  (user decision: bold tech caps replaced the hand-drawn calligraphy, which
+  read thin/dead at header sizes; legacy paths remain in `public/brand/`).
 - Hierarchy: brand (mark/signature) → navigation → content → metadata.
 
 ## Motion

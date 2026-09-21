@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/components/post/PostCard";
 import { PageEnter } from "@/components/PageEnter";
 import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandSignature } from "@/components/brand/BrandSignature";
 import { getHomeFeed } from "@/lib/posts/queries";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
@@ -72,9 +73,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
       <div className="container-x py-20 sm:py-28">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <BrandMark size={72} className="text-accent motion-safe:animate-[brand-settle_900ms_var(--ease-out)_both]" />
-          <span className="font-signature mt-6 text-4xl leading-none text-accent-text sm:text-5xl motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_200ms_both]">
-            Wassup wassup
-          </span>
+          <BrandSignature size="lg" className="mt-6 motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_200ms_both]" />
           <h1 className="mt-6 text-4xl font-bold tracking-tight text-fg sm:text-5xl md:text-6xl motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_300ms_both]">
             Where your people play.
           </h1>
