@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageEnter } from "@/components/PageEnter";
 import {
@@ -13,6 +12,7 @@ import {
 } from "@/lib/games/service";
 import { FollowGameButton } from "@/components/games/FollowGameButton";
 import { GameCover } from "@/components/games/GameCover";
+import { getGameGraph } from "@/lib/games/graph";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +55,7 @@ export default async function GameDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [genres, platforms, followerCount, following, reviews, myReview] =
+  const [genres, platforms, followerCount, following, reviews, myReview, graph] =
     await Promise.all([
       getGameGenres(supabase, game.id),
       getGamePlatforms(supabase, game.id),
@@ -65,6 +65,7 @@ export default async function GameDetailPage({
       user
         ? getUserReviewsForGame(supabase, game.id, user.id)
         : Promise.resolve(null),
+      getGameGraph(supabase, game.id),
     ]);
 
   return (
@@ -145,6 +146,105 @@ export default async function GameDetailPage({
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {graph.stats.players > 0 && (
+          <section className="mb-8 rounded-lg border border-border bg-surface p-4">
+            <h2 className="text-xs uppercase tracking-wider text-text-muted">
+              Players ({graph.stats.players})
+            </h2>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {graph.players.map((p) => (
+                <li key={p.user_id}>
+                  <Link
+                    href={`/gaming/profile/${encodeURIComponent(p.username)}`}
+                    className="flex items-center gap-2 rounded-full border border-border bg-bg py-1 pl-1 pr-3 transition hover:border-accent"
+                    title={
+                      p.in_game_name
+                        ? `${p.display_name ?? p.username} — ${p.in_game_name}`
+                        : undefined
+                    }
+                  >
+                    <span className="h-7 w-7 overflow-hidden rounded-full bg-accent/10">
+                      {p.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-xs font-bold text-accent-text">
+                          {(p.display_name ?? p.username).charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs font-medium text-fg">
+                      {p.display_name ?? p.username}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-text-muted">
+                      {p.status.replace("_", " ")}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {(graph.communities.length > 0 || graph.posts.length > 0) && (
+          <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {graph.communities.length > 0 && (
+              <div className="rounded-lg border border-border bg-surface p-4">
+                <h2 className="text-xs uppercase tracking-wider text-text-muted">
+                  Communities ({graph.stats.communities})
+                </h2>
+                <ul className="mt-3 space-y-2">
+                  {graph.communities.map((c) => (
+                    <li key={c.id}>
+                      <Link
+                        href={`/communities/${c.slug}`}
+                        className="flex items-center gap-2 rounded-md p-1 text-sm font-medium text-fg transition hover:bg-white/5"
+                      >
+                        <span className="h-8 w-8 shrink-0 overflow-hidden rounded-md border border-border bg-bg">
+                          {c.icon_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={c.icon_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-xs font-bold text-accent-text">
+                              {c.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </span>
+                        <span className="truncate">{c.name}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {graph.posts.length > 0 && (
+              <div className="rounded-lg border border-border bg-surface p-4">
+                <h2 className="text-xs uppercase tracking-wider text-text-muted">
+                  Recent posts ({graph.stats.posts})
+                </h2>
+                <ul className="mt-3 space-y-2">
+                  {graph.posts.map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        href={`/post/${p.id}`}
+                        className="block rounded-md p-1 transition hover:bg-white/5"
+                      >
+                        <span className="block truncate text-sm font-medium text-fg">
+                          {p.title}
+                        </span>
+                        <span className="text-[10px] text-text-muted uppercase tracking-wider">
+                          {p.author_username ? `@${p.author_username} · ` : ""}
+                          {formatDate(p.created_at)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </section>
