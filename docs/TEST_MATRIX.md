@@ -37,6 +37,8 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Repost UI full loop (create → row + notification → undo → clean) | L3 (prod build, real click) | `sql/check-repost-fixtures.sql` + notif query; fixed use-server export + comment validation | 2026-09-19 |
 | Post votes via UI (up → +1 row; switch → same row −1; clear → row deleted, 0/0) | L3 (prod build, real clicks) | Network log clean; `/tmp/vote-check.sql` live-DB output; no stale rows | 2026-09-19 |
 | Message send latency (click → bubble) | L3 (prod build, timed) | 1504 ms measured (was 14.9s: realtime-echo dependency); optimistic append via ThreadClient | 2026-09-19 |
+| Thread chat-surface UI (header identity, shaped bubbles, smart auto-scroll, jump pill, GIF panel no-key state) | L3 (prod build, real clicks + screenshot) | header shows partner avatar/name/@handle + Call/Video; send → accent bubble with in-bubble time + ✓; GIF panel shows no-key empty state without TENOR_API_KEY | 2026-09-21 |
+| GIF source validation (Tenor hosts + first-party bucket only) | L2 | `tests/messaging-service.test.ts` 6 cases (Tenor ok, bucket ok, hotlink/lookalike/non-https rejected) | 2026-09-21 |
 | Mark-all-read reconciliation | L3 (FINAL_REPORT N) | FINAL_REPORT matrix | 2026-09-17 |
 | Post media upload/edit | L3 (FINAL_REPORT K) | FINAL_REPORT matrix | 2026-09-17 |
 | Post image upload → post → render → persistence (UI, prod build) | L3 (prod build, real upload) | Canvas-generated PNG via real file input → preview → publish → redirect to `/post/<id>`; row `has_img=t`, storage object served `200 image/png`; remove-image + delete-post both cleaned rows and storage (0 orphans) | 2026-09-19 |
@@ -49,7 +51,7 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Rate limiting active by default (msg 60/min/user, signup 5/hr/username) | L2 | `tests/rate-limit.test.ts` 8 cases (backend selection, window enforce/reset, KV fail-open) | 2026-09-20 |
 | Official platform logos on profile + platform-links form | L3 (prod build, real clicks) | settings UI → Steam link saved (row verified in live DB) → profile renders official Steam SVG glyph beside the handle | 2026-09-21 |
 | Seeded game covers (all 8 games) | L3 (live DB + rendered page) + L2 | 048 idempotent (`UPDATE 0` ×8); live `has_cover=t` ×8; `/discover` renders 8/8 Steam CDN covers (`naturalWidth>0`); game page hero cover confirmed; `tests/game-cover-url.test.ts` 5/5 | 2026-09-21 |
-| Post create/edit pre-hydration submit gate | L2 | `CreatePostForm.tsx` + `PostActions.tsx` hydration gate; `npm run check` PASS; live click re-test owed | 2026-09-20 |
+| Post create/edit pre-hydration submit gate | L2 (+ hardening) | hydration gate + `action={hydrated ? onSubmit : undefined}` (implicit-submission route closed); live click re-test owed (user-run) | 2026-09-21 |
 | Brand logo placement (auth, BottomNav, 404, error) | L3 (prod build, screenshots) | lockup on login header + 404 hero glyph + BottomNav; discover header lockup | 2026-09-21 |
 | DM call helpers + 049 authorization contract | L2 | `tests/dm-calls.test.ts` 22/22 (duration, start guards, error mapping, outcome labels, RLS/RPC contract) | 2026-09-21 |
 | DM video call single-peer runtime (Video → row `media=video` ringing; Cancel → `ended/CANCELLED` + call-log message) | L3 (prod build, real clicks) + impersonated SQL probes (050) | `/tmp/call-check.sql` live-DB output; partner-resolution fix (041 RPC in `getCallContext`) verified — Call/Video buttons render | 2026-09-21 |

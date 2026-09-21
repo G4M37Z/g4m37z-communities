@@ -125,7 +125,12 @@
 **Description:** The first Save/Publish click on a freshly mounted create/edit post form is occasionally swallowed — the action POST returns 200 but no row mutation occurs and the edit form stays open. Reproduced once during the 2026-09-19 image-upload verification (remove-image save needed a second click). The earlier "create-post never submits" report is now believed to be the same hydration-timing race; server logs and DB were clean throughout.
 **Reproduction:** Open `/create/post` or a post's edit form, attach an image, click Save/Publish immediately after mount.
 **Root cause:** UNKNOWN — suspected React transition event-timing race, not an action bug. Needs instrumentation.
-**Status:** FIXED (2026-09-20) — pending live browser re-test
+**Status:** FIXED + hardened (2026-09-21) — live browser re-test pending (user-run)
+**Hardening (2026-09-21, `082e7ce`):** the hydration gate now also removes
+the form `action` until React is attached (`action={hydrated ? onSubmit :
+undefined}`) in `CreatePostForm.tsx` and the `PostActions` `EditForm` —
+closing the implicit-submission route (Enter in a field, double-fire around
+hydration) that the disabled-button gate alone could not cover.
 **Root cause:** Pre-hydration submit race. Both forms pass `action={onSubmit}`, so a Save/Publish click that lands before React hydrates can fall through to the native form GET instead of the transition handler (the action POST returns 200 with no mutation).
 **Fix:** Added the house hydration gate (a `hydrated` state set via `queueMicrotask` in an effect; submit control `disabled={pending || uploading || !hydrated}`) to `src/app/create/post/CreatePostForm.tsx` and the `EditForm` in `src/app/post/[id]/PostActions.tsx`, mirroring `MessageForm.tsx`.
 **Verification:** `npm run check` PASS (tsc 0 errors, eslint 0 errors, 271/271 unit). Live click-timing re-test on the production build still owed.
@@ -154,9 +159,19 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
   Current thread is a plain list (`ThreadClient.tsx`) — no day dividers,
   no grouping of consecutive messages from one sender, no delivery states
   beyond ✓/✓✓, minimal empty state.
-- Status: FIXED + VERIFIED (2026-09-20) — implemented in `2984c3e`
+- Status: FIXED + VERIFIED (2026-09-20, reworked 2026-09-21) — implemented in `2984c3e`, chat-surface rework in `a629232`
 - Fix: `ThreadClient.tsx` renders day dividers (Today / Yesterday / locale date), groups consecutive same-sender bubbles within 5 minutes (spacer alignment for grouped runs), and has a dedicated empty state. Receipts (046) already drive ✓/✓✓ from the partner's read state.
-- Verification: code inspection (`dayLabel`, `showDivider`, `grouped` in `ThreadClient.tsx`) + commit `2984c3e`; `npm run check` PASS.
+- Rework (2026-09-21, `a629232`): the thread is now a real chat surface —
+  header with round back button, partner avatar + display name (links to
+  profile) + @handle beside the Call/Video buttons; chat-shaped bubbles
+  (rounded-2xl, tail corner per side, in-bubble timestamps, white-on-accent
+  receipts); smart auto-scroll that follows new messages only while the
+  reader is near the bottom, with a "Jump to latest" pill otherwise; the
+  composer row gains the GIF button.
+- Verification: L3 (prod build, autotest) — header identity + both pickers
+  render, message send → optimistic accent bubble with in-bubble time + ✓,
+  screenshot pass; GIF no-key empty state confirmed live; tsc/eslint clean,
+  vitest 312/312, build PASS.
 
 ## GAP-MSG-CALL-01 — Voice + video calls inside the messages UI
 
@@ -210,10 +225,17 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
 - Description: User wants stickers/GIF pickers and media attachments in DMs.
   Today messages are text-only (`messages.body text`), with no attachment
   storage path in DMs.
-- Status: SHIPPED (2026-09-21) — images, GIFs, and stickers shipped; GIF *picker* deferred
+- Status: SHIPPED (2026-09-21) — images, GIFs, stickers, and the GIF picker shipped (Tenor key optional)
 - Shipped: image + GIF attachments (`cfc66ef`); sticker pack — 10 SVGs in `public/stickers/`, `src/lib/messaging/stickers.ts`, picker in `MessageForm.tsx`, renderer in `ThreadClient.tsx` (`h-28 w-28 object-contain`, no bubble), `messages.attachment_type` widened to `"image"|"gif"|"sticker"`. `tests/messaging-stickers.test.ts` 8/8 pass. L3 live (2026-09-21, prod build, autotest): picker → Fire sticker → send → row (`attachment_type=sticker`, `/stickers/fire.svg`) → renders in thread; console clean.
-- Deferred: GIF *picker* (third-party Tenor/GIPHY API key — decision required).
-- Remaining: GIF picker integration; keep attachment uploads RLS-neutral (select follows `messages_select`).
+- GIF picker shipped (2026-09-21, `73c2ed5`): Tenor v2 search proxied through
+  `/api/gifs` (authenticated; key stays server-side via `TENOR_API_KEY` in
+  `.env.example`), featured-on-open + query search, grid picker in
+  `MessageForm.tsx` next to the sticker picker. `attachmentVerdict` now gates
+  `type:"gif"` to first-party `message-attachments` objects or Tenor hosts
+  (`isTenorHost` allowlist, https-only, lookalike hosts rejected) — 6 new
+  unit cases in `tests/messaging-service.test.ts`. Without a key the picker
+  degrades to an explanatory empty state; file upload and stickers unaffected.
+- Deferred: nothing — set `TENOR_API_KEY` in the deploy env to activate search.
 
 ## GAP-MSG-RICH-02 — Sticker attachments are not validated server-side
 
