@@ -74,11 +74,46 @@ export default async function MessageThreadPage({
 
   return (
     <PageEnter>
-      <main className="container-x py-8 pb-20">
-        <header className="mb-4 flex items-center gap-3">
-          <Link href="/messages" className="text-sm text-accent-text hover:text-accent-text-hover">
-            ← Back
+      <main className="container-x flex min-h-[70vh] flex-col py-6 pb-20">
+        <header className="mb-3 flex items-center gap-3 border-b border-border pb-3">
+          <Link
+            href="/messages"
+            aria-label="Back to messages"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-fg hover:bg-surface"
+          >
+            <span aria-hidden>←</span>
           </Link>
+          {callContext.isDirect && callContext.partner ? (
+            <>
+              {callContext.partner.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={callContext.partner.avatar_url}
+                  alt=""
+                  className="h-9 w-9 shrink-0 rounded-full object-cover border border-border"
+                />
+              ) : (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-xs font-bold text-fg">
+                  {(callContext.partner.display_name ?? callContext.partner.username)
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <Link
+                  href={`/profile/${callContext.partner.username}`}
+                  className="block truncate text-sm font-bold text-fg hover:text-accent-text"
+                >
+                  {callContext.partner.display_name ?? callContext.partner.username}
+                </Link>
+                <p className="truncate text-[11px] text-text-muted">
+                  @{callContext.partner.username}
+                </p>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm font-bold text-fg">Conversation</p>
+          )}
           {callContext.isDirect && callContext.partner && (
             <div className="ml-auto">
               <DmCall
