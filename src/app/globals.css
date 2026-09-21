@@ -231,3 +231,18 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
     --color-accent-text: #9C4A24;
   }
 }
+
+/* Official platform brand colors (GAP-PLATFORM-01) — applied to the
+   PlatformIcon SVG via --platform-brand. Dark (the default theme) gets
+   lifted variants for contrast on near-black; light theme the exact hex. */
+[data-platform] { --platform-brand: var(--_brand, currentColor); }
+[data-platform="steam"] { --_brand: #8ad4f8; }
+[data-platform="playstation"] { --_brand: #3b8fe0; }
+[data-platform="xbox"] { --_brand: #4ea44e; }
+[data-platform="google_play"] { --_brand: #4dd2ff; }
+[data-platform="apple_game_center"] { --_brand: #98989d; }
+[data-theme="light"] [data-platform="steam"] { --_brand: #1a5d8a; }
+[data-theme="light"] [data-platform="playstation"] { --_brand: #0058b0; }
+[data-theme="light"] [data-platform="xbox"] { --_brand: #0e6a0e; }
+[data-theme="light"] [data-platform="google_play"] { --_brand: #0091c2; }
+[data-theme="light"] [data-platform="apple_game_center"] { --_brand: #55555a; }
