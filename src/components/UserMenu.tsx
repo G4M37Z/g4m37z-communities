@@ -14,6 +14,17 @@ import {
 } from "lucide-react";
 import { PresenceIndicator } from "@/components/presence-indicator";
 import { SignOutButton } from "./SignOutButton";
+import { ThemeToggle } from "./ThemeToggle";
+
+/** Theme row shown only below the xs breakpoint (see header density note). */
+function MobileThemeRow() {
+  return (
+    <div className="flex items-center justify-between px-4 py-2">
+      <span className="text-fg">Theme</span>
+      <ThemeToggle />
+    </div>
+  );
+}
 
 interface UserMenuProps {
   userId: string;
@@ -61,6 +72,12 @@ export function UserMenu({ userId, username, avatarUrl, isModerator, isAdmin }: 
         className="menu-enter absolute right-0 top-full z-50 mt-1 w-56 origin-top-right rounded-lg border border-border bg-bg shadow-lg"
       >
         <ul className="py-1 text-sm">
+          {/* Mobile theme toggle row: the header hides its toggle below the
+              xs breakpoint (lockup + bell + avatar crowd); this row keeps the
+              control reachable on the smallest screens. */}
+          <li className="xs:hidden">
+            <MobileThemeRow />
+          </li>
           {username && (
             <li>
               <Link

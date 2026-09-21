@@ -50,6 +50,7 @@
   --material-blur: saturate(180%) blur(20px);
 
   --breakpoint-3xl: 1280px;
+  --breakpoint-xs: 380px;
 }
 
 /* Typography — apple-design §15: tracking is size-specific, never one value.

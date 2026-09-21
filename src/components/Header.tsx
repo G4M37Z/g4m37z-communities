@@ -46,7 +46,12 @@ export async function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <ThemeToggle />
+          {/* Theme toggle hides on the smallest screens: the lockup + bell +
+              avatar overflow under ~380px. It stays reachable there through
+              the UserMenu's mobile theme row below. */}
+          <span className="hidden xs:inline-block sm:inline-block">
+            <ThemeToggle />
+          </span>
           {user && <NotificationBell />}
           {user ? (
             <UserMenu
