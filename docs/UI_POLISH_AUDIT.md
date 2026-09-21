@@ -32,15 +32,19 @@
    submit row; no change needed.
 5. ✅ **SHIPPED 2026-09-21 (`840a6f6`)** — surface hierarchy: `brand-card`
    elevation utility applied to settings sections.
-6. **Focus states** — audit `:focus-visible` rings on custom buttons
-   (press class) for keyboard users; several are contrast-weak on accent.
-   Note: a global `:focus-visible` ring exists in globals.css; the audit
-   item is per-component contrast tuning.
+6. ✅ **SHIPPED 2026-09-21** — focus states: the global `:focus-visible`
+   copper ring is fine against surfaces but merged with accent-filled
+   controls, so those now switch to the high-contrast foreground ring
+   (`.bg-accent:focus-visible` in globals.css; ≥3:1 in both themes, no
+   new colors). Verified on the compiled CSS of the production build.
 7. ✅ **SHIPPED 2026-09-21 (`840a6f6`)** — micro-transitions: `sheet-in` mount
    animation for sticker/GIF panels matching menu timing.
-8. **OG/social cards per route** — landing has og.png; per-route OG images
-   (community, game, profile) would lift link sharing. Profile pages
-   already emit avatar-based OG images via generateMetadata.
+8. ✅ **SHIPPED 2026-09-21** — OG/social cards: `/discover` and
+   `/gaming/profile/[username]` now emit og/twitter tags reusing `/og.png`
+   and the profile avatar (metadataBase from `NEXT_PUBLIC_SITE_URL`);
+   communities (banner) and profiles (avatar) already did. Live-verified
+   on all four routes. A dedicated game-detail route gets its OG for free
+   from the layout default when it ships in Phase 2.
 
 ## Deliberately not queued
 

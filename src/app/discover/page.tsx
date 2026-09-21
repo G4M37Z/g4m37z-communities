@@ -1,9 +1,28 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { listGames } from "@/lib/games/service";
 import { GameCover } from "@/components/games/GameCover";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Discover games",
+  description:
+    "Browse the G4M37Z game catalogue — official cover art for the titles your communities play.",
+  openGraph: {
+    title: "Discover games · G4M37Z",
+    description:
+      "Browse the G4M37Z game catalogue — official cover art for the titles your communities play.",
+    siteName: "G4M37Z Communities",
+    images: ["/og.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Discover games · G4M37Z",
+    images: ["/og.png"],
+  },
+};
 
 export default async function DiscoverPage({
   searchParams,

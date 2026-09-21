@@ -31,16 +31,31 @@ export async function generateMetadata({ params }: Props) {
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name")
+    .select("username, display_name, avatar_url")
     .eq("username", normalizeUsername(username))
     .maybeSingle();
   const name =
     (profile as { display_name: string | null; username: string } | null)?.display_name ??
     profile?.username;
   if (!name) return { title: "Gaming profile · G4M37Z" };
+  const g = profile as { display_name: string | null; username: string; avatar_url: string | null };
+  const description = `Games, platforms, and in-game identities for ${name} on G4M37Z.`;
   return {
     title: `${name} gaming profile`,
-    description: `Games, platforms, and in-game identities for ${name} on G4M37Z.`,
+    description,
+    openGraph: {
+      title: `${name} gaming profile`,
+      description,
+      type: "profile",
+      siteName: "G4M37Z Communities",
+      images: [g.avatar_url ?? "/og.png"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${name} gaming profile`,
+      description,
+      images: [g.avatar_url ?? "/og.png"],
+    },
   };
 }
 
