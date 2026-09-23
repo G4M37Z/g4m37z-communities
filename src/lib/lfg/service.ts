@@ -523,8 +523,30 @@ export async function leaveLfgSession(
     .delete()
     .eq("session_id", sessionId)
     .eq("user_id", userId);
-  if (!error) return { ok: true, status: "deleted", sessionId };
-  return { ok: false, status: "error", error: error.message };
+  if (error) return { ok: false, status: "error", error: error.message };
+
+  // Lifecycle completion for the 054 auto-FULL transition: a FULL session
+  // that loses a member reopens. Host-only RLS protects the UPDATE; only
+  // the two state columns move.
+  const { data: target } = await supabase
+    .from("lfg_sessions")
+    .select("status, players_required")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const t = target as { status: SessionStatus; players_required: number } | null;
+  if (t?.status === "FULL") {
+    const { data: remaining } = await supabase.rpc("lfg_participant_count", {
+      p_session_id: sessionId,
+    });
+    if (typeof remaining === "number" && remaining < t.players_required) {
+      await supabase
+        .from("lfg_sessions")
+        .update({ status: "OPEN", updated_at: new Date().toISOString() })
+        .eq("id", sessionId)
+        .eq("status", "FULL");
+    }
+  }
+  return { ok: true, status: "deleted", sessionId };
 }
 
 export const SESSION_STATUS_VALUES = SESSION_STATUSES;
