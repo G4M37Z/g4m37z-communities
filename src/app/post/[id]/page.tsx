@@ -94,8 +94,8 @@ export default async function PostPage({
     .from("posts")
     .select(
       `id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count,
-       author:profiles!posts_author_id_fkey ( username, display_name, avatar_url )
-       community:communities!posts_community_id_fkey ( slug, name )
+       author:profiles!posts_author_id_fkey ( username, display_name, avatar_url ),
+       community:communities!posts_community_id_fkey ( slug, name ),
        game:games!posts_game_id_fkey ( id, name, slug )`
     )
     .eq("id", id)
