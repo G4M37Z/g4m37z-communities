@@ -111,9 +111,6 @@ export function shapeStats(
 // Queries (caller-scoped client)
 // ---------------------------------------------------------------------------
 
-const PLAYER_PRIORITY_SQL =
-  "case status when 'playing' then 0 when 'favorite' then 1 when 'owned' then 2 when 'want_to_play' then 3 else 4 end";
-
 /**
  * The full per-game fan-out. Safe to call with any slug — unknown games
  * return a graph with empty lists (the page renders its not-found state).
@@ -128,14 +125,12 @@ export async function getGameGraph(
 
   const [libraryRes, identityRes, communitiesRes, postsRes] = await Promise.all([
     // Library rows — RLS (052) filters to viewers the owners' visibility admits.
+    // (No order here: shapePlayers applies the status priority in code —
+    // PostgREST order only accepts real columns, not expressions.)
     supabase
       .from("user_games")
       .select("user_id, status")
-      .eq("game_id", gameId)
-      .order(
-        PLAYER_PRIORITY_SQL,
-        { foreignTable: "user_games", ascending: true } as never,
-      ),
+      .eq("game_id", gameId),
     // In-game names for the same game (same visibility gate).
     supabase
       .from("game_platform_identities")
