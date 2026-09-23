@@ -12,7 +12,7 @@ A visitor can move in any direction:
 ```
         discover (catalogue)
              │
-        /games/[slug]  ← the game hub
+        /game/[slug]  ← the game hub (existing route, extended)
         /  │  \
    players  communities  posts   (all live per-game views)
         \  │  /
@@ -49,11 +49,12 @@ caller's session (RLS decides visibility):
   - **stats**: cheap counts the hub header shows.
 - Pure shaping helpers exported via `__graph` for unit tests.
 
-## UI — `/games/[slug]`
+## UI — `/game/[slug]`
 
-- Server component under the existing route conventions (`force-dynamic`,
-  PageEnter, brand-card sections, GameCover 2:3 art).
-- Header: cover, name, release date, description.
+The hub extends the **existing** game detail route (no duplicate route —
+discover cards already linked here): catalogue header (cover, name, release
+date, description, genres, platforms, follow) stays, with three new
+server-rendered sections:
 - **Players** section: avatars linking to `/gaming/profile/[username]`.
 - **Communities** section: cards linking to the community; empty state
   CTA → `/create/community` (real destination).
@@ -90,14 +91,24 @@ to their followers. No service role anywhere.
   nullable columns, RLS untouched on base tables;
 - `__graph` pure shaping helpers.
 
-## Verified live (2026-09-21)
+## Verified live (2026-09-23)
 
 - Tag a community with a game via the real create form → chip on the
   community page → hub lists the community.
 - Tag a post via the real create form → chip on the post → hub lists the
-  post.
+  post (row confirmed in the live DB with `game_id` set).
 - Phase 1 rows (autotest playing/favoriting) surface in the hub's players
   section (visibility-gated).
+- Post page shows both the community link and the game chip.
+
+### Defect found and fixed during verification (1613835)
+
+The post page's multi-line embedded select separated embeds with
+newlines and no commas. postgrest-js 2.116's whitespace-stripping
+`select()` parser merges those into a single token, silently dropping
+every embed after the first — this had already been hiding the community
+link on post pages since the supabase-js bump. Fixed by comma-separating
+the embeds; a codebase-wide scan confirmed it was the only occurrence.
 
 ## Deferred (not guessed at)
 
