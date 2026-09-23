@@ -2,26 +2,19 @@
 // src/lib/lfg/service.ts
 // V3 Phase 1 / V3.4 — LFG (Looking For Group) service.
 //
-// Security model:
-//   - Reads use the regular Supabase client (RLS allows public SELECT of
-//     privacy='public' sessions, and self-or-host read for participants).
-//   - Mutations (create / update / close / delete session; join / leave)
-//     go through createAdminClient (service_role). The authenticated user
-//     identity is resolved server-side from the supabase session.
-//   - host_id is forced to auth.uid() on INSERT (server sets it; clients
-//     cannot pass an arbitrary host_id).
-//   - user_id is forced to auth.uid() on participant INSERT / DELETE.
+// Security model (Phase 3 refactor, migration 054):
+//   - Every query runs as the caller through the shared server client;
+//     the 016 RLS policies are the authorization boundary (public SELECT
+//     for non-private sessions, INSERT forced to auth.uid() as host,
+//     host-only UPDATE/DELETE, join/leave as self).
+//   - Join is the one race-sensitive operation (last slot), so it goes
+//     through the atomic lfg_join RPC (054) which re-checks status,
+//     capacity, and host-lock inside the transaction and auto-transitions
+//     the session to FULL when the last slot is taken.
 //   - The (session_id, user_id) PRIMARY KEY prevents duplicate joins.
-//   - Status transitions (CLOSED, CANCELLED) are restricted to the host;
-//     participating users can leave but cannot close a session.
-//   - Capacity check for "session is full" lives in this service because
-//     it is data-dependent (current participants vs players_required).
-//     The DB layer enforces uniqueness; the service gates the "is it full"
-//     check before INSERT and atomically races for the last slot via
-//     the PK constraint.
+//   - host_id / user_id are forced server-side; clients never pass IDs.
 // ============================================================================
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -259,12 +252,22 @@ export async function getLfgParticipantCount(
   sessionId: string,
 ): Promise<number> {
   if (!isUuid(sessionId)) return 0;
-  const { count, error } = await supabase
-    .from("lfg_participants")
-    .select("session_id", { count: "exact", head: true })
-    .eq("session_id", sessionId);
-  if (error || typeof count !== "number") return 0;
-  return count;
+  // RLS lets a viewer count only their own rows (plus everything if they
+  // are the host), so a direct count is wrong for everyone else. The 054
+  // RPC returns the true count — for public sessions to any authenticated
+  // viewer, otherwise host-or-self only (enforced inside the RPC).
+  const { data, error } = await supabase.rpc("lfg_participant_count", {
+    p_session_id: sessionId,
+  });
+  if (error || typeof data !== "number") {
+    // Fallback: caller-scoped count (exact for the host; 0 elsewhere).
+    const { count } = await supabase
+      .from("lfg_participants")
+      .select("session_id", { count: "exact", head: true })
+      .eq("session_id", sessionId);
+    return typeof count === "number" ? count : 0;
+  }
+  return data;
 }
 
 export async function listLfgParticipants(
@@ -315,7 +318,7 @@ export async function getMyParticipation(
 }
 
 // ---------------------------------------------------------------------------
-// Mutations (server-only via createAdminClient)
+// Mutations (caller-scoped; RLS 016 + RPC 054 authorize)
 // ---------------------------------------------------------------------------
 
 export async function createLfgSession(
@@ -329,7 +332,7 @@ export async function createLfgSession(
   if (input.gameId && !isUuid(input.gameId)) return { ok: false, status: "error", error: "Invalid gameId" };
   if (input.platformId && !isUuid(input.platformId)) return { ok: false, status: "error", error: "Invalid platformId" };
 
-  const session = createAdminClient();
+  const supabase = await createClient();
   const payload = {
     host_id: userId,
     game_id: input.gameId ?? null,
@@ -345,7 +348,8 @@ export async function createLfgSession(
     privacy: (input.privacy ?? "public") as Privacy,
   };
 
-  const { data, error } = await session
+  // RLS WITH CHECK (auth.uid() = host_id) rejects forging another host.
+  const { data, error } = await supabase
     .from("lfg_sessions")
     .insert(payload)
     .select("id")
@@ -362,11 +366,12 @@ export async function updateLfgSession(
   const userId = await resolveUserId();
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
 
-  const session = createAdminClient();
+  const supabase = await createClient();
 
-  // Defense in depth: ensure host == current user before update even
-  // reaches the UPDATE call (since admin client bypasses RLS).
-  const { data: existing, error: rerr } = await session
+  // Pre-check keeps the friendlier "not_found"/"forbidden" statuses
+  // instead of a bare RLS 0-row update; the UPDATE itself is still gated
+  // by the host-only RLS policy.
+  const { data: existing, error: rerr } = await supabase
     .from("lfg_sessions")
     .select("host_id")
     .eq("id", sessionId)
@@ -403,7 +408,7 @@ export async function updateLfgSession(
   }
   update.updated_at = new Date().toISOString();
 
-  const { error } = await session.from("lfg_sessions").update(update).eq("id", sessionId);
+  const { error } = await supabase.from("lfg_sessions").update(update).eq("id", sessionId);
   if (error) return { ok: false, status: "error", error: error.message };
   return { ok: true, status: "updated", sessionId };
 }
@@ -427,8 +432,8 @@ export async function deleteLfgSession(
   const userId = await resolveUserId();
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
 
-  const session = createAdminClient();
-  const { data: existing, error: rerr } = await session
+  const supabase = await createClient();
+  const { data: existing, error: rerr } = await supabase
     .from("lfg_sessions")
     .select("host_id")
     .eq("id", sessionId)
@@ -438,7 +443,7 @@ export async function deleteLfgSession(
   if ((existing as { host_id: string }).host_id !== userId) {
     return { ok: false, status: "forbidden", error: "Only the host can delete this session" };
   }
-  const { error } = await session.from("lfg_sessions").delete().eq("id", sessionId);
+  const { error } = await supabase.from("lfg_sessions").delete().eq("id", sessionId);
   if (error) return { ok: false, status: "error", error: error.message };
   return { ok: true, status: "deleted", sessionId };
 }
@@ -479,51 +484,30 @@ export async function joinLfgSession(
   const userId = await resolveUserId();
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
 
-  const session = createAdminClient();
-
-  // Lifecycle + capacity check before INSERT.
-  const { data: target, error: terr } = await session
-    .from("lfg_sessions")
-    .select("status, players_required, host_id")
-    .eq("id", sessionId)
-    .maybeSingle();
-  if (terr) return { ok: false, status: "error", error: terr.message };
-  if (!target) return { ok: false, status: "not_found", error: "Session not found" };
-
-  const t = target as { status: SessionStatus; players_required: number; host_id: string };
-
-  // Capacity check: count current participants.
-  const { count, error: cerr } = await session
-    .from("lfg_participants")
-    .select("session_id", { count: "exact", head: true })
-    .eq("session_id", sessionId);
-  if (cerr || typeof count !== "number") {
-    return { ok: false, status: "error", error: cerr?.message ?? "Count failed" };
-  }
-
-  const verdict = joinVerdict({
-    status: t.status,
-    playersRequired: t.players_required,
-    hostId: t.host_id,
-    userId,
-    currentCount: count,
+  // Atomic join via the 054 RPC: status/capacity/host-lock re-checked
+  // inside the transaction, last slot auto-transitions the session to
+  // FULL. RLS-hidden participant counts are no longer a problem — the
+  // RPC is SECURITY DEFINER with authenticated-only execute.
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("lfg_join", {
+    p_session_id: sessionId,
   });
-  if (verdict === "unavailable") {
-    return { ok: false, status: "unavailable", error: `Session is ${t.status}` };
+  if (error) {
+    // not_authenticated raises; everything else comes back as a verdict.
+    if (error.message.includes("not_authenticated")) {
+      return { ok: false, status: "error", error: "Not authenticated" };
+    }
+    return { ok: false, status: "error", error: error.message };
   }
-  if (verdict === "full") {
-    return { ok: false, status: "full", error: "Session is full" };
-  }
+  const verdict = (data as string) ?? "error";
+  if (verdict === "joined") return { ok: true, status: "inserted", sessionId };
+  if (verdict === "duplicate") return { ok: true, status: "duplicate", sessionId };
+  if (verdict === "full") return { ok: false, status: "full", error: "Session is full" };
   if (verdict === "forbidden") {
     return { ok: false, status: "forbidden", error: "Hosts cannot join their own session" };
   }
-
-  const { error } = await session
-    .from("lfg_participants")
-    .insert({ session_id: sessionId, user_id: userId });
-  if (!error) return { ok: true, status: "inserted", sessionId };
-  if (error.code === "23505") return { ok: true, status: "duplicate", sessionId };
-  return { ok: false, status: "error", error: error.message };
+  if (verdict === "not_found") return { ok: false, status: "not_found", error: "Session not found" };
+  return { ok: false, status: "unavailable", error: `Session is ${verdict}` };
 }
 
 export async function leaveLfgSession(
@@ -533,8 +517,8 @@ export async function leaveLfgSession(
   const userId = await resolveUserId();
   if (!userId) return { ok: false, status: "error", error: "Not authenticated" };
 
-  const session = createAdminClient();
-  const { error } = await session
+  const supabase = await createClient();
+  const { error } = await supabase
     .from("lfg_participants")
     .delete()
     .eq("session_id", sessionId)

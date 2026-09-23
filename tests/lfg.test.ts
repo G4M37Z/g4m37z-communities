@@ -99,3 +99,35 @@ describe("migration regression (016/023 invariants)", () => {
     expect(policies).toContain("privacy");
   });
 });
+
+describe("migration 054 (atomic join RPC)", () => {
+  const migration = readFileSync(
+    join(root, "docs/database/054_lfg_join_rpc.sql"),
+    "utf8",
+  );
+
+  it("lfg_join is SECURITY DEFINER, authenticated-only, takes only a session id", () => {
+    expect(migration).toMatch(/CREATE OR REPLACE FUNCTION public\.lfg_join\(p_session_id uuid\)/);
+    expect(migration).toContain("SECURITY DEFINER");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.lfg_join(uuid) TO authenticated");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.lfg_join(uuid) FROM anon, public");
+  });
+
+  it("joiner is always auth.uid() — never a caller-supplied id", () => {
+    expect(migration).toContain("v_user uuid := auth.uid()");
+    expect(migration).not.toMatch(/p_user|p_user_id/);
+  });
+
+  it("re-checks lifecycle, host-lock, and capacity inside the transaction", () => {
+    expect(migration).toContain("IF v_host = v_user THEN");
+    expect(migration).toContain("IF v_count >= v_required THEN");
+    expect(migration).toContain("unique_violation");
+    expect(migration).toContain("SET status = 'FULL'");
+  });
+
+  it("count RPC restricts non-public sessions to host-or-self", () => {
+    expect(migration).toContain("lfg_participant_count");
+    expect(migration).toContain("s.host_id = auth.uid() OR p.user_id = auth.uid()");
+    expect(migration).toContain("s2.privacy = 'public'");
+  });
+});
