@@ -27,10 +27,20 @@ UPDATE/DELETE, CHECK constraints on free-text columns.
 
 ### Service — `src/lib/lfg/service.ts` + `actions.ts`
 
-- Reads through the caller's session (RLS decides visibility).
-- Mutations via service-role admin client with server-resolved identity
-  (host/user IDs forced server-side, never trusted from the client).
-- `joinVerdict()` — pure, unit-tested gate for status/capacity/self-join.
+- Every query runs as the caller (RLS decides visibility). Mutations were
+  originally service-role based; the Phase 3 verification exposed that
+  this made LFG unusable wherever `SUPABASE_SERVICE_ROLE_KEY` is not
+  configured (hard throw), so mutations now run caller-scoped under the
+  016 policies — with one exception below (migration 054, `98153c9`).
+- **Join** is the race-sensitive path: it goes through the atomic
+  `lfg_join` RPC (054) — SECURITY DEFINER, executable only by
+  `authenticated`, joiner always `auth.uid()` — which re-checks
+  status/host-lock/capacity in-transaction and auto-transitions the
+  session to FULL on the last slot. `leaveLfgSession` flips a FULL
+  session back to OPEN when a member leaves (`f210e59`).
+- `lfg_participant_count` RPC (054) gives non-host viewers the real
+  participant count (RLS only admits their own rows to a direct count).
+- `joinVerdict()` — pure, unit-tested gate mirrored by the RPC logic.
 - Capacity: PK-constrained atomic race for the last slot.
 
 ## Phase 3 wiring (implemented 2026-09-23)
@@ -46,13 +56,23 @@ UPDATE/DELETE, CHECK constraints on free-text columns.
 4. **Tests** — prefill/query validation and hub-section regression tests
    alongside the existing `joinVerdict` coverage.
 
+## Verified live (2026-09-23, production build, two users)
+
+- Hub section: `/game/call-of-duty` shows "Looking for group" with open
+  sessions, empty state, and the prefilled host CTA.
+- Prefill: `/lfg/new?game=<uuid>` preselects the game (unknown ids
+  degrade to "Any", validated against the catalogue).
+- Create as autotest through the real form → row confirmed in the live
+  DB (`game_id`, mode, region, host) → listed on the hub.
+- Join as autotest2 through the real button → Players 1/2, roster shows
+  "Auto Test Two", count RPC works for a non-host viewer.
+- Leave → back to 0/2, empty roster, no stale rows in the DB.
+- Gates: tsc PASS · eslint 0 errors · vitest **354/354** · build PASS.
+
 ## Deferred (documented, not built)
 
-- **Service-role refactor**: mutations use the service-role admin client
-  with server-side authorization checks. RLS-rejected writes (016's
-  policies were designed to own this) would be the cleaner boundary;
-  the refactor is safe but touching all of `service.ts` in one pass
-  risks the working join/capacity logic. Tracked as debt, not a blocker:
-  identity is still forced server-side on every path.
 - Live multiplayer matchmaking, session chat, notifications on join.
 - Recurring sessions and calendar integration.
+- The FULL auto-transition is tested at the RPC level and the reopen
+  path through leave; a full two-user FULL-cycle (capacity ≥ 2 filled
+  simultaneously) soak remains for user-run testing.
