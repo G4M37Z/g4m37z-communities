@@ -6,9 +6,11 @@ import { createLfgAction } from "@/lib/lfg/actions";
 export function LfgCreateForm({
   games,
   platforms,
+  presetGameId,
 }: {
   games: { id: string; name: string }[];
   platforms: { id: string; name: string }[];
+  presetGameId?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function LfgCreateForm({
         </span>
         <select
           name="gameId"
-          defaultValue=""
+          defaultValue={presetGameId ?? ""}
           className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-fg focus:border-accent focus:outline-none"
         >
           <option value="">Any</option>

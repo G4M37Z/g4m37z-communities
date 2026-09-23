@@ -13,6 +13,7 @@ import {
 import { FollowGameButton } from "@/components/games/FollowGameButton";
 import { GameCover } from "@/components/games/GameCover";
 import { getGameGraph } from "@/lib/games/graph";
+import { listLfgSessions } from "@/lib/lfg/service";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,7 @@ export default async function GameDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [genres, platforms, followerCount, following, reviews, myReview, graph] =
+  const [genres, platforms, followerCount, following, reviews, myReview, graph, lfgSessions] =
     await Promise.all([
       getGameGenres(supabase, game.id),
       getGamePlatforms(supabase, game.id),
@@ -66,6 +67,12 @@ export default async function GameDetailPage({
         ? getUserReviewsForGame(supabase, game.id, user.id)
         : Promise.resolve(null),
       getGameGraph(supabase, game.id),
+      // Open LFG sessions for this game (RLS: public discovery only).
+      listLfgSessions(supabase, {
+        gameId: game.id,
+        status: ["CREATED", "OPEN"],
+        limit: 5,
+      }),
     ]);
 
   return (
@@ -249,6 +256,56 @@ export default async function GameDetailPage({
             )}
           </section>
         )}
+
+        <section className="mb-8 rounded-lg border border-border bg-surface">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="text-base font-semibold text-fg">
+              Looking for group ({lfgSessions.length})
+            </h2>
+            <Link
+              href={`/lfg/new?game=${game.id}`}
+              className="press inline-flex h-9 items-center rounded-md bg-accent px-3 text-xs font-semibold text-white hover:bg-accent-hover"
+            >
+              Host a session
+            </Link>
+          </header>
+          {lfgSessions.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-text-secondary">
+              No open sessions for this game yet.
+              <Link
+                href={`/lfg/new?game=${game.id}`}
+                className="ml-1 font-semibold text-accent-text hover:underline"
+              >
+                Host the first one
+              </Link>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {lfgSessions.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    href={`/lfg/${s.id}`}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 transition hover:bg-white/5"
+                  >
+                    <span className="text-sm font-medium text-fg">
+                      {s.host_display_name ?? s.host_username ?? "Host"}
+                    </span>
+                    <span className="text-xs uppercase tracking-wider text-accent-text">
+                      {s.mode ?? "Open"}
+                    </span>
+                    {s.region && (
+                      <span className="text-xs text-text-muted">{s.region}</span>
+                    )}
+                    <span className="ml-auto text-xs text-text-muted">
+                      {s.players_required} player{s.players_required === 1 ? "" : "s"} needed
+                      {s.session_time ? ` · ${formatDate(s.session_time)}` : ""}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="mb-10 rounded-lg border border-border bg-surface">
           <header className="flex items-center justify-between px-4 py-3 border-b border-border">

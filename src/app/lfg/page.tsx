@@ -162,12 +162,18 @@ export default async function LfgDiscoverPage({
                 className="rounded-lg border border-border bg-surface p-4"
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <Link
-                    href={`/lfg/${s.id}`}
-                    className="text-base font-semibold text-fg hover:underline"
-                  >
-                    {s.game_name ?? "Any game"}
-                  </Link>
+                  {s.game_slug ? (
+                    <Link
+                      href={`/game/${s.game_slug}`}
+                      className="text-base font-semibold text-fg hover:underline"
+                    >
+                      {s.game_name ?? "Any game"}
+                    </Link>
+                  ) : (
+                    <span className="text-base font-semibold text-fg">
+                      {s.game_name ?? "Any game"}
+                    </span>
+                  )}
                   <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
                     {STATUS_LABELS[s.status] ?? s.status}
                   </span>

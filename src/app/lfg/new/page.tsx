@@ -7,7 +7,12 @@ import { LfgCreateForm } from "@/components/lfg/LfgCreateForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function LfgNewPage() {
+export default async function LfgNewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ game?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,6 +25,11 @@ export default async function LfgNewPage() {
     listGames(supabase, { limit: 100 }),
     listPlatforms(supabase),
   ]);
+
+  // Hub CTA deep-links with ?game=<uuid>; only accept ids the catalogue
+  // actually knows, so a stale/foreign id degrades to the default "Any".
+  const presetGameId =
+    sp.game && games.some((g) => g.id === sp.game) ? sp.game : undefined;
 
   return (
     <main className="container-x py-8 pb-20">
@@ -38,6 +48,7 @@ export default async function LfgNewPage() {
       <LfgCreateForm
         games={games.map((g) => ({ id: g.id, name: g.name }))}
         platforms={platforms.map((p) => ({ id: p.id, name: p.name }))}
+        presetGameId={presetGameId}
       />
     </main>
   );
