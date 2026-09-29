@@ -190,6 +190,30 @@ The guard is gated by the `storage.allow_delete_query` GUC; bypassing it via SQL
   user appeared live; console clean. Long-session soak (device sleep/wake)
   owed to user-run testing.
 
+## GAP-MSG-OPEN-01 — Opening a thread older than 20 messages showed the
+archive's beginning, not recent messages — CLOSED
+
+- Area: Messaging / thread pagination
+- Severity: P1 (user-reported 2026-09-29: "DM shows a new message when I'm
+  outside the DM; when I open it, no new message")
+- Root cause: `listMessages` fetched with `.order(created_at, ascending)
+  .range(0, 19)` — page 1 was the **oldest** 20 rows of the conversation.
+  Threads shorter than one page masked the bug; once a conversation crossed
+  20 messages, every new message landed outside the rendered window. The
+  inbox preview queries the newest message independently, which is why the
+  badge/preview updated while the open thread appeared frozen at old
+  history. Distinct from GAP-MSG-LIVE-01 (realtime dropout) — this one was
+  structural and reproducible on every open.
+- Fix (2026-09-29): `listMessages` fetches the newest window (`ascending:
+  false` + `.range`) and reverses for the UI's ascending display; page 1 =
+  latest 20, higher pages walk backwards through history.
+- Verification: defect reproduced on the pre-fix build (24-row thread showed
+  rows 1–18, newest absent), then fixed build proven live — open shows the
+  newest row, real UI send lands as the newest visible message; DB rows
+  verified via run-sql. Regression tests in `tests/messaging-service.test.ts`
+  pin the newest-window contract. Gates: tsc PASS, eslint 0 errors, vitest
+  361/361, build PASS.
+
 ## GAP-MSG-UI-01 — Inside-messaging UI polish
 
 - Area: Messaging UI

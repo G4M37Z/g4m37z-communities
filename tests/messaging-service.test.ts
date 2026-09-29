@@ -154,3 +154,35 @@ describe("messaging authorization contract (RLS regression)", () => {
     expect(MESSAGING_POLICIES).not.toMatch(/conversation_members_update/i);
   });
 });
+
+describe("thread pagination contract (2026-09-29 stale-thread defect)", () => {
+  it("listMessages fetches the NEWEST window first, then reverses for display", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/messaging/service.ts"),
+      "utf8",
+    );
+    // The defect: order ascending + range(0,19) returned the OLDEST 20 rows,
+    // so threads longer than one page hid new messages in-thread while the
+    // conversation-list preview (a separate newest-first query) showed them.
+    expect(src).toMatch(
+      /listMessages[\s\S]*?\.order\("created_at", \{ ascending: false \}\)/,
+    );
+    expect(src).toMatch(/listMessages[\s\S]*?\.range\(from, to\)/);
+    expect(src).toMatch(/\.reverse\(\)/);
+  });
+
+  it("stale-comment guard: no ascending listMessages may return", () => {
+    // If this fails, someone reintroduced ascending pagination into the
+    // message list — re-check the thread page against this contract before
+    // changing the assertion.
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/messaging/service.ts"),
+      "utf8",
+    );
+    const listFn = src.slice(
+      src.indexOf("export async function listMessages"),
+      src.indexOf("// ---------------------------------------------------------------------------\n// Mutations"),
+    );
+    expect(listFn).not.toMatch(/ascending: true/);
+  });
+});

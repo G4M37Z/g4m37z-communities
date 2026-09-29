@@ -239,7 +239,8 @@ export async function blockedUserIds(uid: string): Promise<Set<string>> {
 }
 
 // ---------------------------------------------------------------------------
-// Message list — ascending, page-based (offset bounded by MAX_PAGE per page)
+// Message list — newest-window pages (page 1 = latest 20, ascending display;
+// older pages walk backwards through history, offset bounded by MAX_PAGE)
 // ---------------------------------------------------------------------------
 
 export async function listMessages(
@@ -251,13 +252,21 @@ export async function listMessages(
   const from = (Math.max(page, 1) - 1) * pageSize;
   const to = from + pageSize - 1;
   const supabase = await createClient();
+  // Page 1 must be the NEWEST window (chat convention), not the archive's
+  // beginning: the previous `.order(asc).range(0,19)` returned the OLDEST 20
+  // rows, so once a thread outgrew one page the composer's new messages were
+  // invisible in-thread while the conversation-list preview (a separate
+  // newest-first query) kept showing them — "new message badge but an empty
+  // open thread" (2026-09-29 defect report). The newest window is fetched
+  // desc and reversed so the UI keeps its ascending display order; higher
+  // pages page backwards through history.
   const { data } = await supabase
     .from("messages")
     .select("id, conversation_id, sender_id, body, read, delivered, created_at, attachment_url, attachment_type")
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .range(from, to);
-  return (data ?? []) as Message[];
+  return ((data ?? []) as Message[]).reverse();
 }
 
 // ---------------------------------------------------------------------------
