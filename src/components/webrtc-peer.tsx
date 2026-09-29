@@ -26,6 +26,7 @@ import {
   type SignalPayload,
   type SignalingMessage,
 } from "@/lib/webrtc-signaling";
+import { ICE_SERVERS } from "@/lib/ice-servers";
 
 export interface PeerState {
   connectionState:
@@ -50,10 +51,6 @@ export interface PeerState {
 interface UseWebRTCPeerOptions {
   supabase: SupabaseClient;
 }
-
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-];
 
 export function useWebRTCPeer(
   roomId: string,

@@ -41,8 +41,7 @@ import type {
   CallSession,
   CallMedia,
 } from "@/lib/messaging/call-utils";
-
-const ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
+import { ICE_SERVERS } from "@/lib/ice-servers";
 
 /** Small grace on top of the 45s server-side ring timeout. */
 const CLIENT_RING_TIMEOUT_MS = RING_TIMEOUT_MS + 1500;
@@ -74,6 +73,13 @@ export function DmCall({
   const [endedLabel, setEndedLabel] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState("0:00");
   const [camOn, setCamOn] = useState(true);
+  const [relayInUse, setRelayInUse] = useState(false);
+  const [remoteCandidateCount, setRemoteCandidateCount] = useState(0);
+  // Set when a remote track actually arrived (i.e. the offer/answer negotiated
+  // media). A peer connection can reach "connected" on the data-less ICE
+  // association alone — without this the overlay would show Connected while
+  // nothing can possibly be heard (the 2026-09-28 two-device report).
+  const [hasRemoteMedia, setHasRemoteMedia] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -117,6 +123,7 @@ export function DmCall({
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     remoteStreamRef.current = null;
+    setHasRemoteMedia(false);
     setCamOn(true);
     if (pcRef.current) {
       pcRef.current.getSenders().forEach((s) => s.track?.stop());
@@ -227,6 +234,7 @@ export function DmCall({
           remoteDescSetRef.current = true;
           await flushPendingIce();
         } else if (msg.type === "ICE_CANDIDATE" && msg.payload.candidate) {
+          setRemoteCandidateCount((n) => n + 1);
           await applyRemoteCandidate({
             candidate: msg.payload.candidate,
             sdpMid: msg.payload.sdpMid ?? null,
@@ -293,15 +301,28 @@ export function DmCall({
       remoteDescSetRef.current = false;
       pendingIceRef.current = [];
       offeredRef.current = false;
+      setHasRemoteMedia(false);
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       pc.onconnectionstatechange = () => setConnState(pc.connectionState);
       pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === "failed") setConnState("failed");
+        // Once ICE confirms bidirectional connectivity the remote stream is
+        // safe to play — unblock autoplay here if the early attempt was
+        // rejected before any user gesture registered on this page.
+        if (
+          (pc.iceConnectionState === "connected" ||
+            pc.iceConnectionState === "completed") &&
+          remoteAudioRef.current &&
+          remoteAudioRef.current.paused
+        ) {
+          void remoteAudioRef.current.play().catch(() => {});
+        }
       };
       pc.ontrack = (event) => {
         const remote = event.streams[0];
         if (!remote) return;
+        setHasRemoteMedia(true);
         remoteStreamRef.current = remote;
         if (!remoteAudioRef.current) {
           remoteAudioRef.current = new Audio();
@@ -310,11 +331,15 @@ export function DmCall({
         remoteAudioRef.current.srcObject = remote;
         void remoteAudioRef.current.play().catch(() => {
           // Autoplay can be blocked until a gesture; Accept/End counts.
+          // oniceconnectionstatechange retries once ICE confirms media flow.
         });
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remote;
       };
       pc.onicecandidate = async (event) => {
         if (!event.candidate) return;
+        if (event.candidate.type === "relay") {
+          setRelayInUse(true);
+        }
         const payload: SignalPayload = {
           candidate: event.candidate.candidate,
           sdpMid: event.candidate.sdpMid,
@@ -375,6 +400,7 @@ export function DmCall({
       }
 
       setMediaState("live");
+      setRemoteCandidateCount(0);
 
       // Caller is the deterministic offerer; callee waits for the OFFER.
       if (session.caller_id === currentUserId) {
@@ -590,17 +616,27 @@ export function DmCall({
     call?.status === "ringing" && call.caller_id === currentUserId;
   const isLive = call?.status === "active";
   const isEnded = call?.status === "ended";
+  // Media is only real once remote tracks arrived. peerConnectionState can
+  // read "connected" with zero m-lines answered — treat that as connecting.
+  const isMediaLive =
+    isLive && connState === "connected" && hasRemoteMedia;
+  const isMediaFailed = isLive && connState === "failed";
+  const isMediaConnecting = isLive && !isMediaLive && !isMediaFailed;
   const overlayOpen = Boolean(call);
   const activeMedia: CallMedia = call?.media ?? "audio";
 
   const statusText =
-    connState === "connected"
-      ? "Connected"
-      : mediaState === "requesting"
-        ? "Connecting…"
-        : mediaState === "denied"
-          ? "Microphone unavailable"
-          : "Ringing…";
+    isMediaFailed
+      ? "Connection failed — check your network"
+      : isMediaLive
+        ? "Connected"
+        : isMediaConnecting && remoteCandidateCount > 0
+          ? "Connecting…"
+          : mediaState === "requesting"
+            ? "Connecting…"
+            : mediaState === "denied"
+              ? "Microphone unavailable"
+              : "Connecting…";
 
   return (
     <>
@@ -651,6 +687,13 @@ export function DmCall({
                 {statusText} · {elapsed}
               </p>
             )}
+            {isLive && isMediaFailed && (
+              <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
+                {relayInUse
+                  ? "The relay connection dropped. Try ending and redialling."
+                  : "Media could not traverse both networks. Ask the server admin to configure TURN (NEXT_PUBLIC_TURN_URL) — without a relay, calls fail on carrier/corporate NAT."}
+              </p>
+            )}
             {isEnded && (
               <p className="mt-1 text-sm text-text-secondary">
                 {endedLabel ?? "Call ended"}
@@ -675,6 +718,16 @@ export function DmCall({
                 {!camOn && (
                   <p className="absolute bottom-2 right-2 flex h-20 w-28 items-center justify-center rounded-lg bg-black/70 text-[10px] font-semibold text-white">
                     Camera off
+                  </p>
+                )}
+                {!isMediaLive && !isMediaFailed && (
+                  <p className="absolute inset-x-0 top-2 mx-auto w-fit rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold text-white">
+                    Connecting media…
+                  </p>
+                )}
+                {isMediaFailed && (
+                  <p className="absolute inset-x-0 top-2 mx-auto w-fit rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold text-white">
+                    Media connection failed
                   </p>
                 )}
               </div>

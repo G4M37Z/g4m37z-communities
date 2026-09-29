@@ -56,7 +56,7 @@ change; prefer the CI/Vercel cloud build per AGENTS.md).
 | Brand logo placement (auth, BottomNav, 404, error) | L3 (prod build, screenshots) | lockup on login header + 404 hero glyph + BottomNav; discover header lockup | 2026-09-21 |
 | DM call helpers + 049 authorization contract | L2 | `tests/dm-calls.test.ts` 22/22 (duration, start guards, error mapping, outcome labels, RLS/RPC contract) | 2026-09-21 |
 | DM video call single-peer runtime (Video → row `media=video` ringing; Cancel → `ended/CANCELLED` + call-log message) | L3 (prod build, real clicks) + impersonated SQL probes (050) | `/tmp/call-check.sql` live-DB output; partner-resolution fix (041 RPC in `getCallContext`) verified — Call/Video buttons render | 2026-09-21 |
-| DM call two-peer audio (ring→accept→media→end) | **BLOCKED — environment** (single audio endpoint, same as GAP-WEBRTC-01) | two-device test owed; static + realtime wiring complete | — |
+| DM call two-peer audio (ring→accept→media→end) | L2 + loopback L3 (code fixed 2026-09-29 — STUN-only root cause, see GAP-WEBRTC-01); **two-device confirmation owed** | shared ICE config + TURN env + honest media states (`ice-servers.ts`, `dm-call.tsx`); in-browser two-PC STUN negotiation with mutual `ontrack` proved the chain; TURN provider + real device pair still required | 2026-09-29 |
 
 ## Regression protection rule
 

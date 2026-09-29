@@ -16,6 +16,7 @@ import {
   RING_TIMEOUT_MS,
   type StartCallContext,
 } from "@/lib/messaging/call-utils";
+import { ICE_SERVERS } from "@/lib/ice-servers";
 
 const { formatCallDuration: _fmt, startCallVerdict: _scv, RING_TIMEOUT_MS: _rt } =
   __test;
@@ -158,5 +159,58 @@ describe("DM call authorization contract (migration 049)", () => {
 
   it("never grants anon EXECUTE on the call RPCs", () => {
     expect(DM_CALLS_SQL).toMatch(/REVOKE (ALL|EXECUTE)[\s\S]*?\bANON\b/i);
+  });
+});
+
+describe("ICE configuration (GAP-WEBRTC-01 two-peer media)", () => {
+  const DM_CALL_TSX = readFileSync(
+    join(process.cwd(), "src/components/dm-call.tsx"),
+    "utf8",
+  );
+  const VOICE_PEER_TSX = readFileSync(
+    join(process.cwd(), "src/components/webrtc-peer.tsx"),
+    "utf8",
+  );
+  const ICE_SERVERS_TS = readFileSync(
+    join(process.cwd(), "src/lib/ice-servers.ts"),
+    "utf8",
+  );
+
+  it("always advertises at least one STUN server", () => {
+    expect(ICE_SERVERS.length).toBeGreaterThanOrEqual(1);
+    expect(JSON.stringify(ICE_SERVERS)).toMatch(/stun:/);
+  });
+
+  it("is the single shared config both call surfaces use", () => {
+    expect(DM_CALL_TSX).toContain('from "@/lib/ice-servers"');
+    expect(VOICE_PEER_TSX).toContain('from "@/lib/ice-servers"');
+    // Neither surface may drift back to an inline STUN-only list — that is
+    // exactly how two-peer media broke behind symmetric NAT / CGNAT.
+    expect(DM_CALL_TSX).not.toMatch(/stun:stun\.l\.google\.com/);
+    expect(VOICE_PEER_TSX).not.toMatch(/stun:stun\.l\.google\.com/);
+  });
+
+  it("activates TURN only with a complete URL+username+credential triple", () => {
+    expect(ICE_SERVERS_TS).toMatch(/NEXT_PUBLIC_TURN_URL/);
+    expect(ICE_SERVERS_TS).toMatch(/NEXT_PUBLIC_TURN_USERNAME/);
+    expect(ICE_SERVERS_TS).toMatch(/NEXT_PUBLIC_TURN_CREDENTIAL/);
+    // Partial config must degrade to STUN, never emit a broken RTCIceServer.
+    expect(ICE_SERVERS_TS).toMatch(/TURN disabled/);
+  });
+
+  it("derives media liveness from remote tracks, not peer state alone", () => {
+    // peerConnectionState can read "connected" with zero media negotiated;
+    // the overlay must gate "Connected" on an actual ontrack event.
+    expect(DM_CALL_TSX).toMatch(/hasRemoteMedia/);
+    expect(DM_CALL_TSX).toMatch(/ontrack/);
+    expect(DM_CALL_TSX).toMatch(/isMediaLive/);
+  });
+
+  it("documents the TURN variables and their credential boundary", () => {
+    const envExample = readFileSync(join(process.cwd(), ".env.example"), "utf8");
+    expect(envExample).toContain("NEXT_PUBLIC_TURN_URL=");
+    expect(envExample).toContain("NEXT_PUBLIC_TURN_USERNAME=");
+    expect(envExample).toContain("NEXT_PUBLIC_TURN_CREDENTIAL=");
+    expect(envExample).toMatch(/short-lived/i);
   });
 });

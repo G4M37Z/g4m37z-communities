@@ -19,26 +19,47 @@
 - Next action: re-enable "Confirm email" in `authentication → providers →
   email` immediately before launch; remove the seeded-user workaround notes.
 
-## GAP-WEBRTC-01 — Two-peer voice audio remains unheard end-to-end
+## GAP-WEBRTC-01 — Two-peer voice/video media failed across real devices —
+ROOT CAUSE FIXED in code, two-device confirmation owed
 
-- Area: Voice / WebRTC
-- Severity: P1 (core social feature; single-peer path now proven, pairwise
-  audio still unproven)
-- Description: Single-peer runtime verified 2026-09-19 on the production
-  build + live DB (headless Chromium, autotest2): room join created the
-  participant row and flipped presence to busy; Go Live ran getUserMedia +
-  RTCPeerConnection and published a PEER_JOIN signal that passed the 045
-  `webrtc_signals` RLS (sender must be a participant; row persisted);
-  Leave deleted the participant row cleanly (no stale rows) and restored
-  presence. What remains blocked: the answer/ICE exchange and mutual audio
-  between two endpoints — this environment exposes one audio endpoint.
-- Evidence: network log (`POST webrtc_signals → 201`),
-  `sql/verify-voice-runtime.sql` output, `sql/seed-voice-room.sql`.
-- Status: BLOCKED — environment (single-endpoint). Do not mark PASS without
-  the two-device run.
-- Next action: two authenticated sessions in one room; verify connect, mutual
-  audio, mute, leave/rejoin, stale-peer cleanup, no console errors (per
-  AGENT_HANDOFF voice checklist).
+- Area: Voice / WebRTC (DM calls + voice rooms)
+- Severity: P1 → P2 (root cause identified and fixed; final confirmation is
+  a real two-device run)
+- Root cause (2026-09-28, from the user's real-device test): every peer
+  connection was configured **STUN-only** (`stun:stun.l.google.com:19302`,
+  inline in both `dm-call.tsx` and `webrtc-peer.tsx`). STUN discovers public
+  addresses but cannot relay traffic — across symmetric NAT / carrier CGNAT
+  the two devices find no usable candidate pair, so the call state machine
+  completes (ring → accept → active, timer ticks) while **zero media flows**:
+  silence both ways, black remote video. Same-machine loopback verification
+  could never expose this because loopback has no NAT. Two secondary defects
+  surfaced in the same pass: (1) the overlay derived "Connected" from
+  `peerConnectionState` alone, which reaches `connected` with no media
+  negotiated — testers saw a ticking timer labelled Connected over a dead
+  connection; (2) `Audio.play()` rejection (autoplay policy) was swallowed,
+  leaving remote audio muted forever even when ICE succeeded.
+- Fix (2026-09-29): shared `src/lib/ice-servers.ts` — public STUN plus TURN
+  via `NEXT_PUBLIC_TURN_URL` / `NEXT_PUBLIC_TURN_USERNAME` /
+  `NEXT_PUBLIC_TURN_CREDENTIAL` (degrades to STUN-only when unset; TURN
+  secrets are inherently client-visible and must be short-lived, documented
+  in `.env.example`). `dm-call.tsx` and `webrtc-peer.tsx` both consume it;
+  overlay status now gates "Connected" on an actual `ontrack` event
+  (`hasRemoteMedia`) and shows honest `Connecting media…` / `Connection
+  failed` states with an actionable TURN hint; autoplay retries once ICE
+  confirms connectivity.
+- Evidence: in-browser proof on the production build — two
+  `RTCPeerConnection`s through real STUN negotiated offer/answer, both
+  reached `connected` and each fired `ontrack` with the peer's audio track;
+  regression tests in `tests/dm-calls.test.ts` pin the shared config, the
+  no-inline-STUN rule, and the media-liveness contract. Gates: tsc PASS,
+  eslint 0 errors, vitest 359/359, `next build --webpack` PASS.
+- Status: CODE FIXED + VERIFIED (L2 + loopback L3). **Two-device media
+  confirmation still owed** — requires TURN configured in production and a
+  real cross-network device pair.
+- Next action: (1) configure a TURN provider (Cloudflare Calls / Twilio NTS
+  / Xirsys) with short-lived credentials in Vercel env; (2) repeat the
+  friend-device test; expect no black remote video and audible audio on both
+  sides; (3) record the outcome here and in TEST_MATRIX.
 
 ## GAP-UI-01 — Bare `text-red` error classes — CLOSED
 
