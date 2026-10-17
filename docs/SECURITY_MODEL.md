@@ -17,7 +17,7 @@
 
 - Every user identity is `auth.uid()` server-side; client-supplied ids are
   never trusted for ownership.
-- RLS on all 59 public tables (verified 2026-09-16 audit; 175 policies).
+- RLS on all 66 public tables (live-verified 2026-10-17; 195 policies).
 - Membership writes only through `join_community` / `leave_community`
   SECURITY DEFINER RPCs (045) — neither can mutate `role`, so self-service
   cannot escalate. `trg_guard_profile_role` likewise blocks client role edits.

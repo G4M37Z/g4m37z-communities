@@ -112,12 +112,12 @@
   current Termux host (sources the service connection string stored in
   `~/.supabase_env`, never committed; a legacy Windows `run-sql.cmd` existed
   for the prior Hermes environment).
-- 35 public tables (verified via `pg_tables`), all RLS-enabled.
-- Realtime: `supabase_realtime` publication includes `notifications`,
-  `profiles`, `reactions`, `reports`, `voice_room_participants`,
-  `voice_rooms`, `webrtc_signals`.
-- Storage: avatars bucket (`008_avatars_bucket.sql`), voice-recordings
-  bucket (`009_v1_expression_voice.sql`).
+- 66 public tables (verified via `pg_tables`), all RLS-enabled; 195 policies.
+- Realtime: `supabase_realtime` publication includes `messages`,
+  `notifications`, `profiles`, `reactions`, `reports`, `call_sessions`,
+  `user_presence`, `voice_rooms`, `voice_room_participants`, `webrtc_signals`.
+- Storage buckets: `avatars`, `post-images`, `community-media`,
+  `message-attachments`, `voice-recordings` (`008`, `009`, `013`, `034`, `047`).
 
 ### Migration ordering (cumulative)
 1. `001_profiles.sql` — profiles table + RLS.

@@ -20,7 +20,7 @@
 
 ## 2. Security issues
 ### GAP-03 · Launch-hardening set missing — **P1 pre-launch** (tracked, not new)
-- Rate limiting (P1.1), CAPTCHA (P1.2), upload MIME validation (P1.5), telemetry/anomaly (P2), CSP/MFA/rotation/WAF (P3). All documented in `docs/PROJECT_STATE.md` + `docs/ROADMAP.md`; unchanged by this audit. RLS posture verified sound today (59/59 tables, 175 policies).
+- Rate limiting (P1.1), CAPTCHA (P1.2), upload MIME validation (P1.5), telemetry/anomaly (P2), CSP/MFA/rotation/WAF (P3). All documented in `docs/PROJECT_STATE.md` + `docs/ROADMAP.md`; unchanged by this audit. RLS posture verified sound (66/66 tables, 195 policies, live 2026-10-17).
 
 ## 3. Data-integrity issues
 ### GAP-04 · Notification rows lack referential integrity — **FIXED 2026-09-16** (was P1, root of GAP-01)

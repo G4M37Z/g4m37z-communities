@@ -8,6 +8,11 @@
 
 ## Migration order (verified against `docs/database/`)
 
+> The canonical migration tree is **001 → 054** (note: two files are numbered
+> `031`, and there is no `039`). The table below covers the early splits; rows
+> from 031 onward are compressed and their purpose is derived from the filename
+> plus the live objects they produced.
+
 | # | File | Purpose |
 |---|---|---|
 | 001 | `001_profiles.sql` | `profiles` table + RLS |
@@ -46,6 +51,31 @@
 | 029 | `029_v4_notification_preferences.sql` | `profiles.notification_prefs` JSONB + `notification_enabled()` helper (honored by V4 triggers) |
 | 030 | `030_fix_posts_profiles_relationship.sql` | renames `auth.users` FKs to `*_auth_users_fkey`; adds same-named FKs to `profiles(id)` for `posts.author_id`, `comments.author_id`, `reports.reporter_id`, `voice_room_participants.user_id` (fixes PostgREST embed hints `author:profiles!posts_author_id_fkey` et al.) |
 
+| 031 | `031_events_created_by_and_insert_policy.sql` | `events.created_by` + insert policy |
+| 031 | `031_fix_community_members_profiles_fk.sql` | `community_members.user_id` FK → `profiles(id)` (PostgREST embed) |
+| 032 | `032_v5_bookmarks_and_polls.sql` | `bookmarks`, `polls`, `poll_options`, `poll_votes` |
+| 033 | `033_v5_messaging_readstate_reposts.sql` | `conversation_members.last_read_at`, `messages.delivered`, `reposts` |
+| 034 | `034_community_media_and_deletion.sql` | `community-media` bucket + community deletion |
+| 035 | `035_notification_deleted_content_cleanup.sql` | BEFORE DELETE cleanup triggers on `posts`/`comments` |
+| 036 | `036_profiles_guarantee_and_username_discovery.sql` | `ensure_profile` RPC + username discovery |
+| 037 | `037_find_direct_conversation.sql` | `find_direct_conversation` RPC |
+| 038 | `038_create_direct_conversation.sql` | `create_direct_conversation` RPC |
+| 040 | `040_messaging_optimizations.sql` | messaging indexes/RPCs |
+| 041 | `041_conversation_partner_rpc.sql` | `get_conversation_partner` RPC |
+| 042 | `042_platform_links.sql` | `platform_links` table |
+| 043 | `043_tournament_frameworks.sql` | `tournament_frameworks`, `tournament_stages`, `tournament_scores` |
+| 044 | `044_game_frameworks.sql` | `games.default_framework_id`, framework seeds |
+| 045 | `045_launch_hardening.sql` | `join_community`/`leave_community` RPCs, soft-leave (`left_at`), membership-gated posting, storage hardening |
+| 046 | `046_read_receipts_rpc.sql` | `get_conversation_read_state`, `list_message_partners` |
+| 047 | `047_message_attachments.sql` | `messages.attachment_url`/`attachment_type` + `message-attachments` bucket |
+| 048 | `048_game_covers.sql` | `games.cover_url` seed |
+| 049 | `049_dm_calls.sql` | `call_sessions`, DM-call RPCs, `webrtc_signals.conversation_id` |
+| 050 | `050_dm_video_calls.sql` | `call_sessions.media` video support |
+| 051 | `051_cover_quality.sql` | cover URL quality pass |
+| 052 | `052_gaming_identity.sql` | `user_games`, `game_platform_identities`, `profiles.gaming_visibility` |
+| 053 | `053_game_graph.sql` | `communities.game_id`, `posts.game_id` |
+| 054 | `054_lfg_join_rpc.sql` | `lfg_join` RPC + caller-scoped LFG mutations |
+
 ### PostgREST embed-relationship warning (root cause of migration 030)
 
 The app embeds related rows through foreign-key hints such as
@@ -80,7 +110,7 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
 ## Tables by domain
 
 ### Profiles / auth
-- `profiles(id uuid PK, username text UNIQUE, display_name, avatar_url, bio, role text, created_at, updated_at)`
+- `profiles(id uuid PK, username text UNIQUE, display_name, avatar_url, bio, role text, created_at, updated_at, terms_accepted_at?, terms_version?, gaming_handle?, platforms text[], favorite_games text[], play_style?, lfg_available bool, presence_state text, notification_prefs jsonb NOT NULL, gaming_visibility text NOT NULL)`.
 - `role` is one of `'member' | 'moderator' | 'admin' | 'suspended'`.
 - UPDATE policy uses `USING (auth.uid() = id)` with no `WITH CHECK` — this is
   **closed** by the `trg_guard_profile_role` trigger from
@@ -88,16 +118,16 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
   unless `auth.uid() IS NULL` (service-role path).
 
 ### Communities
-- `communities(id, name, slug, description, icon_url, banner_url, creator_id FK→profiles, created_at, updated_at)`.
-- `community_members(community_id, user_id, role text, joined_at)` PK
-  `(community_id, user_id)`.
+- `communities(id, name, slug, description, icon_url, banner_url, creator_id FK→profiles, created_at, updated_at, category_id?, capabilities text[] NOT NULL, is_private bool NOT NULL, game_id? FK→games)`.
+- `community_members(community_id, user_id, role text, joined_at, left_at?)` PK
+  `(community_id, user_id)`. `left_at IS NULL` = active membership (soft-leave).
 - `community_categories(id, slug, name, created_at)`.
 - `community_category_links(community_id, category_id)` PK
   `(community_id, category_id)`.
 
 ### Posts / comments / votes
 - `posts(id, author_id FK→profiles, community_id FK→communities, title,
-  body?, image_url?, comment_count int DEFAULT 0, created_at, updated_at)`.
+  body?, image_url?, comment_count int DEFAULT 0, created_at, updated_at, game_id? FK→games)`.
 - `post_votes(post_id, user_id, vote SMALLINT CHECK IN (-1, 1), created_at)`
   PK `(post_id, user_id)`.
 - `comments(id, post_id, author_id, body, parent_id?, created_at,
@@ -124,15 +154,19 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
   max_participants, default_listener_mode, updated_at)`.
 - `voice_comments(id, post_id?, comment_id?, user_id, storage_path,
   duration_seconds, created_at)`.
-- `webrtc_signals(id, room_id FK→voice_rooms, from_user FK→profiles, to_user?,
-  type text CHECK IN ('OFFER','ANSWER','ICE_CANDIDATE','PEER_JOIN','PEER_LEAVE'),
-  payload jsonb, created_at)`.
+- `webrtc_signals(id, room_id? FK→voice_rooms, conversation_id? FK→conversations,
+  from_user FK→auth.users, to_user?, type text CHECK IN
+  ('OFFER','ANSWER','ICE_CANDIDATE','PEER_JOIN','PEER_LEAVE'),
+  payload jsonb NOT NULL, created_at)`. Dual-target: `room_id` for community
+  voice rooms, `conversation_id` for DM calls (049).
 - `webrtc_signals` is in the `supabase_realtime` publication
   (filter `room_id=eq.<id>`).
 
 ### Storage
-- `storage.buckets` includes `avatars` (public), `voice-recordings`
-  (private), `voice-recordings` policies per `009_v1_expression_voice.sql`.
+- `storage.buckets` (live): `avatars` (public), `post-images` (public),
+  `community-media` (public, 5 MB, image MIME only), `message-attachments`
+  (public, no limits — flagged), `voice-recordings` (private, owner-only).
+  See the full table under "Storage buckets" below.
 
 ### Games domain (V3.3)
 - `games(id, name UNIQUE, slug UNIQUE, description?, release_date?, cover_url?,
@@ -201,6 +235,38 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
   reason? ≤4000, status CHECK IN (PENDING, RESOLVED, REJECTED, WITHDRAWN),
   resolved_at?, resolved_by? FK→profiles, created_at)`.
 
+### V5/V6 additions (032–054)
+
+- `bookmarks(user_id FK→profiles, post_id FK→posts, created_at)` PK
+  `(user_id, post_id)` — private saved posts.
+- `polls(id, post_id FK→posts, question, multiple bool, expires_at?,
+  created_by FK→profiles, created_at)`.
+- `poll_options(id, poll_id FK→polls, label, position smallint, created_at)`.
+- `poll_votes(poll_id, user_id, option_id, voted_at)` PK `(poll_id, user_id)`.
+- `reposts(id, reposter_id, post_id, original_author_id, comment?, created_at)`.
+- `platform_links(id, user_id, platform text, handle, profile_url?,
+  verified_at?, created_at, updated_at)` — manual self-reported identities.
+- `user_presence(user_id PK, status text, last_seen_at?, activity_context?,
+  updated_at?)`.
+- `user_games(id, user_id, game_id, status text, note?, started_at?,
+  completed_at?, created_at, updated_at)` (052).
+- `game_platform_identities(id, user_id, game_id, platform_slug?, in_game_name,
+  rank_label?, region?, created_at, updated_at)` (052).
+- `tournament_frameworks(id, slug, name, category?, scoring_type, description?,
+  created_by?, created_at, game_id?, scoring_schedule jsonb?,
+  match_format jsonb?)` (043/044).
+- `tournament_stages(id, framework_id, stage_order, stage_name,
+  progression_rule jsonb, created_at)` (043).
+- `tournament_scores(id, tournament_id, stage_id, user_id, score numeric,
+  created_at, updated_at)` (043).
+- `call_sessions(id, conversation_id, caller_id, media text, status text,
+  started_at, ended_at?, ended_by?, callee_id, outcome?, answered_at?,
+  created_at)` (049/050) — DM call lifecycle; mutations via SECURITY DEFINER
+  RPCs only.
+- `events` additionally carries `created_by? FK→profiles`, `lifecycle_state`,
+  `max_attendees`, `reminder_minutes`, `is_pinned`, `event_image_url`
+  (024/031).
+
 ---
 
 ## Indexes
@@ -221,7 +287,7 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
 | webrtc_signals | idx_webrtc_signals_room | (room_id, created_at DESC) |
 | lfg_sessions | idx_lfg_sessions_game | game_id |
 | lfg_sessions | idx_lfg_sessions_status | status |
-| lfg_participants | idx_lfg_participants_room | room_id |
+| lfg_participants | idx_lfg_participants_room | session_id |
 | events | idx_events_community | community_id |
 | events | idx_events_status | status |
 | tournaments | idx_tournaments_event | event_id |
@@ -240,75 +306,116 @@ Other tables have implicit indexes from primary keys / unique constraints.
 
 ## RLS policy inventory
 
-All tables have RLS enabled. Total policies: 90+ across all tables. The
-following breakdown is approximate and should be re-verified with live SQL:
+> Live-verified 2026-10-17: **66 public tables, all RLS-enabled, 195 policies.**
 
 - V1 (`profiles`, `communities`, `community_members`, `community_categories`,
   `community_category_links`, `posts`, `post_votes`, `comments`,
   `comment_votes`, `notifications`, `reports`, `terms_acceptances`) — fully
-  scoped per-CMD policies.
+  scoped per-CMD policies; world-readable SELECT for catalogue/profile data,
+  ownership (`auth.uid()`) for mutations. `profiles` UPDATE has no `WITH CHECK`
+  and is closed by `trg_guard_profile_role`.
 - Voice (`voice_rooms`, `voice_room_participants`, `voice_room_settings`,
   `voice_comments`) — scoped per-CMD policies.
-- WebRTC (`webrtc_signals`) — SELECT scoped to room participants; INSERT /
-  DELETE scoped to sender.
-- V3.1 (`reputation_events`) — SELECT public; INSERT/UPDATE/DELETE require
-  service_role.
+- WebRTC (`webrtc_signals`) — SELECT/INSERT scoped to room participants **or**
+  conversation members (049); DELETE scoped to sender.
+- V3.1 (`reputation_events`) — SELECT public; writes require service_role.
 - V3.2 (`achievements`, `user_achievements`) — SELECT public; writes require
   service_role.
 - V3.3 (`games`, `genres`, `platforms`, `game_genres`, `game_platforms`,
   `game_followers`, `game_reviews`) — SELECT public; user-owned mutations
   scoped to `auth.uid() = user_id`.
-- V3.4 (`lfg_sessions`, `lfg_participants`) — see `016_lfg_policies.sql`.
+- V3.4 (`lfg_sessions`, `lfg_participants`) — see `016_lfg_policies.sql` +
+  `054_lfg_join_rpc.sql` (caller-scoped mutations, `lfg_join` RPC).
 - V3.5 (`events`, `event_participants`) — see `017_events_policies.sql`.
-- V3.6 (5 tournament tables) — see `018_tournaments_policies.sql`.Tables with RLS enabled but no policies (defined in master_v3.sql but not yet wired):
-- `conversations`, `conversation_members`, `messages` (V3.8 Messaging)
-- `notification_events` (V3.9 Notifications)
-- `audit_logs`, `moderation_actions`
-- `creator_profiles`, `creator_content`, `creator_followers` (V3.7 Creators)
+- V3.6 (`tournaments`, `tournament_teams`, `tournament_matches`,
+  `tournament_results`, `tournament_disputes`) — see `018_*`. Later
+  `tournament_frameworks`/`tournament_stages`/`tournament_scores` (043/044)
+  use `authenticated` roles.
+- V3.7 (`creator_profiles`, `creator_content`, `creator_followers`) — full
+  INSERT/SELECT/UPDATE (creators) / DELETE (followers) policies.
+- V3.8 (`conversations`, `conversation_members`, `messages`) — full policies;
+  `messages` is immutable to clients (UPDATE/DELETE `WITH CHECK false`).
+- V3.9 (`notification_events`) — full CRUD policies.
+- Social graph (`follows`, `blocks`, `mutes`) — full SELECT/INSERT/DELETE
+  policies (021).
+- V5 (`bookmarks`, `polls`, `poll_options`, `poll_votes`, `reposts`) —
+  `authenticated`-scoped; bookmarks strictly private to the owner; polls inherit
+  post visibility; one vote per user per poll enforced by PK.
+- Gaming (`user_games`, `game_platform_identities`, `platform_links`,
+  `user_presence`, `call_sessions`) — owner-scoped (`authenticated`);
+  `call_sessions` exposes SELECT only, lifecycle via RPCs.
 
-Update (2026-09-15, live-verified): `follows`, `blocks`, `mutes` DO have
-full SELECT/INSERT/DELETE policies from migration 021 — the note above was
-stale for the social graph. V5 additions: `bookmarks`, `polls`,
-`poll_options`, `poll_votes` (migration 032) are RLS-enabled with full
-policies — bookmarks strictly private to the owner; polls inherit post
-visibility; one vote per user per poll enforced by PK.
+Tables with RLS enabled but **zero** policies (blocked reads until policies are
+added — a deliberate gate, not a bug):
 
-For each of these tables, RLS blocks all reads until policies are added —
-this is a deliberate gate, not a bug.
+- `audit_logs`
+- `moderation_actions`
+- `game_clips`
+- `guides`
+
+> Historical note: the earlier "no policies" list also named `conversations`,
+> `conversation_members`, `messages`, `notification_events`, and the creator
+> tables. All five have had full policies since V3.7/V3.8 and 2026-09 audits;
+> that note was stale and has been removed.
 
 ---
 
-## SECURITY DEFINER functions
+## SECURITY DEFINER functions (live, 2026-10-17)
 
-| Function | Used by | Grants |
-|---|---|---|
-| `create_notification` | trigger functions | service_role only (anon/auth revoked in P0) |
-| `admin_set_user_role` | (admin tooling only) | service_role only |
-| `notify_comment_on_post` | trigger on `comments` | implicit via trigger |
-| `notify_post_vote` | trigger on `post_votes` | implicit via trigger |
-| `notify_comment_vote` | trigger on `comment_votes` | implicit via trigger |
-| `notify_report_resolved` | trigger on `reports` | implicit via trigger |
-| `update_post_comment_count` | trigger on `comments` | implicit via trigger |
-| `handle_new_community` | trigger on `communities` | implicit via trigger |
-| `get_my_platform_role` | (utility) | public (read-only utility) |
-| `rls_auto_enable` | DDL event trigger | implicit via event trigger |
+| Function | Notes |
+|---|---|
+| `create_notification` | trigger helper; service_role only (anon/auth revoked in P0) |
+| `admin_set_user_role` | admin tooling; service_role only (anon/auth revoked in P0) |
+| `guard_profile_role` | `trg_guard_profile_role` on `profiles` (P0) |
+| `notify_comment_on_post`, `notify_post_vote`, `notify_comment_vote`, `notify_report_resolved` | trigger callbacks |
+| `notify_follow`, `notify_mention_on_post`, `notify_mention_on_comment`, `notify_event_rsvp`, `notify_on_repost`, `notify_mentions` | notification triggers (027 etc.) |
+| `update_post_comment_count` | `comments` trigger |
+| `handle_new_community` | `communities` trigger |
+| `cleanup_notifications_for_deleted_content` | BEFORE DELETE on `posts`/`comments` (035) |
+| `ensure_profile` | profile guarantee (036); `authenticated` |
+| `join_community`, `leave_community` | membership (045); `authenticated` |
+| `lfg_join`, `lfg_participant_count` | LFG (054); `authenticated` |
+| `create_direct_conversation` | (038) `authenticated` |
+| `find_direct_conversation`, `get_conversation_partner`, `get_conversation_read_state`, `list_message_partners`, `get_unread_counts` | messaging utilities; `authenticated` |
+| `start_dm_call`, `answer_dm_call`, `decline_dm_call`, `cancel_dm_call`, `end_dm_call`, `timeout_dm_call` | DM call lifecycle (049/050); `authenticated` |
+| `_call_pair_blocked`, `_log_call_event`, `_call_duration_text` | internal call helpers; service_role/postgres only |
+| `can_write_webrtc_signal`, `can_manage_community_media` | RLS/storage helpers (callable by `anon`/`authenticated`; boolean-only) |
+| `get_my_platform_role` | read-only utility |
+| `rls_auto_enable` | DDL event trigger (auto-enables RLS on new public tables) |
 
 ---
 
 ## Realtime publication
 
-`supabase_realtime` publication includes:
+`supabase_realtime` publication includes (live, 2026-10-17):
+- `messages`
 - `notifications`
 - `profiles`
 - `reactions`
 - `reports`
-- `voice_room_participants`
+- `call_sessions`
+- `user_presence`
 - `voice_rooms`
+- `voice_room_participants`
 - `webrtc_signals`
 
-Realtime is NOT yet enabled for V3 systems (reputation / achievements /
-games / lfg / events / tournaments). Adding these is a future hardening
-task.
+Realtime is NOT enabled for the V3 systems (reputation / achievements /
+games / lfg / events / tournaments). Adding these is a future hardening task.
+
+---
+
+## Storage buckets (live, 2026-10-17)
+
+| Bucket | Public | Limits |
+|---|---|---|
+| `avatars` | yes | none |
+| `post-images` | yes | none |
+| `community-media` | yes | 5 MB; image/jpeg,png,webp,gif |
+| `message-attachments` | yes | **none — flagged for hardening** |
+| `voice-recordings` | no | none (owner-only read) |
+
+> Security note: `message-attachments` is public with no size or MIME
+> restriction. Tracked for pre-launch hardening.
 
 ---
 

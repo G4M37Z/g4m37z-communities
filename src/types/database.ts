@@ -12,7 +12,10 @@
 //   jsonb       → Record<string, unknown> | null
 //   inet        → string | null
 //
-// Nullability mirrors information_schema.is_nullable on the live DB.
+// Nullability follows the live DB: columns that are nullable and have no
+// default are typed `| null`; columns with a NOT NULL constraint or a DB
+// default (gen_random_uuid(), now(), literal defaults) are typed as present.
+// Live-verified against the production schema (66 public tables, 2026-10-17).
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -40,6 +43,10 @@ export interface Profile {
   play_style: string | null;
   lfg_available: boolean;
   presence_state: string;
+  // 029_v4_notification_preferences.sql
+  notification_prefs: Record<string, unknown>;
+  // 052_gaming_identity.sql
+  gaming_visibility: string;
 }
 
 // ----------------------------------------------------------------------------
@@ -111,6 +118,8 @@ export interface Community {
   category_id: string | null;
   capabilities?: string[];
   is_private?: boolean;
+  /** 053_game_graph.sql — optional primary game for the community. */
+  game_id: string | null;
   /** Game Graph (053): optional primary game (joined when selected). */
   game?: { id: string; name: string; slug: string } | null;
 }
@@ -120,6 +129,8 @@ export interface CommunityMember {
   user_id: string;
   role: CommunityMemberRole;
   joined_at: string;
+  /** 045_launch_hardening.sql — soft-leave; NULL = active member. */
+  left_at: string | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -152,6 +163,9 @@ export interface Post {
   comment_count: number;
   created_at: string;
   updated_at: string;
+  /** 053_game_graph.sql — optional game context on a post.
+   *  Optional in TS because not every list query selects it. */
+  game_id?: string | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -291,8 +305,8 @@ export interface GameFollower {
 
 export interface GameReview {
   id: string;
-  game_id: string;
-  user_id: string;
+  game_id: string | null;
+  user_id: string | null;
   gameplay_score: number | null;
   graphics_score: number | null;
   performance_score: number | null;
@@ -316,7 +330,7 @@ export interface Guide {
   category: string;
   difficulty: string;
   body: string;
-  version: string;
+  version: number;
   created_at: string;
   updated_at: string;
 }
@@ -425,7 +439,9 @@ export type WebRtcSignalType =
 
 export interface WebRtcSignal {
   id: string;
-  room_id: string;
+  room_id: string | null;
+  /** 049_dm_calls.sql — DM calls reuse this transport addressed by conversation. */
+  conversation_id: string | null;
   from_user: string;
   to_user: string | null;
   type: WebRtcSignalType;
@@ -471,8 +487,8 @@ export type LfgSessionPrivacy = "public" | "private";
 
 export interface LfgSession {
   id: string;
-  game_id: string;
-  host_id: string;
+  game_id: string | null;
+  host_id: string | null;
   platform_id: string | null;
   mode: string | null;
   region: string | null;
@@ -480,7 +496,7 @@ export interface LfgSession {
   players_required: number;
   microphone_required: boolean;
   language: string | null;
-  session_time: string;
+  session_time: string | null;
   status: LfgSessionStatus;
   privacy: LfgSessionPrivacy;
   description: string | null;
@@ -501,11 +517,11 @@ export interface LfgParticipant {
 // event_type is free-form TEXT, length-capped at 64 (017_events_policies.sql).
 export interface CommunityEvent {
   id: string;
-  community_id: string;
+  community_id: string | null;
   title: string;
   description: string | null;
   event_type: string | null;
-  start_time: string;
+  start_time: string | null;
   end_time: string | null;
   capacity: number | null;
   status: string | null; // V3 status column (nullable in live DB)
@@ -517,6 +533,8 @@ export interface CommunityEvent {
   reminder_minutes: number;
   is_pinned: boolean;
   event_image_url: string | null;
+  // 031_events_created_by_and_insert_policy.sql
+  created_by: string | null;
 }
 
 export interface EventParticipant {
@@ -531,8 +549,8 @@ export interface EventParticipant {
 
 export interface Tournament {
   id: string;
-  event_id: string;
-  game_id: string;
+  event_id: string | null;
+  game_id: string | null;
   name: string;
   format: string;
   status: string;
@@ -544,16 +562,16 @@ export interface Tournament {
 
 export interface TournamentTeam {
   id: string;
-  tournament_id: string;
+  tournament_id: string | null;
   name: string;
-  captain_id: string;
+  captain_id: string | null;
   created_at: string;
 }
 
 export interface TournamentMatch {
   id: string;
-  tournament_id: string;
-  round: number;
+  tournament_id: string | null;
+  round: number | null;
   team_a_id: string | null;
   team_b_id: string | null;
   winner_id: string | null;
@@ -575,7 +593,7 @@ export interface TournamentDispute {
   id: string;
   match_id: string;
   raised_by: string;
-  reason: string;
+  reason: string | null;
   status: string;
   resolved_at: string | null;
   resolved_by: string | null;
@@ -712,4 +730,147 @@ export interface AuditLog {
   changes: Record<string, unknown> | null;
   ip_address: string | null;
   created_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// bookmarks (032_v5_bookmarks_and_polls.sql) — private saved posts
+// ----------------------------------------------------------------------------
+
+export interface Bookmark {
+  user_id: string;
+  post_id: string;
+  created_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// polls / options / votes (032_v5_bookmarks_and_polls.sql)
+// ----------------------------------------------------------------------------
+
+export interface Poll {
+  id: string;
+  post_id: string;
+  question: string;
+  multiple: boolean;
+  expires_at: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  position: number;
+  created_at: string;
+}
+
+export interface PollVote {
+  poll_id: string;
+  user_id: string;
+  option_id: string;
+  voted_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// reposts (033_v5_messaging_readstate_reposts.sql)
+// ----------------------------------------------------------------------------
+
+export interface Repost {
+  id: string;
+  reposter_id: string;
+  post_id: string;
+  original_author_id: string;
+  comment: string | null;
+  created_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// call_sessions (049_dm_calls.sql) — 1:1 DM call lifecycle
+// ----------------------------------------------------------------------------
+
+export type CallMedia = "audio" | "video";
+export type CallStatus = "ringing" | "active" | "ended";
+
+export interface CallSession {
+  id: string;
+  conversation_id: string;
+  caller_id: string;
+  media: CallMedia;
+  status: CallStatus;
+  started_at: string;
+  ended_at: string | null;
+  ended_by: string | null;
+  callee_id: string;
+  outcome: string | null;
+  answered_at: string | null;
+  created_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// user_games (052_gaming_identity.sql) — personal game library
+// ----------------------------------------------------------------------------
+
+export interface UserGame {
+  id: string;
+  user_id: string;
+  game_id: string;
+  status: string;
+  note: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// game_platform_identities (052_gaming_identity.sql) — per-game gamertags
+// ----------------------------------------------------------------------------
+
+export interface GamePlatformIdentity {
+  id: string;
+  user_id: string;
+  game_id: string;
+  platform_slug: string | null;
+  in_game_name: string;
+  rank_label: string | null;
+  region: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ----------------------------------------------------------------------------
+// tournament frameworks / stages / scores (043/044_tournament_frameworks.sql)
+// ----------------------------------------------------------------------------
+
+export interface TournamentFramework {
+  id: string;
+  slug: string;
+  name: string;
+  category: string | null;
+  scoring_type: string;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
+  game_id: string | null;
+  scoring_schedule: Record<string, unknown> | null;
+  match_format: Record<string, unknown> | null;
+}
+
+export interface TournamentStage {
+  id: string;
+  framework_id: string;
+  stage_order: number;
+  stage_name: string;
+  progression_rule: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface TournamentScore {
+  id: string;
+  tournament_id: string;
+  stage_id: string;
+  user_id: string;
+  score: number;
+  created_at: string;
+  updated_at: string;
 }

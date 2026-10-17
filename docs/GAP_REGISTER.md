@@ -339,3 +339,22 @@ archive's beginning, not recent messages — CLOSED
 - Status: FIXED + VERIFIED (2026-09-20)
 - Fix: rewrote `src/components/platform-icon.tsx` with official marks only — Steam/PlayStation/Google Play from Simple Icons (CC0), Xbox from `simple-icons@12.4.0` (removed in v13+; brand hex `#107C10`), Apple Game Center = Apple's official mark (four overlapping circles, Wikimedia source `developer.apple.com/game-center`). Rendered monochrome via `currentColor` (per docs/BRAND.md "no hardcoded hex in components"); per-platform `viewBox`; `Record<Platform, …>` map is a compile-time coverage guard. Wired into the profile page and the platform-links settings form, text label kept for accessibility.
 - Verification: `npx tsc --noEmit` exit 0; eslint on changed files exit 0; `npm run check` PASS.
+
+## GAP-STORAGE-01 — `message-attachments` bucket has no size/MIME limits
+
+- Area: Storage / abuse surface
+- Severity: P1 (unbounded public uploads; pre-launch hardening item)
+- Description: Live `storage.buckets` shows `message-attachments` is public with
+  `file_size_limit = NULL` and `allowed_mime_types = NULL` (compared with
+  `community-media`, which is capped at 5 MB for image MIME types). Any
+  authenticated user can upload arbitrarily large or arbitrary-type objects to a
+  publicly readable bucket.
+- Status: REPORTED (2026-10-17, live DB introspection) — NOT FIXED. Per the
+  project SECURITY PROTOCOL, no schema/policy change was made; awaiting a
+  decision before implementing.
+- Suggested fix (needs approval): `UPDATE storage.buckets SET
+  file_size_limit = <N>, allowed_mime_types = ARRAY[...] WHERE id =
+  'message-attachments';` plus an object-level path/ownership policy review.
+- Verification: `select id, public, file_size_limit, allowed_mime_types from
+  storage.buckets order by id;` on the live DB.
+

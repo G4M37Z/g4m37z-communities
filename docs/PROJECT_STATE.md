@@ -13,15 +13,43 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `cfc66ef` (messaging image/GIF attachments); 2026-09-20 gap-fix series lands on top (`8a32bf3` messaging hydration gate, `aee3494` 045 harnesses, `487dfcb` launch-hardening) |
+| Last verified HEAD | `68529bc` |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 6 (feature-gap sync 2026-09-20: stickers, official platform logos, game covers, post hydration gate, brand placement; GAP-POST-02 blocked) |
-| Last verified date | 2026-09-20 (session) |
+| Documentation version | 7 (live-DB reconciliation 2026-10-17: 66 tables/195 policies; type mirror rebuilt; GAP-STORAGE-01 opened) |
+| Last verified date | 2026-10-17 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Documentation + type-mirror reconciliation against the live DB (2026-10-17) — COMPLETE (static-verified).**
+
+Base HEAD `68529bc`. Gates after: tsc 0 errors · eslint 0 errors (14
+pre-existing warnings) · vitest **361/361** (`npm run check`).
+
+- **Live DB introspected read-only** via `run-sql` (SELECT/information_schema
+  only): **66 public tables**, all RLS-enabled, **195 policies**, **14 triggers**,
+  **72 functions**, **5 storage buckets**; `supabase_realtime` carries 10 tables.
+- **`src/types/database.ts` reconciled to the live schema:**
+  `Profile` +`notification_prefs`,`gaming_visibility`; `Community` +`game_id`;
+  `CommunityMember` +`left_at`; `Post` +`game_id` (optional); `Guide.version`
+  `string`→`number`; `WebRtcSignal` dual-target (`room_id?` +
+  `conversation_id?`); nullable=`true` corrections on `LfgSession`,
+  `CommunityEvent` (+`created_by`), `Tournament`, `GameReview`,
+  `TournamentDispute`, `TournamentTeam`, `TournamentMatch`; added interfaces
+  `Bookmark`, `Poll`, `PollOption`, `PollVote`, `Repost`, `CallSession`,
+  `UserGame`, `GamePlatformIdentity`, `TournamentFramework`, `TournamentStage`,
+  `TournamentScore`.
+- **Docs synced to live counts:** `DATABASE.md` (migration tree 001–054, new
+  domains, RLS/function/realtime/bucket inventory), `ARCHITECTURE.md`,
+  `SECURITY_MODEL.md`, `IMPLEMENTATION_MATRIX.md`, `IMPLEMENTATION_GAPS.md`,
+  `AGENT_HANDOFF.md`.
+- **Security finding reported (NOT fixed):** `GAP-STORAGE-01` —
+  `message-attachments` bucket is public with no size/MIME limits (vs
+  `community-media` = 5 MB + image MIME). Recorded in `docs/GAP_REGISTER.md`;
+  per SECURITY PROTOCOL no change made pending approval.
+- **Left intact:** the dated 2026-09-16 audit snapshot (historical record).
 
 **DM voice calls shipped from the messages UI (2026-09-21) — code-complete, static-verified; live two-peer audio owed.**
 
@@ -401,7 +429,8 @@ intermix).
 
 ### RLS State
 
-- All 35 public tables (excluding migrations, vector tables) have RLS enabled.
+- All 66 public tables (excluding migrations, vector tables) have RLS enabled
+  (live-verified 2026-10-17).
 - RLS is auto-enabled on every new public table via DDL event trigger
   `rls_auto_enable` (SECURITY DEFINER, `search_path='pg_catalog'`).
 - All V1/V2/V3 tables have explicit per-CMD policies scoped to
