@@ -67,7 +67,7 @@ export default async function DiscoverPage({
       </header>
 
       {games.length === 0 ? (
-        <section className="rounded-lg border border-border bg-surface p-10 text-center">
+        <section className="card p-10 text-center">
           <h2 className="text-base font-semibold text-fg">No games found</h2>
           <p className="mt-2 text-sm text-text-secondary">
             The catalogue is empty or your search did not match any titles.

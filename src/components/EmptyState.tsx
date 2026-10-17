@@ -24,7 +24,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`rounded-lg border border-border bg-surface p-10 text-center sm:p-14 ${className}`}
+      className={`card p-10 text-center sm:p-14 ${className}`}
       role="status"
       aria-live="polite"
     >

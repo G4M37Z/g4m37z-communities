@@ -77,7 +77,7 @@ export default async function SettingsPage() {
     <div className="mx-auto max-w-xl px-4 pt-8 pb-24">
       <Link
         href="/settings/analytics"
-        className="mb-5 flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 text-sm font-semibold text-fg hover:border-border-strong"
+        className="mb-5 flex items-center justify-between card card-interactive px-4 py-3 text-sm font-semibold text-fg"
       >
         Creator analytics
         <span aria-hidden="true">→</span>

@@ -52,7 +52,7 @@ export function CommunityCapabilitiesForm({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card p-4">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-base font-bold text-fg">Community Capabilities</h3>
         {saved ? (

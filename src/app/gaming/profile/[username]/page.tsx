@@ -163,7 +163,7 @@ export default async function GamingProfilePage({ params }: Props) {
         </header>
 
         {isHidden ? (
-          <section className="brand-card p-10 text-center">
+          <section className="card p-10 text-center">
             <h2 className="text-base font-semibold text-fg">This gaming profile is limited</h2>
             <p className="mt-1 text-sm text-text-secondary">
               Follow {name} to see their games and in-game identities.
@@ -172,7 +172,7 @@ export default async function GamingProfilePage({ params }: Props) {
         ) : (
           <div className="space-y-6">
             {links.length > 0 && (
-              <section className="brand-card p-6">
+              <section className="card p-6">
                 <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">
                   Platforms
                 </h2>
@@ -193,7 +193,7 @@ export default async function GamingProfilePage({ params }: Props) {
 
             {sections.length > 0 ? (
               sections.map((s) => (
-                <section key={s.status} className="brand-card p-6">
+                <section key={s.status} className="card p-6">
                   <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">
                     {s.title}
                   </h2>
@@ -216,7 +216,7 @@ export default async function GamingProfilePage({ params }: Props) {
                 </section>
               ))
             ) : (
-              <section className="brand-card p-10 text-center">
+              <section className="card p-10 text-center">
                 <h2 className="text-base font-semibold text-fg">No games yet</h2>
                 <p className="mt-1 text-sm text-text-secondary">
                   {isOwn
@@ -227,7 +227,7 @@ export default async function GamingProfilePage({ params }: Props) {
             )}
 
             {identities.length > 0 && (
-              <section className="brand-card p-6">
+              <section className="card p-6">
                 <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">
                   In-game identities
                 </h2>

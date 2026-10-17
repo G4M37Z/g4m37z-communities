@@ -175,7 +175,7 @@ export function FrameworkBuilder({
 
         <div className="flex flex-col gap-4">
           {stages.map((stage, i) => (
-            <div key={i} className="relative rounded-lg border border-border bg-surface p-4">
+            <div key={i} className="relative card p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-border text-[10px] font-bold text-text-muted">

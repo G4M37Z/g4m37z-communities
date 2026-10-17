@@ -63,7 +63,7 @@ export default async function CreatorDetailPage({
         <section>
           <h2 className="text-lg font-semibold text-fg mb-3">Recent content</h2>
           {content && content.length > 0 ? (
-            <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+            <ul className="divide-y divide-border card">
               {content.map((c: { id: string; content_type: string; title: string; game_id: string | null; published: boolean; view_count: number; created_at: string }) => (
                 <li key={c.id} className="flex items-baseline justify-between gap-3 px-4 py-2">
                   <span className="min-w-0 truncate text-sm text-fg">{c.title}</span>

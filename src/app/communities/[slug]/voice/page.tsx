@@ -63,7 +63,7 @@ export default async function CommunityVoicePage({
           <Link
             key={room.id}
             href={`/voice/${room.id}`}
-            className="group rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent"
+            className="group card card-interactive p-4"
           >
             <div className="mb-1 flex items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-fg group-hover:text-accent-text">

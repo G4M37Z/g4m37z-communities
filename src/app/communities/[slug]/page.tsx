@@ -161,7 +161,7 @@ export default async function CommunityPage({
         </div>
       )}
 
-      <header className="mb-6 overflow-hidden rounded-lg border border-border bg-surface">
+      <header className="mb-6 overflow-hidden card">
         <Banner url={community.banner_url} name={community.name} />
         <div className="flex flex-wrap items-start justify-between gap-4 p-6">
           <div className="min-w-0 flex-1">
@@ -230,7 +230,7 @@ export default async function CommunityPage({
           <FeedSortTabs slug={community.slug} current={sort} />
           <div className="mt-4">
             {posts.length === 0 ? (
-              <div className="rounded-lg border border-border bg-surface p-10 text-center">
+              <div className="card p-10 text-center">
                 <h3 className="mb-1 text-sm font-semibold text-fg">No posts yet</h3>
                 <p className="mb-4 text-sm text-text-secondary">
                   {currentRole
@@ -272,7 +272,7 @@ export default async function CommunityPage({
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-lg border border-border bg-surface p-5">
+          <div className="card p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
               About
             </h3>
@@ -312,7 +312,7 @@ export default async function CommunityPage({
           )}
 
           {categoryNames.length > 0 && (
-            <div className="rounded-lg border border-border bg-surface p-5">
+            <div className="card p-5">
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
                 Categories
               </h3>

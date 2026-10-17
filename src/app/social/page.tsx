@@ -138,7 +138,7 @@ export default async function SocialPage() {
         <section>
           <h2 className="text-lg font-semibold text-fg mb-2">Recent events</h2>
           {notificationEvents && notificationEvents.length > 0 ? (
-            <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+            <ul className="divide-y divide-border card">
               {notificationEvents.map((ev: { id: string; event_type: string; source_type: string; source_id: string; delivered: boolean; read: boolean; created_at: string }) => (
                 <li key={ev.id} className="px-4 py-2 text-sm">
                   <span className="font-medium text-fg">{ev.event_type}</span>

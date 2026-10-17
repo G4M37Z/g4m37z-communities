@@ -119,7 +119,7 @@ export default async function HomePage({
       {joined.length === 0 && (
         <section
           aria-label="Getting started"
-          className="mb-6 rounded-lg border border-border bg-surface p-4 sm:p-5"
+          className="mb-6 card p-4 sm:p-5"
         >
           <h2 className="text-sm font-semibold text-fg">Getting started</h2>
           <ol className="mt-3 grid gap-3 text-sm text-text-secondary sm:grid-cols-3">
@@ -160,7 +160,7 @@ export default async function HomePage({
             {joined.length > 0 ? "Posts from your communities" : "Recent posts"}
           </h2>
           {posts.length === 0 ? (
-            <div className="rounded-lg border border-border bg-surface p-10 text-center">
+            <div className="card p-10 text-center">
               <h3 className="mb-1 text-sm font-semibold text-fg">
                 Your feed is empty
               </h3>
@@ -197,7 +197,7 @@ export default async function HomePage({
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-lg border border-border bg-surface p-5">
+          <div className="card p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
               Your communities
             </h3>

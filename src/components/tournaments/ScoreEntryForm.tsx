@@ -59,7 +59,7 @@ export function ScoreEntryForm({ tournamentId, stageId, stageLabel, initialScore
   }
 
   return (
-    <form onSubmit={submit} className="rounded-lg border border-border bg-surface p-4">
+    <form onSubmit={submit} className="card p-4">
       <div className="mb-1 flex items-center gap-2">
         <h3 className="text-base font-bold text-fg">Stage scores</h3>
         {saved && (

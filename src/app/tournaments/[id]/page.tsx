@@ -299,7 +299,7 @@ export default async function TournamentDetailPage({
 
       {currentStage && (
         <section
-          className="mb-8 rounded-lg border border-border bg-surface"
+          className="mb-8 card"
           aria-label="Tournament stage"
         >
           <header className="border-b border-border px-4 py-3 flex flex-wrap items-center gap-3">
@@ -381,7 +381,7 @@ export default async function TournamentDetailPage({
         </section>
       )}
 
-      <section className="mb-8 rounded-lg border border-border bg-surface">
+      <section className="mb-8 card">
         <header className="border-b border-border px-4 py-3">
           <h2 className="text-base font-semibold text-fg">
             Teams ({teamCount})
@@ -402,7 +402,7 @@ export default async function TournamentDetailPage({
         )}
       </section>
 
-      <section className="rounded-lg border border-border bg-surface">
+      <section className="card">
         <header className="border-b border-border px-4 py-3">
           <h2 className="text-base font-semibold text-fg">
             Bracket ({matchDetails.length} {matchDetails.length === 1 ? "match" : "matches"})

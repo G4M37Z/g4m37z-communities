@@ -101,7 +101,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   <li key={c.id}>
                     <Link
                       href={`/communities/${c.slug}`}
-                      className="block rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent"
+                      className="block card card-interactive p-4"
                     >
                       <div className="mb-1 flex items-center gap-2">
                         <h3 className="text-base font-bold text-fg">
@@ -135,7 +135,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   <li key={p.id}>
                     <Link
                       href={`/post/${p.id}`}
-                      className="block rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent"
+                      className="block card card-interactive p-4"
                     >
                       <h3 className="text-base font-bold text-fg">{p.title}</h3>
                       {p.body && (
@@ -178,7 +178,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   <li key={u.id}>
                     <Link
                       href={`/profile/${u.username}`}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent"
+                      className="flex items-center gap-3 card card-interactive p-4"
                     >
                       <span
                         className="grid h-10 w-10 place-items-center rounded-full bg-accent/15 text-sm font-black text-accent-text"

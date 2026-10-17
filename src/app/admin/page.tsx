@@ -85,7 +85,7 @@ export default async function AdminDashboardPage() {
           return (
             <article
               key={card.label}
-              className="rounded-lg border border-border bg-surface p-4"
+              className="card p-4"
             >
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
@@ -100,7 +100,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="mt-6" aria-labelledby="recent-reports-heading">
-        <div className="rounded-lg border border-border bg-surface p-5">
+        <div className="card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2
               id="recent-reports-heading"

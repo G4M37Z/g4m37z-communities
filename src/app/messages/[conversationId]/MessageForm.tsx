@@ -157,7 +157,7 @@ export function MessageForm({
   return (
     <div>
       {attachment && (
-        <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-surface p-2">
+        <div className="mb-2 flex items-center gap-2 card p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={attachment.url}
@@ -182,7 +182,7 @@ export function MessageForm({
         </div>
       )}
       {showGifs && (
-        <div className="sheet-in mb-2 rounded-lg border border-border bg-surface p-2">
+        <div className="sheet-in mb-2 card p-2">
           <form
             className="mb-2 flex gap-2"
             onSubmit={(e) => {
@@ -238,7 +238,7 @@ export function MessageForm({
         </div>
       )}
       {showStickers && (
-        <div className="sheet-in mb-2 grid grid-cols-5 gap-1 rounded-lg border border-border bg-surface p-2">
+        <div className="sheet-in mb-2 grid grid-cols-5 gap-1 card p-2">
           {STICKERS.map((s) => (
             <button
               key={s.id}

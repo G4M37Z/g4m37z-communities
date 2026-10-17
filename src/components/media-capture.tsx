@@ -47,7 +47,7 @@ export function MediaCapture({ onStream }: { onStream: (stream: MediaStream) => 
   }, []);
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card p-4">
       <h4 className="text-sm font-semibold text-fg mb-2">Microphone Access</h4>
       <div className="flex items-center gap-3 mb-2">
         <span className={`h-2 w-2 rounded-full ${permissionState === "granted" ? "bg-success" : permissionState === "denied" ? "bg-sale" : "bg-text-muted"}`} />

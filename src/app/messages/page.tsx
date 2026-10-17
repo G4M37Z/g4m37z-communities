@@ -68,7 +68,7 @@ export default async function MessagesPage() {
         </header>
 
         {enriched.length === 0 ? (
-          <section className="rounded-lg border border-border bg-surface p-10 text-center">
+          <section className="card p-10 text-center">
             <p className="mb-4 text-sm text-text-secondary">No conversations yet.</p>
             <Link
               href="/messages/new"
@@ -78,7 +78,7 @@ export default async function MessagesPage() {
             </Link>
           </section>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+          <ul className="divide-y divide-border card">
             {enriched.map((conv) => (
               <li key={conv.id}>
                 <Link

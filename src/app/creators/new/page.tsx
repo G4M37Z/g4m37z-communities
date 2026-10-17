@@ -35,7 +35,7 @@ export default async function CreatorApplyPage() {
         <h1 className="text-3xl font-bold tracking-tight text-fg mb-6">
           Apply as creator
         </h1>
-        <section className="rounded-lg border border-border bg-surface p-6">
+        <section className="card p-6">
           <p className="text-sm text-text-secondary">
             Creator applications are not yet open. Check back soon.
           </p>

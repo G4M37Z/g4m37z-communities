@@ -5,7 +5,7 @@
 //
 // Restyle (2026-09-21, user-approved "keep but make it richer"): weight
 // bumped to Caveat 700, a slight warm rotation lifts the handwriting off the
-// baseline, and a copper spark echoes the mark's dot — same motif as the
+// baseline, and a terracotta spark echoes the mark's dot — same motif as the
 // wordmark's accented "37".
 
 import { Caveat } from "next/font/google";

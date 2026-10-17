@@ -57,7 +57,7 @@ export function Comment({
       className={
         depth === 0
           ? "rounded-2xl border border-border bg-surface p-4"
-          : "rounded-xl border border-border bg-surface/60 p-3"
+          : "card/60 p-3"
       }
     >
       <header className="mb-2 flex items-center gap-2 text-xs text-text-muted">

@@ -38,32 +38,38 @@ app UI), `BrandSignature.tsx` (signature + Caveat font loader).
 
 ## Color system
 
-> **2026-10-17 retheme:** the accent moved from burnished copper to
-> **PlayStation blue**, per user direction ("premium cards, Apple material,
-> PlayStation color scheme and layout"). Copper below is retained only as
-> historical context.
+> **2026-10-17 retheme (final):** reference-driven. Chrome follows the dark
+> game-store screens (near-black, warm-neutral), accent is the warm
+> **terracotta** from the reference hero. Supersedes both copper (original)
+> and the short-lived PlayStation-blue pass.
 
 ~85% neutral; accent carries interaction and identity only.
 
-**Accent — PlayStation blue:**
-- Dark: `#0070D1` (hover `#1A85E0`, soft `#0A3A63`)
-- Light: `#0070D1` (hover `#005BA8`, soft `#D6E7F7`)
-- **Text step:** use `text-accent-text` (`#57B0F5` dark / `#0063B8` light)
-  for accent-colored TEXT — AA on both obsidian and ivory. `text-accent`
+**Accent — terracotta:**
+- Dark & light fill: `#C2542A` (hover `#D8663A` dark / `#A8461F` light,
+  soft `#3B2419` dark / `#EFDACF` light)
+- **Text step:** use `text-accent-text` (`#EE9A6B` dark / `#993F1A` light)
+  for accent-colored TEXT — AA on every surface in both themes. `text-accent`
   is for fills/borders/icons only.
+- White on `#C2542A` = 4.57:1 (AA for buttons).
 
-**Dark foundation:** bg `#0B0C0E`, surface `#111316`, elevated `#17191D`,
-subtle `#1D2025`, borders `#282C32`/`#3A3F47`, fg `#F5F5F3`.
+**Dark foundation (game-store chrome):** bg `#0C0B0D`, surface `#141318`,
+elevated `#1B1A20`, subtle `#232229`, borders `#2C2B33`/`#3F3D47`,
+fg `#FAF9F7`, secondary `#ACAAB2`, muted `#8A8892`.
 **Light foundation (daylight expression, not an inversion):** bg `#F3F0E8`
 (warm ivory), surface `#FAF9F6`, elevated `#FFFFFF`, subtle `#E8E5DC`,
-borders `#DDD8CC`/`#C9C3B4`, fg `#111114`, secondary `#4D4A45`.
+borders `#DDD8CC`/`#C9C3B4`, fg `#111114`, secondary `#4D4A45`, muted `#6A665F`.
 
-Rules: no pure black, no blue-gray corporate light mode, no neon/glow,
-depth via surface hierarchy + borders + spacing (never glow shadows).
+Contrast: every text pairing above was verified ≥4.5:1 (≥3:1 for borders/focus
+rings) with a WCAG script. Rules: no pure black backgrounds, no blue-gray
+corporate light mode, no neon/glow, depth via surface hierarchy + borders +
+spacing (never glow shadows).
 
 ### Card system (2026-10-17)
 
-Premium card language = **PlayStation tiles over an Apple material base**.
+Premium card language = **PlayStation-style tiles over an Apple material base**
+(shape, finish and depth — the palette is terracotta per the Color system above,
+not PlayStation blue).
 
 - Implementation: `.card` (layered top-lit gradient surface, hairline top
   highlight, soft ambient shadow) + `.card-interactive` (hover lift, accent
@@ -79,10 +85,10 @@ Premium card language = **PlayStation tiles over an Apple material base**.
 
 - UI/content: **Inter** (`--font-sans`) — unchanged.
 - Signature: **Caveat 700** (`--font-signature`, via `BrandSignature`), slight
-  −1.5° rotation and a copper spark dot echoing the mark's dot (2026-09-21
+  −1.5° rotation and a terracotta spark dot echoing the mark's dot (2026-09-21
   restyle — user-approved "keep it, make it richer").
 - Wordmark in UI is typeset (font-sans black, tight tracking) — since
-  2026-09-21 it renders as **G4M + copper 37 + Z** via `BrandWordmark.tsx`
+  2026-09-21 it renders as **G4M + terracotta 37 + Z** via `BrandWordmark.tsx`
   (user decision: bold tech caps replaced the hand-drawn calligraphy, which
   read thin/dead at header sizes; legacy paths remain in `public/brand/`).
 - Hierarchy: brand (mark/signature) → navigation → content → metadata.

@@ -75,7 +75,7 @@ export default async function AdminUsersPage({
       </form>
 
       {list.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface p-12 text-center">
+        <div className="card p-12 text-center">
           <Users size={36} className="mx-auto mb-4 text-text-muted" />
           <h2 className="mb-1 text-base font-bold text-fg">No users found</h2>
           <p className="text-sm text-text-muted">
@@ -83,7 +83,7 @@ export default async function AdminUsersPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="overflow-hidden card">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-bg text-xs uppercase tracking-wider text-text-muted">
               <tr>

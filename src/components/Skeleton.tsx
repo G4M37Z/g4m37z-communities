@@ -13,7 +13,7 @@ export function Skeleton({
 
 export function PostCardSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-surface p-5">
+    <div className="card p-5">
       <div className="flex gap-3">
         <Skeleton className="h-8 w-8 rounded-full" />
         <div className="min-w-0 flex-1 space-y-2">
@@ -33,7 +33,7 @@ export function PostCardSkeleton() {
 
 export function CommunityCardSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-surface p-5">
+    <div className="card p-5">
       <div className="flex items-start gap-3">
         <Skeleton className="h-12 w-12 rounded-md" />
         <div className="min-w-0 flex-1 space-y-2">
@@ -49,7 +49,7 @@ export function CommunityCardSkeleton() {
 
 export function CommentSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card p-4">
       <div className="flex gap-3">
         <Skeleton className="h-7 w-7 rounded-full" />
         <div className="min-w-0 flex-1 space-y-2">
@@ -95,7 +95,7 @@ export function ListSkeleton({
   avatarSize?: string;
 }) {
   return (
-    <div className="divide-y divide-border rounded-lg border border-border bg-surface" aria-label="Loading">
+    <div className="divide-y divide-border card" aria-label="Loading">
       {Array.from({ length: count }).map((_, i) => (
         <ListRowSkeleton key={i} avatarSize={avatarSize} />
       ))}

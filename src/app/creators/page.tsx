@@ -47,7 +47,7 @@ export default async function CreatorsPage() {
             {creators.map((c: { user_id: string; display_name: string; bio: string | null; verified: boolean; follower_count: number; total_content: number; created_at: string }) => (
               <li
                 key={c.user_id}
-                className="rounded-lg border border-border bg-surface p-4"
+                className="card card-interactive p-4"
               >
                 <Link
                   href={`/creators/${c.user_id}`}
@@ -77,7 +77,7 @@ export default async function CreatorsPage() {
             ))}
           </ul>
         ) : (
-          <section className="rounded-lg border border-border bg-surface p-10 text-center">
+          <section className="card p-10 text-center">
             <h2 className="text-base font-semibold text-fg">No creators yet</h2>
             <p className="mt-2 text-sm text-text-secondary">
               Be the first to apply as a creator.

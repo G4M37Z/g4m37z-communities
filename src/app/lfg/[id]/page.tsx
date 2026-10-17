@@ -202,7 +202,7 @@ export default async function LfgDetailPage({
         </div>
       </header>
 
-      <section className="rounded-lg border border-border bg-surface">
+      <section className="card">
         <header className="flex items-baseline justify-between border-b border-border px-4 py-3">
           <h2 className="text-base font-semibold text-fg">
             Participants ({participantCount})

@@ -250,7 +250,7 @@ supabase
 
       {/* Bio */}
       {profileData.bio && (
-        <section className="mb-10 rounded-lg border border-border bg-surface p-6">
+        <section className="mb-10 card p-6">
           <p className="text-base leading-relaxed text-fg whitespace-pre-wrap">
             {profileData.bio}
           </p>
@@ -260,7 +260,7 @@ supabase
       {/* Linked platforms — self-reported, never shown as verified */}
       {platformLinks.length > 0 && (
         <section
-          className="mb-10 rounded-lg border border-border bg-surface p-6"
+          className="mb-10 card p-6"
           aria-label="Linked gaming platforms"
         >
           <div className="mb-3 flex items-baseline gap-2">
@@ -305,7 +305,7 @@ supabase
           .map((ua) => allAchievements.find((a) => a.id === ua.achievement_id))
           .filter((a): a is (typeof allAchievements)[number] => Boolean(a));
         return (
-          <section className="mb-10 rounded-lg border border-border bg-surface">
+          <section className="mb-10 card">
             <header className="px-4 py-3 border-b border-border flex items-center justify-between">
               <h2 className="text-base font-semibold text-fg">
                 Achievements ({earnedList.length}/{allAchievements.length})
@@ -352,7 +352,7 @@ supabase
       })()}
 
       {/* Posts — full-width cards, generous touch targets */}
-      <section className="mb-10 rounded-lg border border-border bg-surface">
+      <section className="mb-10 card">
         <header className="px-4 py-3 border-b border-border">
           <h2 className="text-base font-semibold text-fg">
             Posts ({posts.length})
@@ -397,7 +397,7 @@ supabase
       </section>
 
       {/* Communities — single column on mobile, two on tablet, touch-friendly cards */}
-      <section className="rounded-lg border border-border bg-surface">
+      <section className="card">
         <header className="px-4 py-3 border-b border-border">
           <h2 className="text-base font-semibold text-fg">
             Communities ({memberships.length})

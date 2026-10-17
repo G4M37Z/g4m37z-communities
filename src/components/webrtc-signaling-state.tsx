@@ -17,7 +17,7 @@ export interface VoiceRoomState {
 
 export function VoiceSignalingUI({ room }: { room: VoiceRoomState }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card p-4">
       <h3 className="text-sm font-semibold text-fg">{room.roomName}</h3>
       <div className="flex items-center gap-2 mt-2">
         <span className={`h-2 w-2 rounded-full ${room.connectionState === "connected" ? "bg-success" : room.connectionState === "connecting" ? "bg-warning" : "bg-sale"}`} />

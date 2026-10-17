@@ -219,7 +219,7 @@ function NotificationItem({
 
   return (
     <li
-      className={`flex items-start gap-3 rounded-xl border border-border bg-surface p-4 transition-colors ${
+      className={`flex items-start gap-3 card p-4 transition-colors ${
         !read ? "bg-accent/5 border-accent/20" : "hover:border-accent/40"
       }`}
     >

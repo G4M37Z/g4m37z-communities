@@ -146,7 +146,7 @@ export default async function LfgDiscoverPage({
         </form>
 
         {sessions.length === 0 ? (
-          <section className="rounded-lg border border-border bg-surface p-10 text-center">
+          <section className="card p-10 text-center">
             <h2 className="text-base font-semibold text-fg">
               No matching sessions
             </h2>

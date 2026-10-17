@@ -18,7 +18,7 @@ export function FeedSortTabs({ current }: Props) {
   return (
     <nav
       aria-label="Sort posts"
-      className="flex gap-1 rounded-lg border border-border bg-surface p-1 mb-6"
+      className="flex gap-1 card p-1 mb-6"
     >
       {TABS.map((tab) => {
         const isActive = tab.key === current;

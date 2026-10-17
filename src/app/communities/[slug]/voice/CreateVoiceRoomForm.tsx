@@ -30,7 +30,7 @@ export function CreateVoiceRoomForm({ communityId }: { communityId: string }) {
   return (
     <form
       onSubmit={submit}
-      className="rounded-xl border border-border bg-surface p-4"
+      className="card p-4"
     >
       <h3 className="mb-2 text-sm font-bold text-fg">Create a room</h3>
       <div className="flex flex-col gap-2 sm:flex-row">

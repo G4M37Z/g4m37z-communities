@@ -66,7 +66,7 @@ export function GamingProfileForm({ initial = null }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-lg border border-border bg-surface p-4">
+    <form onSubmit={submit} className="card p-4">
       <div className="mb-3 flex items-center gap-2">
         <Gamepad2 size={16} className="text-accent-text" />
         <h3 className="text-base font-bold text-fg">Gaming Profile</h3>

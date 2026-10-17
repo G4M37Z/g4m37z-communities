@@ -18,7 +18,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
   const filtered = EMOJIS.filter((e) => !search || e.toLowerCase().includes(search.toLowerCase()) || e === search);
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-3 shadow-xl w-72">
+    <div className="card p-3 shadow-xl w-72">
       <div className="mb-2 flex items-center gap-2">
         <input
           type="text"

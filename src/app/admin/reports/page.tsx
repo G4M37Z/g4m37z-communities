@@ -88,7 +88,7 @@ export default async function AdminReportsPage({
       </header>
 
       {enriched.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface p-12 text-center">
+        <div className="card p-12 text-center">
           <Flag size={36} className="mx-auto mb-4 text-text-muted" />
           <h2 className="mb-1 text-base font-bold text-fg">No reports here</h2>
           <p className="mx-auto max-w-md text-sm text-text-muted">
@@ -112,7 +112,7 @@ function ReportCard({ report }: { report: EnrichedReport }) {
   const target = getTargetHref(report.target_type, report.target_id);
 
   return (
-    <li className="rounded-lg border border-border bg-surface p-4">
+    <li className="card p-4">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent-text">
           <Flag size={14} />

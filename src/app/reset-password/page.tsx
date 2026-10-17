@@ -40,7 +40,7 @@ export default async function ResetPasswordPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
+        <div className="card p-6 sm:p-8">
           <UpdatePasswordForm />
         </div>
       </div>

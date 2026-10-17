@@ -8,7 +8,7 @@ export const metadata = { title: "Creator analytics — G4M37Z" };
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card p-4">
       <p className="text-xs uppercase tracking-wide text-text-muted">{label}</p>
       <p className="mt-1 text-2xl font-bold text-fg">{value}</p>
     </div>
@@ -50,7 +50,7 @@ export default async function CreatorAnalyticsPage() {
       <PageEnter>
         <main className="container-x py-8">
           <h1 className="text-2xl font-bold tracking-tight text-fg">Creator analytics</h1>
-          <div className="mt-4 max-w-md rounded-lg border border-border bg-surface p-5">
+          <div className="mt-4 max-w-md card p-5">
             <h2 className="text-sm font-semibold text-fg">You&apos;re not a creator yet</h2>
             <p className="mt-2 text-sm text-text-secondary">
               Analytics are part of the creator toolkit. Applying is free and
@@ -111,7 +111,7 @@ export default async function CreatorAnalyticsPage() {
 
         <h2 className="mt-8 mb-3 text-lg font-bold text-fg">Top posts</h2>
         {a.top_posts.length === 0 ? (
-          <section className="rounded-lg border border-border bg-surface p-10 text-center">
+          <section className="card p-10 text-center">
             <p className="text-sm text-text-secondary">
               No posts yet. Publish your first post to see engagement here.
             </p>
@@ -123,7 +123,7 @@ export default async function CreatorAnalyticsPage() {
             </Link>
           </section>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+          <ul className="divide-y divide-border card">
             {a.top_posts.map((p) => (
               <li key={p.id} className="flex items-center gap-4 px-4 py-3 text-sm">
                 <Link href={`/post/${p.id}`} className="min-w-0 flex-1 truncate font-semibold text-fg hover:text-accent-text">

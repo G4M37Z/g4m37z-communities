@@ -34,7 +34,7 @@ export function PrivacyToggle({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-fg">Community privacy</h3>

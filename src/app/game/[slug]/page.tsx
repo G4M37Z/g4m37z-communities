@@ -122,7 +122,7 @@ export default async function GameDetailPage({
         {(genres.length > 0 || platforms.length > 0) && (
           <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {genres.length > 0 && (
-              <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="card p-4">
                 <h2 className="text-xs uppercase tracking-wider text-text-muted">
                   Genres
                 </h2>
@@ -139,7 +139,7 @@ export default async function GameDetailPage({
               </div>
             )}
             {platforms.length > 0 && (
-              <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="card p-4">
                 <h2 className="text-xs uppercase tracking-wider text-text-muted">
                   Platforms
                 </h2>
@@ -159,7 +159,7 @@ export default async function GameDetailPage({
         )}
 
         {graph.stats.players > 0 && (
-          <section className="mb-8 rounded-lg border border-border bg-surface p-4">
+          <section className="mb-8 card p-4">
             <h2 className="text-xs uppercase tracking-wider text-text-muted">
               Players ({graph.stats.players})
             </h2>
@@ -201,7 +201,7 @@ export default async function GameDetailPage({
         {(graph.communities.length > 0 || graph.posts.length > 0) && (
           <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {graph.communities.length > 0 && (
-              <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="card p-4">
                 <h2 className="text-xs uppercase tracking-wider text-text-muted">
                   Communities ({graph.stats.communities})
                 </h2>
@@ -230,7 +230,7 @@ export default async function GameDetailPage({
               </div>
             )}
             {graph.posts.length > 0 && (
-              <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="card p-4">
                 <h2 className="text-xs uppercase tracking-wider text-text-muted">
                   Recent posts ({graph.stats.posts})
                 </h2>
@@ -257,7 +257,7 @@ export default async function GameDetailPage({
           </section>
         )}
 
-        <section className="mb-8 rounded-lg border border-border bg-surface">
+        <section className="mb-8 card">
           <header className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="text-base font-semibold text-fg">
               Looking for group ({lfgSessions.length})
@@ -307,7 +307,7 @@ export default async function GameDetailPage({
           )}
         </section>
 
-        <section className="mb-10 rounded-lg border border-border bg-surface">
+        <section className="mb-10 card">
           <header className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="text-base font-semibold text-fg">
               Reviews ({reviews.length})

@@ -33,7 +33,7 @@ export default async function LoginPage({
           <p className="text-sm text-text-secondary">Enter your email and password to access your account.</p>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
+        <div className="card p-6 sm:p-8">
           <LoginForm
             next={next}
             initialError={params.error}

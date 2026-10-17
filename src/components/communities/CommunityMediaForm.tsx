@@ -58,7 +58,7 @@ export function CommunityMediaForm({ communityId, iconUrl, bannerUrl }: Props) {
   ];
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-4">
+    <section className="card p-4">
       <h3 className="text-base font-bold text-fg">Community media</h3>
       <p className="mt-1 text-xs text-text-muted">
         JPEG, PNG, WebP, or GIF · max 5 MB. Shown on the community page and cards.

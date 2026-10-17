@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand — PlayStation blue. Cool, saturated, console-forward; carries
-     interaction + identity (see docs/BRAND.md, 2026-10-17 retheme). */
-  --color-accent: #0070D1;
-  --color-accent-hover: #1A85E0;
-  --color-accent-soft: #0A3A63;
+  /* Brand — terracotta. Warm, editorial accent from the reference hero,
+     deployed over the dark game-store chrome (docs/BRAND.md, 2026-10-17). */
+  --color-accent: #C2542A;
+  --color-accent-hover: #D8663A;
+  --color-accent-soft: #3B2419;
   /* Accent readable as TEXT on both themes (AA on obsidian + ivory).
      Elements (fills/borders) keep --color-accent. */
-  --color-accent-text: #57B0F5;
+  --color-accent-text: #EE9A6B;
 
   /* Semantic */
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-sale: #EF4444;
 
-  /* Dark-first neutrals */
-  --color-fg: #F5F5F3;
-  --color-text-secondary: #A7A9AD;
-  --color-text-muted: #6F737A;
-  --color-text-disabled: #4D5157;
+  /* Dark-first neutrals — game-store chrome (near-black, warm-neutral) */
+  --color-fg: #FAF9F7;
+  --color-text-secondary: #ACAAB2;
+  --color-text-muted: #8A8892;
+  --color-text-disabled: #504E57;
 
-  --color-bg: #0B0C0E;
-  --color-surface: #111316;
-  --color-surface-elevated: #17191D;
-  --color-surface-subtle: #1D2025;
-  --color-border: #282C32;
-  --color-border-strong: #3A3F47;
+  --color-bg: #0C0B0D;
+  --color-surface: #141318;
+  --color-surface-elevated: #1B1A20;
+  --color-surface-subtle: #232229;
+  --color-border: #2C2B33;
+  --color-border-strong: #3F3D47;
 
   /* Font chain */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
@@ -153,13 +153,6 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 /* Elevated card surface — one step above the page (settings panels, form
    sections). Hairline top highlight gives the card an edge on dark themes
    without inventing a new token (apple-design elevation pass). */
-.brand-card {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 10%, transparent);
-}
-
 /* Premium card system — PlayStation-inspired tiles over an Apple material
    base (docs/BRAND.md, 2026-10-17 retheme). Layered top-lit surface + hairline
    top highlight read as a physical panel, never a flat rectangle. Interactive
@@ -247,7 +240,6 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
     backdrop-filter: none;
   }
   .material-bright-top { box-shadow: none; }
-  .brand-card { box-shadow: none; background: var(--color-surface); }
   .card { background: var(--color-surface-elevated); }
 }
 
@@ -275,13 +267,13 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
   --color-surface-subtle: #E8E5DC;
   --color-fg: #111114;
   --color-text-secondary: #4D4A45;
-  --color-text-muted: #7A766E;
+  --color-text-muted: #6A665F;
   --color-border: #DDD8CC;
   --color-border-strong: #C9C3B4;
-  --color-accent: #0070D1;
-  --color-accent-hover: #005BA8;
-  --color-accent-soft: #D6E7F7;
-  --color-accent-text: #0063B8;
+  --color-accent: #C2542A;
+  --color-accent-hover: #A8461F;
+  --color-accent-soft: #EFDACF;
+  --color-accent-text: #993F1A;
 }
 @media (prefers-color-scheme: light) {
   html:not([data-theme="dark"]) {
@@ -291,13 +283,13 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
     --color-surface-subtle: #E8E5DC;
     --color-fg: #111114;
     --color-text-secondary: #4D4A45;
-    --color-text-muted: #7A766E;
+    --color-text-muted: #6A665F;
     --color-border: #DDD8CC;
     --color-border-strong: #C9C3B4;
-    --color-accent: #0070D1;
-    --color-accent-hover: #005BA8;
-    --color-accent-soft: #D6E7F7;
-    --color-accent-text: #0063B8;
+    --color-accent: #C2542A;
+    --color-accent-hover: #A8461F;
+    --color-accent-soft: #EFDACF;
+    --color-accent-text: #993F1A;
   }
 }
 

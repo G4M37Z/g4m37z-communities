@@ -21,7 +21,7 @@ export function GameCover({ title, url }: { title: string; url: string | null })
     return (
       <div
         aria-hidden
-        className="flex aspect-[2/3] w-full items-center justify-center rounded-lg border border-border bg-surface"
+        className="flex aspect-[2/3] w-full items-center justify-center card"
       >
         <span className="text-2xl font-bold text-text-muted">{initials(title)}</span>
       </div>

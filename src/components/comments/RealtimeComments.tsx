@@ -157,7 +157,7 @@ export function RealtimeComments({
 
   if (comments.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-10 text-center">
+      <div className="card p-10 text-center">
         <p className="text-sm text-text-secondary">
           No comments yet. Be the first to share what you think.
         </p>
