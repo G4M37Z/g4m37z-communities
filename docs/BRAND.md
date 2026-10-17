@@ -81,6 +81,27 @@ not PlayStation blue).
   safe). Primary card grids replace the mount-only `PageEnter` GSAP stagger so
   cards animate as they enter the viewport.
 
+### Layout & responsive shells (2026-10-17)
+
+One codebase, three distinct device shells (user direction: "the UI changed
+for the three kinds of devices — mobiles, tablets and pcs"):
+
+| Class | Breakpoint | Chrome | Content |
+|---|---|---|---|
+| Mobile | `< md` (<768px) | sticky top bar (`Header`) + fixed `BottomNav` | single column; grids go 1-col |
+| Tablet | `md` (768–1023) | fixed slim **icon rail** (`Sidebar`, `w-16`, icons only) | `sm:grid-cols-2`; no bottom nav |
+| Desktop | `lg` (≥1024) | fixed full **sidebar** (`Sidebar`, `w-60`, labels + brand) + page-level right rail | `lg:grid-cols-3/4`; feed + rail |
+
+- `src/components/Sidebar.tsx` (client, `usePathname`) owns md+ navigation:
+  brand, primary nav, Create, notifications, theme, account. It is
+  `md:flex lg:w-60` — icon rail on tablet, labelled on desktop.
+- `src/app/layout.tsx` wraps content in `md:pl-16 lg:pl-60` to clear the
+  fixed rail; renders `Header` only under `md:hidden`; `BottomNav` is
+  `md:hidden` (mobile only). Primary nav therefore lives in exactly one
+  place per device class — the old header nav was removed.
+- Content stays on `container-x` (max 1280, centred) inside the offset, so
+  pages widen naturally as the rail grows.
+
 ## Typography
 
 - UI/content: **Inter** (`--font-sans`) — unchanged.

@@ -358,3 +358,19 @@ archive's beginning, not recent messages — CLOSED
 - Verification: `select id, public, file_size_limit, allowed_mime_types from
   storage.buckets order by id;` on the live DB.
 
+## GAP-UI-RESPONSIVE-01 — Three-shell responsive UI needs a visual pass
+
+- Area: UI / responsive layout
+- Severity: P2 (user-reported: retheme "only changed colors", no UI change)
+- Description: The site had weak, partly-broken responsive layout — tablet was
+  a wide phone, desktop had no app shell, and one grid (`home/page.tsx`) forced
+  its sidebar to wrap (`lg:col-span-2` on a `lg:grid-cols-[1fr_320px]`). A real
+  three-shell design (mobile top bar + bottom nav / tablet icon rail / desktop
+  sidebar + rail) has now been implemented in `Sidebar.tsx` + `layout.tsx`.
+- Status: IMPLEMENTED (2026-10-17) — SSR-verified; **browser visual pass owed**
+- Evidence: tsc 0 · eslint 0 errors (14 warnings) · vitest 361/361; SSR 200 on
+  `/`, `/communities`, `/discover`, `/home`, `/login`, `/signup`.
+- Next action: ChromeDriver browser pass at 375 / 768 / 1280 px (rail shows at
+  md, labels at lg, no content underlap; bottom nav only < md); then confirm on
+  the deployed preview and close.
+

@@ -13,15 +13,39 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `68529bc` |
+| Last verified HEAD | `7d4a0e6` (UI shell work below is uncommitted at time of writing) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 7 (live-DB reconciliation 2026-10-17: 66 tables/195 policies; type mirror rebuilt; GAP-STORAGE-01 opened) |
+| Documentation version | 8 (responsive app-shell + terracotta/game-store retheme, 2026-10-17) |
 | Last verified date | 2026-10-17 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Responsive app shell — three distinct device layouts (2026-10-17) — code-complete, SSR-verified; visual pass owed.**
+
+User direction: the retheme alone read as "only colors changed"; they wanted the
+**UI** changed for three device classes. Gates after: tsc 0 · eslint 0 errors
+(14 warnings) · vitest **361/361**; SSR 200 on `/`, `/communities`, `/discover`,
+`/home`, `/login`, `/signup`.
+
+- **New `src/components/Sidebar.tsx`** (client, `usePathname`): md+ chrome —
+  slim **icon rail** at `md` (`w-16`), labelled **full sidebar** at `lg` (`w-60`);
+  brand, primary nav, Create, notifications, theme, account.
+- **`src/app/layout.tsx`** now an app shell: `<Sidebar>` + content offset
+  `md:pl-16 lg:pl-60`; `Header` rendered `md:hidden` (mobile only); `BottomNav`
+  stays `md:hidden`. Primary nav lives in exactly one place per class.
+- **`Header.tsx`**: primary nav removed (bottom nav + sidebar own it); mobile
+  top bar is brand + account actions only.
+- **`NotificationBell.tsx`**: optional `label`/`className` (sidebar row); badge
+  moved inside a relative icon span. Bell is rendered only when signed in
+  (client `createClient()` **throws** without Supabase env — unguarded render
+  broke SSR for signed-out users).
+- **`home/page.tsx`**: fixed broken 2-col grid (`lg:col-span-2` on a
+  `lg:grid-cols-[1fr_320px]` grid forced the rail to wrap).
+- Docs: `BRAND.md` "Layout & responsive shells" section.
+- Not yet done: browser visual pass at 375 / 768 / 1280 px (`GAP-UI-RESPONSIVE-01`).
 
 **Documentation + type-mirror reconciliation against the live DB (2026-10-17) — COMPLETE (static-verified).**
 

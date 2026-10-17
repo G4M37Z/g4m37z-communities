@@ -7,8 +7,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, BellRing } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
-export function NotificationBell() {
+export function NotificationBell({
+  label,
+  className,
+}: {
+  label?: string;
+  className?: string;
+} = {}) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [supabase] = useState(() => createClient());
 
@@ -84,22 +91,28 @@ export function NotificationBell() {
   return (
     <Link
       href="/notifications"
-      className="relative inline-flex items-center justify-center p-2 text-text-muted hover:text-fg transition-colors"
+      className={cn(
+        "inline-flex items-center justify-center gap-3 p-2 text-text-muted hover:text-fg transition-colors",
+        className,
+      )}
       aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
     >
-      {unreadCount > 0 ? (
-        <BellRing size={22} className="text-accent-text" />
-      ) : (
-        <Bell size={22} />
-      )}
-      {unreadCount > 0 && (
-        <span
-          className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white"
-          aria-hidden="true"
-        >
-          {unreadCount > 99 ? "99+" : unreadCount}
-        </span>
-      )}
+      <span className="relative inline-flex">
+        {unreadCount > 0 ? (
+          <BellRing size={22} className="text-accent-text" />
+        ) : (
+          <Bell size={22} />
+        )}
+        {unreadCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white"
+            aria-hidden="true"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </span>
+      {label && <span className="hidden text-sm font-medium lg:inline">{label}</span>}
     </Link>
   );
 }

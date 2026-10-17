@@ -1,49 +1,33 @@
 // src/components/Header.tsx
-// G4M37Z Communities site header. Server Component. Scroll-aware: quiets
-// (slightly raises surface opacity + border) once the page scrolls.
+// G4M37Z Communities mobile top bar (<md only; md+ uses the Sidebar).
+// Server Component. Scroll-aware: quiets (raises surface opacity + border)
+// once the page scrolls. Primary navigation lives in the BottomNav (mobile)
+// and Sidebar (md+), so this bar carries only the brand and account actions.
 
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
 import { UserMenu } from "@/components/UserMenu";
 import { NotificationBell } from "@/components/NotificationBell";
 import { HeaderScrollObserver } from "@/components/HeaderScrollObserver";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const NAV = [
-  { label: "Home", href: "/home" },
-  { label: "Communities", href: "/communities" },
-  { label: "Games", href: "/discover" },
-  { label: "Tournaments", href: "/tournaments" },
-  { label: "Saved", href: "/saved" },
-  { label: "Create", href: "/create" },
-];
-
-export async function Header() {
+export async function Header({ className }: { className?: string }) {
   const { user, username, role, avatarUrl } = await getCurrentUser();
 
   return (
-    <header className="material material-bright-top site-header sticky top-0 z-40 border-b border-transparent">
+    <header
+      className={cn(
+        "material material-bright-top site-header sticky top-0 z-40 border-b border-transparent",
+        className,
+      )}
+    >
       <HeaderScrollObserver />
       <div className="container-x flex h-14 items-center gap-4">
         <Link href="/" className="shrink-0" aria-label="G4M37Z Communities — home">
           <Logo height={26} ariaLabel="G4M37Z Communities — home" />
         </Link>
-
-        <nav
-          aria-label="Primary"
-          className="hidden items-center gap-0.5 sm:flex"
-        >
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="press rounded-md px-3 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface hover:text-fg"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
           {/* Theme toggle hides on the smallest screens: the lockup + bell +

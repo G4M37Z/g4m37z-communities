@@ -6,6 +6,7 @@ import "./container-queries.css";
 
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import { Sidebar } from "@/components/Sidebar";
 import { Footer } from "@/components/Footer";
 import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -92,15 +93,24 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { user, username } = await getCurrentUser();
+  const { user, username, role, avatarUrl } = await getCurrentUser();
 
   return (
     <html lang="en" className={`${inter.variable} ${caveat.variable} h-full`}>
       <body className="flex min-h-full flex-col bg-bg font-sans text-fg antialiased">
-        <Header />
-        {user && <PresenceHeartbeat />}
-        <main className="flex-1">{children}</main>
-        <Footer user={user} />
+        {/* md+ chrome: slim icon rail on tablet, full sidebar on desktop */}
+        <Sidebar username={username} avatarUrl={avatarUrl} role={role} />
+
+        {/* Content column — offset by the rail/sidebar width on md+ */}
+        <div className="flex flex-1 flex-col md:pl-16 lg:pl-60">
+          {/* Mobile-only top bar; md+ navigation lives in the Sidebar */}
+          <Header className="md:hidden" />
+          {user && <PresenceHeartbeat />}
+          <main className="flex-1">{children}</main>
+          <Footer user={user} />
+        </div>
+
+        {/* Mobile-only bottom navigation */}
         <BottomNav username={username ?? undefined} />
       </body>
     </html>
