@@ -10,7 +10,7 @@ export interface EventProps {
 
 export function EventCard({ id, title, communityName, startTime, status }: EventProps) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card card-interactive p-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="inline-block h-2 w-2 rounded-full bg-success" />
         <span className="text-xs font-medium text-success uppercase tracking-[0.06em]">{status}</span>

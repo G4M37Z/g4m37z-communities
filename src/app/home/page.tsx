@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/supabase/actions";
 import { PostCard } from "@/components/post/PostCard";
 import { Pagination } from "@/components/Pagination";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 import { FeedSortTabs } from "./FeedSortTabs";
 import { getHomeFeed, type SortKey } from "@/lib/posts/queries";
 import { timeAgo } from "@/lib/utils";
@@ -176,15 +176,15 @@ export default async function HomePage({
             </div>
           ) : (
             <>
-              <PageEnter stagger={0.04}>
-                <ul className="post-card-container space-y-2 md:space-y-3">
-                  {posts.map((p) => (
-                    <li key={p.id}>
+              <ul className="post-card-container space-y-2 md:space-y-3">
+                {posts.map((p, i) => (
+                  <li key={p.id}>
+                    <Reveal delay={Math.min(i, 8) * 0.04}>
                       <PostCard post={p} />
-                    </li>
-                  ))}
-                </ul>
-              </PageEnter>
+                    </Reveal>
+                  </li>
+                ))}
+              </ul>
               <Pagination
                 basePath="/home"
                 page={page}

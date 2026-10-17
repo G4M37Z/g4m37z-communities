@@ -159,7 +159,7 @@ export default async function LfgDiscoverPage({
             {sessions.map((s) => (
               <li
                 key={s.id}
-                className="rounded-lg border border-border bg-surface p-4"
+                className="card card-interactive p-4"
               >
                 <div className="flex items-baseline justify-between gap-2">
                   {s.game_slug ? (

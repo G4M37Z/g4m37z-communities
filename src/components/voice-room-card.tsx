@@ -14,7 +14,7 @@ export function VoiceRoomCard({ roomName, communityName, participantCount = 0 }:
   const [muted, setMuted] = useState(false);
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="card card-interactive p-4">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-fg">{roomName}</h3>
         <span className="text-xs text-text-muted">{communityName}</span>

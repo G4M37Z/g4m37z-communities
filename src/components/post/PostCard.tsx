@@ -20,7 +20,7 @@ interface Props { post: PostCardData; }
 
 export function PostCard({ post }: Props) {
   return (
-    <article className="post-card-container rounded-lg border border-border bg-surface transition-colors hover:border-border-strong hover:bg-surface-subtle">
+    <article className="card card-interactive post-card-container">
       {/* Rhythm: every card uses p-5 on ≥sm and p-4 on mobile; media locks to
           16/10 so image cards and text cards share one vertical cadence. */}
       <div className="post-card-inner flex gap-3 p-4 sm:p-5">

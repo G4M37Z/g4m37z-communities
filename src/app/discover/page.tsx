@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { listGames } from "@/lib/games/service";
 import { GameCover } from "@/components/games/GameCover";
+import { Reveal } from "@/components/ui/reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -74,25 +75,26 @@ export default async function DiscoverPage({
         </section>
       ) : (
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {games.map((g) => (
-            <Link
-              key={g.id}
-              href={`/game/${g.slug}`}
-              className="block rounded-xl border border-border bg-surface p-4 transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <GameCover title={g.name} url={g.cover_url} />
-              <h3 className="mt-3 text-base font-semibold text-fg">{g.name}</h3>
-              {g.description && (
-                <p className="mt-1 line-clamp-2 text-xs text-text-secondary">
-                  {g.description}
-                </p>
-              )}
-              {g.release_date && (
-                <p className="mt-2 text-[10px] text-text-muted uppercase tracking-wider">
-                  Released {new Date(g.release_date).getFullYear()}
-                </p>
-              )}
-            </Link>
+          {games.map((g, i) => (
+            <Reveal key={g.id} delay={Math.min(i, 9) * 0.04} className="h-full">
+              <Link
+                href={`/game/${g.slug}`}
+                className="card card-interactive block h-full p-4 focus-visible:outline-none"
+              >
+                <GameCover title={g.name} url={g.cover_url} />
+                <h3 className="mt-3 text-base font-semibold text-fg">{g.name}</h3>
+                {g.description && (
+                  <p className="mt-1 line-clamp-2 text-xs text-text-secondary">
+                    {g.description}
+                  </p>
+                )}
+                {g.release_date && (
+                  <p className="mt-2 text-[10px] text-text-muted uppercase tracking-wider">
+                    Released {new Date(g.release_date).getFullYear()}
+                  </p>
+                )}
+              </Link>
+            </Reveal>
           ))}
         </section>
       )}

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Community, CommunityCategory } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -103,15 +103,15 @@ export default async function CommunitiesPage() {
           action={{ label: "Create the first community", href: "/create" }}
         />
       ) : (
-        <PageEnter stagger={0.04} y={10}>
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {communities.map((c) => (
-              <li key={c.id}>
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {communities.map((c, i) => (
+            <li key={c.id}>
+              <Reveal delay={Math.min(i, 9) * 0.04} className="h-full">
                 <CommunityCard community={c} />
-              </li>
-            ))}
-          </ul>
-        </PageEnter>
+              </Reveal>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );
@@ -121,7 +121,7 @@ function CommunityCard({ community }: { community: CommunityRow }) {
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="press block rounded-lg border border-border bg-surface p-5 transition-colors hover:border-border-strong hover:bg-surface-subtle"
+      className="card card-interactive block h-full p-5"
     >
       <div className="mb-3 flex items-center gap-3">
         <CommunityIcon name={community.name} url={community.icon_url} />

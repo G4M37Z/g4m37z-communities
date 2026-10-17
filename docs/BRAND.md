@@ -38,13 +38,17 @@ app UI), `BrandSignature.tsx` (signature + Caveat font loader).
 
 ## Color system
 
+> **2026-10-17 retheme:** the accent moved from burnished copper to
+> **PlayStation blue**, per user direction ("premium cards, Apple material,
+> PlayStation color scheme and layout"). Copper below is retained only as
+> historical context.
+
 ~85% neutral; accent carries interaction and identity only.
 
-**Accent — burnished copper** (chosen over the muted-violet candidate:
-warmer against both foundations, more original, no tech-startup read):
-- Dark: `#B4633C` (hover `#C6764C`, soft `#8A4A2C`)
-- Light: `#A44F28` (hover `#8F441F`, soft `#E9D5C8`)
-- **Text step:** use `text-accent-text` (`#D08A5F` dark / `#9C4A24` light)
+**Accent — PlayStation blue:**
+- Dark: `#0070D1` (hover `#1A85E0`, soft `#0A3A63`)
+- Light: `#0070D1` (hover `#005BA8`, soft `#D6E7F7`)
+- **Text step:** use `text-accent-text` (`#57B0F5` dark / `#0063B8` light)
   for accent-colored TEXT — AA on both obsidian and ivory. `text-accent`
   is for fills/borders/icons only.
 
@@ -56,6 +60,20 @@ borders `#DDD8CC`/`#C9C3B4`, fg `#111114`, secondary `#4D4A45`.
 
 Rules: no pure black, no blue-gray corporate light mode, no neon/glow,
 depth via surface hierarchy + borders + spacing (never glow shadows).
+
+### Card system (2026-10-17)
+
+Premium card language = **PlayStation tiles over an Apple material base**.
+
+- Implementation: `.card` (layered top-lit gradient surface, hairline top
+  highlight, soft ambient shadow) + `.card-interactive` (hover lift, accent
+  border, accent-tinted grounding shadow; press-down on `:active`). Defined in
+  `src/app/globals.css`; structured primitive at `src/components/ui/card.tsx`.
+- Hover/selection uses border + depth, never glow (keeps the no-neon rule).
+- **Motion:** scroll reveals via `src/components/ui/reveal.tsx`
+  (framer-motion `whileInView`, shared easing `[0.22,1,0.36,1]`, reduced-motion
+  safe). Primary card grids replace the mount-only `PageEnter` GSAP stagger so
+  cards animate as they enter the viewport.
 
 ## Typography
 

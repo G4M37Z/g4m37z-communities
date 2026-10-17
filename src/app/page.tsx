@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Users, MessageSquare, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/components/post/PostCard";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandSignature } from "@/components/brand/BrandSignature";
 import { getHomeFeed } from "@/lib/posts/queries";
@@ -135,15 +135,15 @@ async function FeedPreview({ userId }: { userId: string }) {
           See all →
         </Link>
       </header>
-      <PageEnter stagger={0.06}>
-        <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {preview.map((p) => (
-            <li key={p.id}>
+      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {preview.map((p, i) => (
+          <li key={p.id}>
+            <Reveal delay={Math.min(i, 6) * 0.05}>
               <PostCard post={p} />
-            </li>
-          ))}
-        </ul>
-      </PageEnter>
+            </Reveal>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -172,19 +172,22 @@ async function NewestCommunities() {
         </Link>
       </header>
       {newest && newest.length > 0 ? (
-        <PageEnter stagger={0.06} y={10}>
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {newest.map(
-              (c: {
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {newest.map(
+            (
+              c: {
                 id: string;
                 name: string;
                 slug: string;
                 description: string | null;
-              }) => (
-                <li key={c.id}>
+              },
+              i: number,
+            ) => (
+              <li key={c.id}>
+                <Reveal delay={Math.min(i, 8) * 0.04}>
                   <Link
                     href={`/communities/${c.slug}`}
-                    className="press block rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong hover:bg-surface-subtle"
+                    className="card card-interactive block p-4"
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <span
@@ -208,11 +211,11 @@ async function NewestCommunities() {
                       </p>
                     )}
                   </Link>
-                </li>
-              )
+                </Reveal>
+              </li>
+            )
             )}
-          </ul>
-        </PageEnter>
+        </ul>
       ) : (
         <p className="text-sm text-text-secondary">
           No communities yet — be the first to{" "}

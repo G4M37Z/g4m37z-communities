@@ -11,7 +11,7 @@ import { JoinLeaveButton } from "./JoinLeaveButton";
 import { timeAgo } from "@/lib/utils";
 import { PostCard } from "@/components/post/PostCard";
 import { Pagination } from "@/components/Pagination";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 import { getCommunityPosts, type SortKey } from "@/lib/posts/queries";
 import { FeedSortTabs } from "./FeedSortTabs";
 import { DEFAULT_COMMUNITY_CAPABILITIES } from "@/lib/community-capability";
@@ -248,15 +248,15 @@ export default async function CommunityPage({
               </div>
             ) : (
               <>
-                <PageEnter stagger={0.05}>
-                  <ul className="space-y-3">
-                    {posts.map((p) => (
-                      <li key={p.id}>
+                <ul className="space-y-3">
+                  {posts.map((p, i) => (
+                    <li key={p.id}>
+                      <Reveal delay={Math.min(i, 8) * 0.04}>
                         <PostCard post={p} />
-                      </li>
-                    ))}
-                  </ul>
-                </PageEnter>
+                      </Reveal>
+                    </li>
+                  ))}
+                </ul>
                 <Pagination
                   basePath={`/communities/${community.slug}`}
                   extraParams={{
@@ -302,7 +302,7 @@ export default async function CommunityPage({
           {(community.capabilities?.includes("voice") ?? true) && (
             <Link
               href={`/communities/${community.slug}/voice`}
-              className="block rounded-lg border border-border bg-surface p-5 transition-colors hover:border-accent"
+              className="card card-interactive block p-5"
             >
               <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
                 Voice rooms
