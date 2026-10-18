@@ -9,6 +9,7 @@ import { SettingsForm } from "./SettingsForm";
 import { GamingProfileForm } from "@/components/settings/gaming-profile-form";
 import { PlatformLinksForm } from "@/components/settings/platform-links-form";
 import { NotificationPreferencesForm } from "@/components/settings/notification-prefs-form";
+import { AppearanceForm } from "@/components/settings/appearance-form";
 import { getGamingProfile } from "@/lib/profiles/service-v4";
 import { listPlatformLinks } from "@/lib/profiles/platform-links";
 
@@ -83,6 +84,8 @@ export default async function SettingsPage() {
         <span aria-hidden="true">→</span>
       </Link>
       <NotificationPreferencesForm initial={prefsRaw} />
+      <div className="h-5" />
+      <AppearanceForm />
       <div className="h-5" />
       <GamingProfileForm initial={gaming} />
       <div className="h-5" />

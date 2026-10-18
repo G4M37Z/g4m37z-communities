@@ -16,7 +16,7 @@
 | Last verified HEAD | `6a13bcd` (PlayStation theme pass below added on top) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 9 (PlayStation theme pass — theme/layout/UI-UX/animation/fonts, 2026-10-17) |
+| Documentation version | 10 (PS-blue accents + story landing + appearance personalization + DM-call connect fix, 2026-10-18) |
 | Last verified date | 2026-10-17 (session) |
 
 ---
@@ -24,6 +24,26 @@
 ## Current Checkpoint
 
 **PlayStation theme pass — user's five words ("PlayStation theme and layout, UI/UX, animation and fonts") delivered in code (2026-10-17), committed at `6a13bcd`+; gates green; pushed.**
+
+Follow-up (2026-10-18, doc version 10): (1) **signed-out story landing** —
+`src/components/landing/ScrollStory.tsx`: PS-store-style horizontal snap rail
+of 7 feature tiles + how-it-works band + closing CTA, all shared `Reveal`;
+renders only when signed out. (2) **Accent personalization** — `/settings →
+Appearance`: six AA-verified accents via `g4m37z-accent` localStorage +
+`[data-accent]` overrides at the end of `globals.css`
+(`src/lib/appearance.ts`, `appearance-form.tsx`); default = PlayStation blue.
+(3) **DM-call connect fix** — the "ringing works, Connecting… never resolves"
+root cause: the callee's replay floor was the client-clock optimistic
+`answered_at` vs server-clock `created_at`, silently excluding the OFFER.
+Fixes in `dm-call.tsx`: authoritative server-row refetch for the floor (+
+accept() sync), honest subscription status with one retry, 7s idempotent
+sweep that re-offers once if the ANSWER never arrived, candidates queued
+instead of dropped pre-`RTCPeerConnection`; `HAS_TURN` exposed in
+`ice-servers.ts` and the failed-state hint sets expectations. Live-DB verified:
+`webrtc_signals` IS in `supabase_realtime`, RPC signatures match code —
+residual hard-infrastructure gap is TURN env config only (operator action,
+`.env.example:36`). Gates: tsc 0 · eslint 0 errors · vitest 361/361 · SSR 200
+`/`,`/settings`. Pushed with this checkpoint.
 
 Prior direction item resolved: the user asked whether theme/layout/motion/fonts
 were actually implemented; this checkpoint is the implementation. Gates: tsc 0 ·

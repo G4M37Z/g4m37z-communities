@@ -41,7 +41,7 @@ import type {
   CallSession,
   CallMedia,
 } from "@/lib/messaging/call-utils";
-import { ICE_SERVERS } from "@/lib/ice-servers";
+import { ICE_SERVERS, HAS_TURN } from "@/lib/ice-servers";
 
 /** Small grace on top of the 45s server-side ring timeout. */
 const CLIENT_RING_TIMEOUT_MS = RING_TIMEOUT_MS + 1500;
@@ -94,6 +94,13 @@ export function DmCall({
   const signalsChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const startingRef = useRef(false);
   const callRef = useRef<CallSession | null>(initialCall);
+  const sweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Server-authoritative timestamp floor for signal replay. The optimistic
+  // client-side timestamps (start()/accept()) cannot be trusted as floors:
+  // a device clock even slightly ahead of the Postgres clock excludes the
+  // OFFER from the replay query and the whole handshake stalls forever —
+  // "ringing works, Connecting… never resolves" (2026-10-18 report).
+  const replayFloorRef = useRef<string | null>(null);
 
   useEffect(() => {
     callRef.current = call;
@@ -107,6 +114,10 @@ export function DmCall({
     offeredRef.current = false;
     remoteDescSetRef.current = false;
     pendingIceRef.current = [];
+    if (sweepTimerRef.current) {
+      clearTimeout(sweepTimerRef.current);
+      sweepTimerRef.current = null;
+    }
     if (signalsChannelRef.current) {
       try {
         await supabase.removeChannel(signalsChannelRef.current);
@@ -152,9 +163,15 @@ export function DmCall({
   // -------------------------------------------------------------------------
   const applyRemoteCandidate = useCallback(async (c: RTCIceCandidateInit) => {
     const pc = pcRef.current;
-    if (!pc) return;
+    // No pc means media has not started yet on this side — queue, never drop.
+    // Candidates created by the peer can legitimately arrive before our
+    // RTCPeerConnection exists (getUserMedia is still resolving).
+    if (!pc) {
+      if (pendingIceRef.current.length < 100) pendingIceRef.current.push(c);
+      return;
+    }
     if (!remoteDescSetRef.current) {
-      pendingIceRef.current.push(c);
+      if (pendingIceRef.current.length < 100) pendingIceRef.current.push(c);
       return;
     }
     try {
@@ -354,38 +371,82 @@ export function DmCall({
       };
 
       // Subscribe before writing/reading signals so nothing is missed.
-      const channel = supabase
-        .channel(`dm-call:${conversationId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "webrtc_signals",
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            void handleSignal(payload.new as unknown as SignalingMessage);
-          },
-        );
-
-      await new Promise<void>((resolve) => {
-        channel.subscribe((status) => {
-          if (
-            status === "SUBSCRIBED" ||
-            status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED"
-          ) {
-            resolve();
-          }
+      const subscribeWithStatus = async (
+        name: string,
+      ): Promise<"SUBSCRIBED" | "OTHER"> => {
+        const channel = supabase
+          .channel(name)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "webrtc_signals",
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              void handleSignal(payload.new as unknown as SignalingMessage);
+            },
+          );
+        const status = await new Promise<string>((resolve) => {
+          channel.subscribe((s) => {
+            if (String(s) === "CHANNEL_REQUEST") return;
+            resolve(String(s));
+          });
         });
-      });
-      signalsChannelRef.current = channel;
+        if (status === "SUBSCRIBED") signalsChannelRef.current = channel;
+        return status === "SUBSCRIBED" ? "SUBSCRIBED" : "OTHER";
+      };
+
+      const subscribed = await subscribeWithStatus(
+        `dm-call:${conversationId}`,
+      );
+      if (subscribed !== "SUBSCRIBED") {
+        // A failed channel previously counted as "ready" — silent signaling
+        // loss. Try exactly one reconnect, then proceed so the replay query
+        // still runs (the sweep below catches anything the dead channel lost).
+        console.warn("dm-call: signaling channel failed, retrying once");
+        try {
+          if (signalsChannelRef.current) {
+            await supabase.removeChannel(signalsChannelRef.current);
+          }
+        } catch {
+          // ignore removal errors on a dead channel
+        }
+        signalsChannelRef.current = null;
+        await new Promise((r) => setTimeout(r, 1200));
+        await subscribeWithStatus(`dm-call-reconnect:${conversationId}`);
+      }
+
+      // Authoritative replay floor: refetch the session row so the floor is a
+      // SERVER clock timestamp. The optimistic client-clock answered_at
+      // (accept()/start()) races the Postgres clock and used to exclude the
+      // OFFER from callee replay → "Connecting…" forever.
+      let authoritative = session;
+      if (!session.id.startsWith("pending-")) {
+        const { data: fresh } = await supabase
+          .from("call_sessions")
+          .select("*")
+          .eq("id", session.id)
+          .maybeSingle();
+        if (fresh) {
+          authoritative = fresh as unknown as CallSession;
+          setCall((prev) =>
+            prev && prev.id === authoritative.id
+              ? { ...prev, ...authoritative }
+              : prev,
+          );
+        }
+      }
+      const floor =
+        authoritative.answered_at ??
+        authoritative.started_at ??
+        session.answered_at ??
+        session.started_at;
+      replayFloorRef.current = floor;
 
       // Replay signals written after the call went active: the callee can
       // subscribe after the caller's OFFER/ICE already landed in the table.
-      const floor = session.answered_at ?? session.started_at;
       const { data } = await supabase
         .from("webrtc_signals")
         .select(
@@ -394,7 +455,7 @@ export function DmCall({
         .eq("conversation_id", conversationId)
         .gte("created_at", floor)
         .order("created_at", { ascending: true })
-        .limit(50);
+        .limit(120);
       for (const row of (data ?? []) as unknown as SignalingMessage[]) {
         await handleSignal(row);
       }
@@ -403,9 +464,50 @@ export function DmCall({
       setRemoteCandidateCount(0);
 
       // Caller is the deterministic offerer; callee waits for the OFFER.
-      if (session.caller_id === currentUserId) {
+      const isCaller = authoritative.caller_id === currentUserId;
+      if (isCaller) {
         await sendOffer();
       }
+
+      // Safety sweep: ~7s later, re-run the replay query. processedRef makes
+      // it idempotent, so it only catches signals missed by a dead channel,
+      // a skewed floor write, or any pre-subscribe INSERT gap. The caller
+      // also gets one re-offer if the callee's ANSWER never arrived — the pc
+      // state is unchanged (no remote description yet), so re-offering is
+      // safe and un-stalls the negotiation that used to hang forever.
+      if (sweepTimerRef.current) clearTimeout(sweepTimerRef.current);
+      sweepTimerRef.current = setTimeout(() => {
+        if (!pcRef.current) return;
+        const sweepFloor = replayFloorRef.current;
+        if (!sweepFloor) return;
+        void (async () => {
+          try {
+            const { data: sweepData } = await supabase
+              .from("webrtc_signals")
+              .select(
+                "id, room_id, conversation_id, from_user, to_user, type, payload, created_at",
+              )
+              .eq("conversation_id", conversationId)
+              .gte("created_at", sweepFloor)
+              .order("created_at", { ascending: true })
+              .limit(120);
+            for (const row of (sweepData ?? []) as unknown as SignalingMessage[]) {
+              await handleSignal(row);
+            }
+            if (
+              isCaller &&
+              !remoteDescSetRef.current &&
+              pcRef.current &&
+              offeredRef.current
+            ) {
+              offeredRef.current = false;
+              await sendOffer();
+            }
+          } catch (err) {
+            console.warn("dm-call sweep failed:", err);
+          }
+        })();
+      }, 7000);
     },
     [
       currentUserId,
@@ -552,12 +654,27 @@ export function DmCall({
       setError(res.error);
       return;
     }
+    // Optimistic flip (client clock) purely for instant UI; the authoritative
+    // server row overwrites it inside beginCallMedia (floor + duration).
     setCall((prev) =>
       prev && prev.id === call.id
         ? { ...prev, status: "active", answered_at: new Date().toISOString() }
         : prev,
     );
-  }, [call, conversationId]);
+    // Snap to the server row so answered_at is authoritative immediately.
+    if (!call.id.startsWith("pending-")) {
+      const { data: fresh } = await supabase
+        .from("call_sessions")
+        .select("*")
+        .eq("id", call.id)
+        .maybeSingle();
+      if (fresh) {
+        setCall((prev) =>
+          prev && prev.id === call.id ? { ...prev, ...(fresh as CallSession) } : prev,
+        );
+      }
+    }
+  }, [call, conversationId, supabase]);
 
   const decline = useCallback(async () => {
     if (!call) return;
@@ -691,7 +808,9 @@ export function DmCall({
               <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
                 {relayInUse
                   ? "The relay connection dropped. Try ending and redialling."
-                  : "Media could not traverse both networks. Ask the server admin to configure TURN (NEXT_PUBLIC_TURN_URL) — without a relay, calls fail on carrier/corporate NAT."}
+                  : !HAS_TURN
+                    ? "Calls behind carrier/corporate NAT need a relay — ask the server admin to configure TURN (NEXT_PUBLIC_TURN_URL), then redial."
+                    : "Media could not traverse both networks. Try ending and redialling."}
               </p>
             )}
             {isEnded && (

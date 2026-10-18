@@ -73,6 +73,18 @@ rings) with a WCAG script. Rules: no pure black backgrounds, no blue-gray
 corporate light mode, no neon/glow, depth via surface hierarchy + borders +
 spacing (never glow shadows).
 
+### Accent personalization (2026-10-18)
+
+Users can swap the accent (`/settings → Appearance`, client-side — same
+contract as ThemeToggle): `localStorage` key `g4m37z-accent` + `[data-accent]`
+attribute on `<html>` via `src/lib/appearance.ts`; UI at
+`src/components/settings/appearance-form.tsx`. Overrides live at the END of
+`globals.css` (out-ranking `@theme` and both light paths). Six accents —
+PlayStation blue (default, no attribute), terracotta, emerald, violet, rose,
+gold — each verified: white ≥4.57:1 on every fill/hover, text steps ≥4.57:1 on
+their theme backgrounds. Components must keep using semantic tokens
+(`bg-accent`, `text-accent-text`) so personalization works everywhere.
+
 ### PlayStation theme system (2026-10-17)
 
 The user's brief in one line: *PlayStation theme and layout, UI/UX,

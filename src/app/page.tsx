@@ -14,6 +14,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { Reveal } from "@/components/ui/reveal";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandSignature } from "@/components/brand/BrandSignature";
+import { ScrollStory } from "@/components/landing/ScrollStory";
 import { getHomeFeed } from "@/lib/posts/queries";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
@@ -29,6 +30,9 @@ export default async function HomePage() {
   return (
     <>
       <Hero signedIn={!!user} />
+
+      {/* The story scroll — what a visitor gets, before any navigation */}
+      {!user && <ScrollStory />}
 
       {/* Latest posts preview (signed in only) — streams in */}
       {user && (

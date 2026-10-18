@@ -385,3 +385,116 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 [data-theme="light"] [data-platform="xbox"] { --_brand: #0e6a0e; }
 [data-theme="light"] [data-platform="google_play"] { --_brand: #0091c2; }
 [data-theme="light"] [data-platform="apple_game_center"] { --_brand: #55555a; }
+
+/* ============================================================================
+   Accent personalization — [data-accent] on <html> (src/lib/appearance.ts,
+   localStorage key g4m37z-accent; user-direction 2026-10-18). Declared last so
+   they out-rank the @theme base and both light paths below. Every accent
+   declares dark values + light variants; contrast verified: white ≥4.57:1 on
+   every fill/hover, text steps ≥4.57:1 on their theme backgrounds (docs/BRAND.md
+   "Accent personalization"). Default (no attribute) = PlayStation blue base.
+   ========================================================================== */
+[data-accent="terracotta"] {
+  --color-accent: #C2542A;
+  --color-accent-hover: #B24720;
+  --color-accent-soft: #3B2419;
+  --color-accent-text: #EE9A6B;
+}
+[data-theme="light"][data-accent="terracotta"] {
+  --color-accent: #C2542A;
+  --color-accent-hover: #A8461F;
+  --color-accent-soft: #EFDACF;
+  --color-accent-text: #993F1A;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"])[data-accent="terracotta"] {
+    --color-accent: #C2542A;
+    --color-accent-hover: #A8461F;
+    --color-accent-soft: #EFDACF;
+    --color-accent-text: #993F1A;
+  }
+}
+
+[data-accent="emerald"] {
+  --color-accent: #047857;
+  --color-accent-hover: #065F46;
+  --color-accent-soft: #0A291B;
+  --color-accent-text: #4ADE80;
+}
+[data-theme="light"][data-accent="emerald"] {
+  --color-accent: #047857;
+  --color-accent-hover: #064E3B;
+  --color-accent-soft: #D6F0E4;
+  --color-accent-text: #065F46;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"])[data-accent="emerald"] {
+    --color-accent: #047857;
+    --color-accent-hover: #064E3B;
+    --color-accent-soft: #D6F0E4;
+    --color-accent-text: #065F46;
+  }
+}
+
+[data-accent="violet"] {
+  --color-accent: #6D28D9;
+  --color-accent-hover: #5B21B6;
+  --color-accent-soft: #2A1B4D;
+  --color-accent-text: #C4B5FD;
+}
+[data-theme="light"][data-accent="violet"] {
+  --color-accent: #6D28D9;
+  --color-accent-hover: #4C1D95;
+  --color-accent-soft: #E6DFF8;
+  --color-accent-text: #5B21B6;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"])[data-accent="violet"] {
+    --color-accent: #6D28D9;
+    --color-accent-hover: #4C1D95;
+    --color-accent-soft: #E6DFF8;
+    --color-accent-text: #5B21B6;
+  }
+}
+
+[data-accent="rose"] {
+  --color-accent: #BE123C;
+  --color-accent-hover: #A31234;
+  --color-accent-soft: #3A1219;
+  --color-accent-text: #FDA4AF;
+}
+[data-theme="light"][data-accent="rose"] {
+  --color-accent: #BE123C;
+  --color-accent-hover: #881133;
+  --color-accent-soft: #F7D8DE;
+  --color-accent-text: #9F1239;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"])[data-accent="rose"] {
+    --color-accent: #BE123C;
+    --color-accent-hover: #881133;
+    --color-accent-soft: #F7D8DE;
+    --color-accent-text: #9F1239;
+  }
+}
+
+[data-accent="gold"] {
+  --color-accent: #B45309;
+  --color-accent-hover: #92510A;
+  --color-accent-soft: #33230B;
+  --color-accent-text: #FCD34D;
+}
+[data-theme="light"][data-accent="gold"] {
+  --color-accent: #B45309;
+  --color-accent-hover: #784206;
+  --color-accent-soft: #F2E4CE;
+  --color-accent-text: #92400E;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"])[data-accent="gold"] {
+    --color-accent: #B45309;
+    --color-accent-hover: #784206;
+    --color-accent-soft: #F2E4CE;
+    --color-accent-text: #92400E;
+  }
+}

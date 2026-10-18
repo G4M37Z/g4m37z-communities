@@ -41,3 +41,11 @@ function parseTurnServers(): RTCIceServer[] {
 }
 
 export const ICE_SERVERS: RTCIceServer[] = [...STUN_SERVERS, ...parseTurnServers()];
+
+/** True when a TURN relay is actually configured. Call UIs use this to set
+ * expectations: without a relay, calls behind symmetric NAT / carrier CGNAT
+ * cannot connect even though signaling (ringing/answer) completes fine. */
+export const HAS_TURN =
+  Boolean(process.env.NEXT_PUBLIC_TURN_URL?.trim()) &&
+  Boolean(process.env.NEXT_PUBLIC_TURN_USERNAME?.trim()) &&
+  Boolean(process.env.NEXT_PUBLIC_TURN_CREDENTIAL?.trim());
