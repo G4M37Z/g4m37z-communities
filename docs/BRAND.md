@@ -47,20 +47,19 @@ app UI), `BrandSignature.tsx` (signature + Caveat font loader).
 ## Color system
 
 > **2026-10-17 retheme (final):** a PlayStation-inspired theme with the
-> user-selected **terracotta** accent (taken from the user's approved
-> reference hero). Console-dark chrome is the foundation; no further
-> blue/copper passes. Accent changes are out of scope unless the user
-> explicitly reopens them.
+> **PlayStation blue** accent (`#0070D1`, Sony's signature console blue —
+> user-directed switch from terracotta, 2026-10-17). Console-dark chrome is
+> the foundation.
 
 ~85% neutral; accent carries interaction and identity only.
 
-**Accent — terracotta:**
-- Dark & light fill: `#C2542A` (hover `#D8663A` dark / `#A8461F` light,
-  soft `#3B2419` dark / `#EFDACF` light)
-- **Text step:** use `text-accent-text` (`#EE9A6B` dark / `#993F1A` light)
+**Accent — PlayStation blue:**
+- Dark & light fill: `#0070D1` (hover `#0065D1` dark / `#004E9E` light,
+  soft `#0E2036` dark / `#D6E8FA` light)
+- **Text step:** use `text-accent-text` (`#4DA3FF` dark / `#0058B0` light)
   for accent-colored TEXT — AA on every surface in both themes. `text-accent`
   is for fills/borders/icons only.
-- White on `#C2542A` = 4.57:1 (AA for buttons).
+- White on `#0070D1` = 4.95:1 (AA for buttons).
 
 **Dark foundation (game-store chrome):** bg `#0C0B0D`, surface `#141318`,
 elevated `#1B1A20`, subtle `#232229`, borders `#2C2B33`/`#3F3D47`,
@@ -79,9 +78,9 @@ spacing (never glow shadows).
 The user's brief in one line: *PlayStation theme and layout, UI/UX,
 animation and fonts.* Implementation mapping:
 
-- **Theme** → near-black console chrome + terracotta accent + PS-style
-  **tile panels** (shape, finish and depth — the palette is terracotta per
-  the Color system above, not PlayStation blue).
+- **Theme** → near-black console chrome + **PlayStation blue** accent +
+  PS-style **tile panels** (shape, finish and depth — the palette follows
+  the Color system above).
 - Implementation: `.card` (layered top-lit gradient surface, hairline top
   highlight, soft ambient shadow) + `.card-interactive` (hover lift, accent
   border, accent-tinted grounding shadow; press-down on `:active`). Defined in
@@ -137,12 +136,14 @@ for the three kinds of devices — mobiles, tablets and pcs"):
   h1/h2 set in it at weight 800; section kickers use the `.eyebrow`
   utility (uppercase, 0.14em tracking). Body copy never uses it.
 - Signature: **Caveat 700** (`--font-signature`, via `BrandSignature`), slight
-  −1.5° rotation and a terracotta spark dot echoing the mark's dot (2026-09-21
+  −1.5° rotation and an accent spark dot echoing the mark's dot (2026-09-21
   restyle — user-approved "keep it, make it richer").
 - Wordmark in UI is typeset (font-sans black, tight tracking) — since
-  2026-09-21 it renders as **G4M + terracotta 37 + Z** via `BrandWordmark.tsx`
-  (user decision: bold tech caps replaced the hand-drawn calligraphy, which
-  read thin/dead at header sizes; legacy paths remain in `public/brand/`).
+  2026-09-21 it renders as **G4M + accent 37 + Z** via `BrandWordmark.tsx`
+  (the accented "37" follows the current accent token — PlayStation blue as
+  of 2026-10-17; originally terracotta. User decision: bold tech caps replaced
+  the hand-drawn calligraphy, which read thin/dead at header sizes; legacy
+  paths remain in `public/brand/`).
 - Hierarchy: brand (mark/signature) → navigation → content → metadata.
 
 ## Motion — **animation**

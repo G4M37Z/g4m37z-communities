@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand — terracotta. Warm, editorial accent from the reference hero,
-     deployed over the dark game-store chrome (docs/BRAND.md, 2026-10-17). */
-  --color-accent: #C2542A;
-  --color-accent-hover: #D8663A;
-  --color-accent-soft: #3B2419;
+  /* Brand — PlayStation blue. Signature Sony accent (#0070D1) over the dark
+     console chrome (docs/BRAND.md, 2026-10-17). User-directed switch from
+     terracotta; contrast verified (white on accent 4.95:1). */
+  --color-accent: #0070D1;
+  --color-accent-hover: #0065D1;
+  --color-accent-soft: #0E2036;
   /* Accent readable as TEXT on both themes (AA on obsidian + ivory).
      Elements (fills/borders) keep --color-accent. */
-  --color-accent-text: #EE9A6B;
+  --color-accent-text: #4DA3FF;
 
   /* Semantic */
   --color-success: #22C55E;
@@ -123,7 +124,7 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 /* Focus ring */
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
 
-/* Audit #6 — focus contrast: the copper ring reads well against page
+/* Audit #6 — focus contrast: the accent ring reads well against page
    surfaces but merges with accent-filled controls (primary buttons), so
    those switch to the high-contrast foreground ring. Both themes keep a
    ≥3:1 indicator without leaving the palette (no neon, per BRAND.md). */
@@ -335,8 +336,8 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 
 /* Theme support — light/dark via data-theme + prefers-color-scheme */
 :root { --theme-preference: dark; }
-/* Light theme — warm daylight expression of the same brand (not an
-   inversion): warm ivory foundation, ink text, deepened copper. */
+/* Light theme — daylight expression of the same brand (not an
+   inversion): warm ivory foundation, ink text, PlayStation blue. */
 [data-theme="light"] {
   --color-bg: #F3F0E8;
   --color-surface: #FAF9F6;
@@ -347,10 +348,10 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
   --color-text-muted: #6A665F;
   --color-border: #DDD8CC;
   --color-border-strong: #C9C3B4;
-  --color-accent: #C2542A;
-  --color-accent-hover: #A8461F;
-  --color-accent-soft: #EFDACF;
-  --color-accent-text: #993F1A;
+  --color-accent: #0070D1;
+  --color-accent-hover: #004E9E;
+  --color-accent-soft: #D6E8FA;
+  --color-accent-text: #0058B0;
 }
 @media (prefers-color-scheme: light) {
   html:not([data-theme="dark"]) {
@@ -363,10 +364,10 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
     --color-text-muted: #6A665F;
     --color-border: #DDD8CC;
     --color-border-strong: #C9C3B4;
-    --color-accent: #C2542A;
-    --color-accent-hover: #A8461F;
-    --color-accent-soft: #EFDACF;
-    --color-accent-text: #993F1A;
+    --color-accent: #0070D1;
+    --color-accent-hover: #004E9E;
+    --color-accent-soft: #D6E8FA;
+    --color-accent-text: #0058B0;
   }
 }
 

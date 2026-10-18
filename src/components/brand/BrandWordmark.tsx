@@ -2,8 +2,9 @@
 // G4M37Z wordmark — bold tech caps (user decision, 2026-09-21). The original
 // hand-drawn calligraphic paths (tools/wordmark/gen.mjs, still in
 // public/brand/) read thin and uneven at header sizes. The wordmark is now
-// typeset in Inter 900 with tight tracking, and the "37" carries the terracotta
-// accent so the gamer identity stays visible in the lockup.
+// typeset in Inter 900 with tight tracking, and the "37" carries the accent
+// (PlayStation blue token since 2026-10-17; originally terracotta) so the
+// gamer identity stays visible in the lockup.
 //
 // Typeset (not paths) keeps it crisp at every size, theme-aware via
 // text-fg/accent-text, and adds zero network requests — Inter is already the

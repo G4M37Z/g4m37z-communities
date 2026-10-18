@@ -1,6 +1,6 @@
 // src/components/Logo.tsx
 // G4M37Z lockup: inline BrandMark + BrandWordmark. The wordmark is typeset
-// bold tech caps (Inter 900, terracotta "37"); it aligns to the mark's optical
+// bold tech caps (Inter 900, accent "37"); it aligns to the mark's optical
 // centerline with breathing room (gap-2.5) and no extra stroke tricks —
 // heavy weights don't need optical bolding.
 
