@@ -84,7 +84,7 @@ export function Sidebar({ username, avatarUrl, role }: SidebarProps) {
                   className={cn(
                     "press flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:justify-start",
                     active
-                      ? "bg-accent-soft text-accent-text"
+                      ? "nav-item-active bg-accent-soft text-accent-text"
                       : "text-text-secondary hover:bg-bg hover:text-fg",
                   )}
                 >
@@ -103,7 +103,7 @@ export function Sidebar({ username, avatarUrl, role }: SidebarProps) {
                 className={cn(
                   "press flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:justify-start",
                   isActive(pathname, "/admin")
-                    ? "bg-accent-soft text-accent-text"
+                    ? "nav-item-active bg-accent-soft text-accent-text"
                     : "text-text-secondary hover:bg-bg hover:text-fg",
                 )}
               >

@@ -7,7 +7,7 @@ import {
   type TournamentStatus,
 } from "@/lib/tournaments/service";
 import { listGames } from "@/lib/games/service";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +49,15 @@ export default async function TournamentsDiscoverPage({
   );
 
   return (
-    <PageEnter>
-      <main className="container-x py-8 pb-20">
-        <header className="mb-8 flex flex-col gap-3">
-          <div className="flex flex-wrap items-baseline gap-3">
+    <main className="container-x py-8 pb-20">
+      <header className="mb-8 flex flex-col gap-3">
+        <span className="flex items-center gap-2.5" aria-hidden="true">
+          <span className="h-[3px] w-7 rounded-full bg-accent" />
+          <span className="eyebrow text-xs text-accent-text">
+            Competitive
+          </span>
+        </span>
+        <div className="flex flex-wrap items-baseline gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-fg">
               Tournaments
             </h1>
@@ -139,53 +144,53 @@ export default async function TournamentsDiscoverPage({
           </section>
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {enrichedTournaments.map((t) => (
-              <li
-                key={t.id}
-                className="card card-interactive p-4"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <Link
-                    href={`/tournaments/${t.id}`}
-                    className="text-base font-semibold text-fg hover:underline"
-                  >
-                    {t.name}
-                  </Link>
-                  <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
-                    {STATUS_LABELS[t.status] ?? t.status}
-                  </span>
-                </div>
-                <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-text-secondary">
-                  {t.game_name && (
-                    <div>
-                      <dt className="text-text-muted">Game</dt>
-                      <dd className="text-fg">{t.game_name}</dd>
+            {enrichedTournaments.map((t, i) => (
+              <li key={t.id}>
+                <Reveal delay={Math.min(i, 6) * 0.05}>
+                  <div className="card card-interactive p-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <Link
+                        href={`/tournaments/${t.id}`}
+                        className="text-base font-semibold text-fg hover:underline"
+                      >
+                        {t.name}
+                      </Link>
+                      <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
+                        {STATUS_LABELS[t.status] ?? t.status}
+                      </span>
                     </div>
-                  )}
-                  <div>
-                    <dt className="text-text-muted">Format</dt>
-                    <dd className="text-fg capitalize">
-                      {t.format.toLowerCase().replace("_", " ")}
-                    </dd>
+                    <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-text-secondary">
+                      {t.game_name && (
+                        <div>
+                          <dt className="text-text-muted">Game</dt>
+                          <dd className="text-fg">{t.game_name}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt className="text-text-muted">Format</dt>
+                        <dd className="text-fg capitalize">
+                          {t.format.toLowerCase().replace("_", " ")}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-text-muted">Teams</dt>
+                        <dd className="text-fg">
+                          {t.team_count} / {t.max_teams}
+                        </dd>
+                      </div>
+                      {t.event_title && (
+                        <div>
+                          <dt className="text-text-muted">Event</dt>
+                          <dd className="text-fg">{t.event_title}</dd>
+                        </div>
+                      )}
+                    </dl>
                   </div>
-                  <div>
-                    <dt className="text-text-muted">Teams</dt>
-                    <dd className="text-fg">
-                      {t.team_count} / {t.max_teams}
-                    </dd>
-                  </div>
-                  {t.event_title && (
-                    <div>
-                      <dt className="text-text-muted">Event</dt>
-                      <dd className="text-fg">{t.event_title}</dd>
-                    </div>
-                  )}
-                </dl>
+                </Reveal>
               </li>
             ))}
           </ul>
         )}
       </main>
-    </PageEnter>
   );
 }

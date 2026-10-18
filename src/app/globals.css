@@ -31,6 +31,8 @@
   /* Font chain */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
   --font-signature: var(--font-caveat), "Segoe Script", cursive;
 
   /* Radius system */
@@ -54,7 +56,9 @@
 }
 
 /* Typography — apple-design §15: tracking is size-specific, never one value.
-   Large display text tightens; body stays near 0. */
+   Large display text tightens; body stays near 0. Headings set in the
+   console-tooling display face (Archivo — docs/BRAND.md "Typography"). */
+h1, h2 { font-family: var(--font-display); font-weight: 800; }
 h1, h2, .text-2xl { letter-spacing: -0.02em; }
 .text-3xl, .text-4xl { letter-spacing: -0.025em; }
 
@@ -62,6 +66,15 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
    block deepens it. Elements (fills/borders) keep --color-accent. */
 .text-accent-text { color: var(--color-accent-text); }
 .font-signature { font-family: var(--font-signature); }
+.font-display { font-family: var(--font-display); }
+
+/* PS eyebrow — small uppercase section kicker (PlayStation label style) */
+.eyebrow {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
 
 /* Brand loading choreography — mark settles, signature fades in after.
    Pure opacity/transform; gated behind motion-safe so reduced-motion
@@ -149,6 +162,70 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
   }
 }
 .material-bright-top { box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 12%, transparent); }
+
+/* PS hero panel — layered console-chrome backdrop: single accent glow from
+   the top, a cool sheen from the opposite corner, hairline vignette. Pure
+   backgrounds (no glow shadows) per the no-neon rule. */
+.hero-ps {
+  position: relative;
+  background:
+    radial-gradient(
+      720px 340px at 18% -12%,
+      color-mix(in srgb, var(--color-accent) 26%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      640px 420px at 86% 112%,
+      color-mix(in srgb, var(--color-fg) 7%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+}
+.hero-ps::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 82%, color-mix(in srgb, var(--color-bg) 60%, transparent) 100%);
+}
+.hero-glow-mark {
+  position: absolute;
+  color: var(--color-accent);
+  opacity: 0.07;
+  pointer-events: none;
+  user-select: none;
+  transform: rotate(-6deg);
+}
+
+/* PS active-nav notch — accent rail on the leading edge of the active item
+   (console menu selection). `.nav-item-active` = left rail (Sidebar);
+   `.nav-item-active-top` = top rail (BottomNav). */
+.nav-item-active {
+  position: relative;
+}
+.nav-item-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+.nav-item-active-top {
+  position: relative;
+}
+.nav-item-active-top::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22%;
+  right: 22%;
+  height: 3px;
+  border-radius: 0 0 9999px 9999px;
+  background: var(--color-accent);
+}
 
 /* Elevated card surface — one step above the page (settings panels, form
    sections). Hairline top highlight gives the card an edge on dark themes

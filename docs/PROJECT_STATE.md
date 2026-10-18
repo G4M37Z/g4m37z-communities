@@ -13,15 +13,52 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `7d4a0e6` (UI shell work below is uncommitted at time of writing) |
+| Last verified HEAD | `6a13bcd` (PlayStation theme pass below added on top) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 8 (responsive app-shell + terracotta/game-store retheme, 2026-10-17) |
+| Documentation version | 9 (PlayStation theme pass — theme/layout/UI-UX/animation/fonts, 2026-10-17) |
 | Last verified date | 2026-10-17 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**PlayStation theme pass — user's five words ("PlayStation theme and layout, UI/UX, animation and fonts") delivered in code (2026-10-17), committed at `6a13bcd`+; gates green; pushed.**
+
+Prior direction item resolved: the user asked whether theme/layout/motion/fonts
+were actually implemented; this checkpoint is the implementation. Gates: tsc 0 ·
+eslint 0 errors (14 pre-existing warnings) · vitest **361/361**; SSR 200 on
+`/`, `/home`, `/communities`, `/discover`, `/tournaments`, `/events`, `/lfg`,
+`/creators`, `/messages`, `/saved`. SSR page markup verified to include the new
+`hero-ps` hero + `.eyebrow` kickers + Archivo variable font classes; built CSS
+contains `--font-archivo`, `.nav-item-active::before`, `.eyebrow`, `.hero-ps`.
+
+- **Fonts:** display face **Archivo** added (`layout.tsx` → `--font-archivo`;
+  chain `--font-display` in `globals.css`). `h1`/`h2` render at weight 800 in
+  it; body stays Inter; `.font-display` + `.eyebrow` (uppercase PS kicker)
+  utilities added.
+- **Theme:** landing hero restructured — `.hero-ps` layered console-chrome
+  panel (accent glow + sheen + vignette), oversized `.hero-glow-mark` brand
+  watermark on md+, eyebrow kicker, mark + signature row, left-aligned display
+  type (`lg:text-7xl`), staggered load choreography.
+- **Layout:** unchanged three-shell system (mobile Header+BottomNav, tablet
+  icon rail `w-16`, desktop sidebar `w-60`) — still SSR-verified.
+- **UI/UX:** PS nav selection — `nav-item-active` (left accent rail notch) in
+  `Sidebar` (primary + admin), new **`BottomNav` active state** with
+  `nav-item-active-top` top notch + `text-accent-text` (it previously had no
+  active state); eyebrow kickers on tournaments/events/lfg/creators headers.
+- **Animation:** staggered `Reveal` grids converted from mount-only GSAP
+  `PageEnter` on `tournaments`, `events`, `lfg`, `creators` (card `li`s wrapped
+  in `Reveal` with index delay); landing features grid revealed with stagger;
+  `PageEnter` retained only on non-grid secondary pages.
+- **Docs:** `BRAND.md` doc-version 9 — governing PlayStation direction, theme
+  system mapping, UX rules, Archivo display section, motion inventory.
+- **Owed:** browser visual verification at 375/768/1280px
+  (`GAP-UI-RESPONSIVE-01` still open in `GAP_REGISTER.md`).
+
+---
+
+## Prior Checkpoint (doc version 8)
 
 **Responsive app shell — three distinct device layouts (2026-10-17) — code-complete, SSR-verified; visual pass owed.**
 
@@ -246,7 +283,7 @@ What this checkpoint established (all evidence-based, nothing fabricated):
 
 ---
 
-## Prior Checkpoint
+## Prior Checkpoint (doc version 7)
 
 **Production PostgREST embed-FK fix (2026-09-14) — APPLIED & VERIFIED.**
 

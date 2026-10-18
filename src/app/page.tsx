@@ -44,22 +44,34 @@ export default async function HomePage() {
 
       {/* Features — static */}
       <section className="container-x py-14">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <FeatureCard
-            icon={<Users size={20} />}
-            title="Communities"
-            body="Browse and join communities for every game, platform, and playstyle."
-          />
-          <FeatureCard
-            icon={<MessageSquare size={20} />}
-            title="Posts & comments"
-            body="Share updates, discuss strategies, and reply in threaded conversations."
-          />
-          <FeatureCard
-            icon={<ShieldCheck size={20} />}
-            title="Moderated"
-            body="Role-based moderation keeps discussions healthy and on-topic."
-          />
+        <span className="flex items-center gap-2.5" aria-hidden="true">
+          <span className="h-[3px] w-7 rounded-full bg-accent" />
+          <span className="eyebrow text-xs text-accent-text">
+            Why G4M37Z
+          </span>
+        </span>
+        <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal>
+            <FeatureCard
+              icon={<Users size={20} />}
+              title="Communities"
+              body="Browse and join communities for every game, platform, and playstyle."
+            />
+          </Reveal>
+          <Reveal delay={0.06}>
+            <FeatureCard
+              icon={<MessageSquare size={20} />}
+              title="Posts & comments"
+              body="Share updates, discuss strategies, and reply in threaded conversations."
+            />
+          </Reveal>
+          <Reveal delay={0.12}>
+            <FeatureCard
+              icon={<ShieldCheck size={20} />}
+              title="Moderated"
+              body="Role-based moderation keeps discussions healthy and on-topic."
+            />
+          </Reveal>
         </div>
       </section>
     </>
@@ -69,19 +81,36 @@ export default async function HomePage() {
 // Hero — the brand moment: mark settles, signature speaks, then copy.
 function Hero({ signedIn }: { signedIn: boolean }) {
   return (
-    <section className="border-b border-border bg-surface">
-      <div className="container-x py-20 sm:py-28">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <BrandMark size={72} className="text-accent motion-safe:animate-[brand-settle_900ms_var(--ease-out)_both]" />
-          <BrandSignature size="lg" className="mt-6 motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_200ms_both]" />
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-fg sm:text-5xl md:text-6xl motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_300ms_both]">
+    <section className="hero-ps overflow-hidden border-b border-border">
+      {/* Oversized watermark mark — settles in once, purely decorative */}
+      <BrandMark
+        size={420}
+        className="hero-glow-mark pointer-events-none -right-24 -top-24 hidden md:block"
+      />
+      <div className="container-x relative py-20 sm:py-28">
+        <div className="mx-auto flex max-w-3xl flex-col items-start text-left lg:ml-0 lg:mr-auto">
+          {/* PS eyebrow — console label, ticks into the content edge */}
+          <span
+            className="flex items-center gap-2.5 motion-safe:animate-[brand-reveal_600ms_var(--ease-out)_both]"
+            aria-hidden="true"
+          >
+            <span className="h-[3px] w-7 rounded-full bg-accent" />
+            <span className="eyebrow text-xs text-accent-text">
+              The gaming communities network
+            </span>
+          </span>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <BrandMark size={44} className="text-accent motion-safe:animate-[brand-settle_900ms_var(--ease-out)_both]" />
+            <BrandSignature size="md" className="motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_150ms_both]" />
+          </div>
+          <h1 className="mt-5 text-5xl font-extrabold tracking-tight text-fg sm:text-6xl lg:text-7xl motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_250ms_both]">
             Where your people play.
           </h1>
-          <p className="mt-5 text-base text-text-secondary sm:text-lg motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_380ms_both]">
+          <p className="mt-5 max-w-xl text-base text-text-secondary sm:text-lg motion-safe:animate-[brand-reveal_700ms_var(--ease-out)_330ms_both]">
             G4M37Z is where communities, creators, and culture meet the
             games you love. Find your people. Be found.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-8 flex flex-wrap items-start gap-2">
             {signedIn ? (
               <Link
                 href="/home"
@@ -125,7 +154,7 @@ async function FeedPreview({ userId }: { userId: string }) {
   return (
     <section className="container-x py-14">
       <header className="mb-5 flex items-end justify-between">
-        <h2 className="text-lg font-bold tracking-tight text-fg">
+        <h2 className="text-xl font-extrabold tracking-tight text-fg">
           Latest from your communities
         </h2>
         <Link
@@ -161,7 +190,7 @@ async function NewestCommunities() {
   return (
     <section className="container-x py-14">
       <header className="mb-5 flex items-end justify-between">
-        <h2 className="text-lg font-bold tracking-tight text-fg">
+        <h2 className="text-xl font-extrabold tracking-tight text-fg">
           Newest communities
         </h2>
         <Link

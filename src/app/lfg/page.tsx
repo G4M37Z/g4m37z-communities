@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listLfgSessions } from "@/lib/lfg/service";
 import { listGames, listPlatforms } from "@/lib/games/service";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +55,14 @@ export default async function LfgDiscoverPage({
   ]);
 
   return (
-    <PageEnter>
       <main className="container-x py-8 pb-20">
         <header className="mb-8 flex flex-col gap-3">
+          <span className="flex items-center gap-2.5" aria-hidden="true">
+            <span className="h-[3px] w-7 rounded-full bg-accent" />
+            <span className="eyebrow text-xs text-accent-text">Play together</span>
+          </span>
           <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-fg">
+            <h1 className="text-3xl font-extrabold tracking-tight text-fg">
               Looking For Group
             </h1>
             <span className="text-sm text-text-muted">
@@ -156,75 +159,75 @@ export default async function LfgDiscoverPage({
           </section>
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {sessions.map((s) => (
-              <li
-                key={s.id}
-                className="card card-interactive p-4"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  {s.game_slug ? (
-                    <Link
-                      href={`/game/${s.game_slug}`}
-                      className="text-base font-semibold text-fg hover:underline"
-                    >
-                      {s.game_name ?? "Any game"}
-                    </Link>
-                  ) : (
-                    <span className="text-base font-semibold text-fg">
-                      {s.game_name ?? "Any game"}
-                    </span>
-                  )}
-                  <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
-                    {STATUS_LABELS[s.status] ?? s.status}
-                  </span>
-                </div>
-                <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-text-secondary">
-                  {s.mode && (
-                    <div>
-                      <dt className="text-text-muted">Mode</dt>
-                      <dd className="text-fg">{s.mode}</dd>
+            {sessions.map((s, i) => (
+              <li key={s.id}>
+                <Reveal delay={Math.min(i, 8) * 0.04}>
+                  <div className="card card-interactive p-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      {s.game_slug ? (
+                        <Link
+                          href={`/game/${s.game_slug}`}
+                          className="text-base font-semibold text-fg hover:underline"
+                        >
+                          {s.game_name ?? "Any game"}
+                        </Link>
+                      ) : (
+                        <span className="text-base font-semibold text-fg">
+                          {s.game_name ?? "Any game"}
+                        </span>
+                      )}
+                      <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
+                        {STATUS_LABELS[s.status] ?? s.status}
+                      </span>
                     </div>
-                  )}
-                  {s.region && (
-                    <div>
-                      <dt className="text-text-muted">Region</dt>
-                      <dd className="text-fg">{s.region}</dd>
-                    </div>
-                  )}
-                  {s.skill_level && (
-                    <div>
-                      <dt className="text-text-muted">Skill</dt>
-                      <dd className="text-fg">{s.skill_level}</dd>
-                    </div>
-                  )}
-                  {s.platform_name && (
-                    <div>
-                      <dt className="text-text-muted">Platform</dt>
-                      <dd className="text-fg">{s.platform_name}</dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt className="text-text-muted">Players needed</dt>
-                    <dd className="text-fg">{s.players_required}</dd>
+                    <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-text-secondary">
+                      {s.mode && (
+                        <div>
+                          <dt className="text-text-muted">Mode</dt>
+                          <dd className="text-fg">{s.mode}</dd>
+                        </div>
+                      )}
+                      {s.region && (
+                        <div>
+                          <dt className="text-text-muted">Region</dt>
+                          <dd className="text-fg">{s.region}</dd>
+                        </div>
+                      )}
+                      {s.skill_level && (
+                        <div>
+                          <dt className="text-text-muted">Skill</dt>
+                          <dd className="text-fg">{s.skill_level}</dd>
+                        </div>
+                      )}
+                      {s.platform_name && (
+                        <div>
+                          <dt className="text-text-muted">Platform</dt>
+                          <dd className="text-fg">{s.platform_name}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt className="text-text-muted">Players needed</dt>
+                        <dd className="text-fg">{s.players_required}</dd>
+                      </div>
+                      {s.session_time && (
+                        <div>
+                          <dt className="text-text-muted">Session</dt>
+                          <dd className="text-fg">{formatTime(s.session_time)}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <p className="mt-3 text-xs text-text-muted">
+                      Host:{" "}
+                      <span className="text-fg">
+                        {s.host_display_name ?? s.host_username ?? "—"}
+                      </span>
+                    </p>
                   </div>
-                  {s.session_time && (
-                    <div>
-                      <dt className="text-text-muted">Session</dt>
-                      <dd className="text-fg">{formatTime(s.session_time)}</dd>
-                    </div>
-                  )}
-                </dl>
-                <p className="mt-3 text-xs text-text-muted">
-                  Host:{" "}
-                  <span className="text-fg">
-                    {s.host_display_name ?? s.host_username ?? "—"}
-                  </span>
-                </p>
+                </Reveal>
               </li>
             ))}
           </ul>
         )}
       </main>
-    </PageEnter>
   );
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Archivo, Inter } from "next/font/google";
 import { caveat } from "@/components/brand/BrandSignature";
 import "./globals.css";
 import "./container-queries.css";
@@ -14,6 +14,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+// Display face — console-tooling: geometric, heavy, uppercase-friendly
+// (docs/BRAND.md "Typography"). Headings only; body copy stays Inter.
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
   display: "swap",
 });
 
@@ -96,7 +104,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { user, username, role, avatarUrl } = await getCurrentUser();
 
   return (
-    <html lang="en" className={`${inter.variable} ${caveat.variable} h-full`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${archivo.variable} ${caveat.variable} h-full`}
+    >
       <body className="flex min-h-full flex-col bg-bg font-sans text-fg antialiased">
         {/* md+ chrome: slim icon rail on tablet, full sidebar on desktop */}
         <Sidebar username={username} avatarUrl={avatarUrl} role={role} />

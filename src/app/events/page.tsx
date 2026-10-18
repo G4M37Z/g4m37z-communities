@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listEvents, EVENT_STATUSES, type EventStatus } from "@/lib/events/service";
-import { PageEnter } from "@/components/PageEnter";
+import { Reveal } from "@/components/ui/reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +55,14 @@ export default async function EventsDiscoverPage({
   const items: Array<typeof events[number]> = events;
 
   return (
-    <PageEnter>
       <main className="container-x py-8 pb-20">
         <header className="mb-8 flex flex-col gap-3">
+          <span className="flex items-center gap-2.5" aria-hidden="true">
+            <span className="h-[3px] w-7 rounded-full bg-accent" />
+            <span className="eyebrow text-xs text-accent-text">Community</span>
+          </span>
           <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-fg">
+            <h1 className="text-3xl font-extrabold tracking-tight text-fg">
               Events
             </h1>
             <span className="text-sm text-text-muted">
@@ -130,56 +133,56 @@ export default async function EventsDiscoverPage({
           </section>
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {items.map((e) => (
-              <li
-                key={e.id}
-                className="card card-interactive p-4"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <Link
-                    href={`/events/${e.id}`}
-                    className="text-base font-semibold text-fg hover:underline"
-                  >
-                    {e.title}
-                  </Link>
-                  <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
-                    {STATUS_LABEL[e.status] ?? e.status}
-                  </span>
-                </div>
-                <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-text-secondary">
-                  {e.community_name && (
-                    <div>
-                      <dt className="text-text-muted">Community</dt>
-                      <dd className="text-fg">{e.community_name}</dd>
+            {items.map((e, i) => (
+              <li key={e.id}>
+                <Reveal delay={Math.min(i, 6) * 0.05}>
+                  <div className="card card-interactive p-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <Link
+                        href={`/events/${e.id}`}
+                        className="text-base font-semibold text-fg hover:underline"
+                      >
+                        {e.title}
+                      </Link>
+                      <span className="rounded-md border border-border bg-bg px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
+                        {STATUS_LABEL[e.status] ?? e.status}
+                      </span>
                     </div>
-                  )}
-                  <div>
-                    <dt className="text-text-muted">When</dt>
-                    <dd className="text-fg">{formatWhen(e.start_time)}</dd>
+                    <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-text-secondary">
+                      {e.community_name && (
+                        <div>
+                          <dt className="text-text-muted">Community</dt>
+                          <dd className="text-fg">{e.community_name}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt className="text-text-muted">When</dt>
+                        <dd className="text-fg">{formatWhen(e.start_time)}</dd>
+                      </div>
+                      {typeof e.capacity === "number" && (
+                        <div>
+                          <dt className="text-text-muted">Capacity</dt>
+                          <dd className="text-fg">{e.capacity}</dd>
+                        </div>
+                      )}
+                      {e.event_type && (
+                        <div>
+                          <dt className="text-text-muted">Type</dt>
+                          <dd className="text-fg">{e.event_type}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    {e.description && (
+                      <p className="mt-2 line-clamp-2 text-xs text-text-secondary">
+                        {e.description}
+                      </p>
+                    )}
                   </div>
-                  {typeof e.capacity === "number" && (
-                    <div>
-                      <dt className="text-text-muted">Capacity</dt>
-                      <dd className="text-fg">{e.capacity}</dd>
-                    </div>
-                  )}
-                  {e.event_type && (
-                    <div>
-                      <dt className="text-text-muted">Type</dt>
-                      <dd className="text-fg">{e.event_type}</dd>
-                    </div>
-                  )}
-                </dl>
-                {e.description && (
-                  <p className="mt-2 line-clamp-2 text-xs text-text-secondary">
-                    {e.description}
-                  </p>
-                )}
+                </Reveal>
               </li>
             ))}
           </ul>
         )}
       </main>
-    </PageEnter>
   );
 }
