@@ -15,7 +15,9 @@
 // timestamps and receipts.
 
 import { useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import type { Message } from "@/lib/messaging/service";
+import { deleteMessageAction } from "@/lib/messaging/actions";
 import { MessageForm } from "./MessageForm";
 
 export type ProfileMap = Map<
@@ -95,6 +97,15 @@ export function ThreadClient({
     setMessages((prev) =>
       prev.some((x) => x.id === m.id) ? prev : [...prev, m]
     );
+  }
+
+  // Soft-delete (055 messages.deleted_at): the action tombstones the row; the
+  // local list drops it immediately so the bubble never lingers while router
+  // refresh fanned out the reconciled server truth.
+  async function handleDelete(messageId: string) {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    const result = await deleteMessageAction(conversationId, messageId);
+    if (!result.ok) void result; // best-effort; refresh restores server truth
   }
 
   // Day divider label: Today / Yesterday / locale date. Pure helper — safe
@@ -199,7 +210,7 @@ export function ThreadClient({
               <li key={m.id}>
                 {divider}
                 <div
-                  className={`flex items-end gap-2 ${own ? "justify-end" : ""} ${grouped ? "mt-0.5" : "mt-2"}`}
+                  className={`group flex items-end gap-2 ${own ? "justify-end" : ""} ${grouped ? "mt-0.5" : "mt-2"}`}
                 >
                   {m.sender_id !== currentUserId &&
                     (grouped ? (
@@ -283,8 +294,18 @@ export function ThreadClient({
                           </span>
                         )}
                       </div>
+                      )}
+                    </div>
+                    {own && (
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(m.id)}
+                        aria-label="Delete message"
+                        className="press order-first shrink-0 self-end rounded-md p-1 text-text-muted opacity-0 transition-opacity hover:bg-surface hover:text-fg focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     )}
-                  </div>
                 </div>
               </li>
             );

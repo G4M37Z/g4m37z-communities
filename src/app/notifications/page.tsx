@@ -113,7 +113,9 @@ export default async function NotificationsPage() {
   const postRefIds = Array.from(
     new Set(
       notifications
-        .filter((n) => n.type === "post_vote" || n.type === "repost")
+        .filter((n) =>
+          ["post_vote", "repost", "community_post"].includes(n.type),
+        )
         .map((n) => n.reference_id)
         .filter(Boolean) as string[],
     ),
@@ -282,8 +284,12 @@ function getNotificationHref(
   switch (type) {
     case "post_vote":
     case "repost":
+    case "community_post":
       // Existence-guarded: a deleted post must never yield a broken URL.
       return validPostIds.has(reference_id) ? `/post/${reference_id}` : null;
+    case "missed_call":
+      // reference_id is the conversation id — land the callee in the thread.
+      return `/messages/${reference_id}`;
     case "comment_on_post":
     case "reply_to_comment":
     case "comment_vote": {
@@ -324,6 +330,16 @@ function getNotificationMeta(notification: NotificationWithActor): {
       return {
         label: " upvoted your post",
         icon: (props) => <ArrowUpIcon {...props} />,
+      };
+    case "community_post":
+      return {
+        label: " posted in a community you're in",
+        icon: (props) => <FilePostIcon {...props} />,
+      };
+    case "missed_call":
+      return {
+        label: " tried calling you",
+        icon: (props) => <PhoneMissedIcon {...props} />,
       };
     case "repost":
       return {
@@ -374,6 +390,28 @@ function getNotificationMeta(notification: NotificationWithActor): {
 }
 
 // Inline icon components to avoid extra imports
+function FilePostIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+      <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+      <path d="M9 13h6"></path>
+      <path d="M9 17h3"></path>
+    </svg>
+  );
+}
+
+function PhoneMissedIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m16 2 6 6"></path>
+      <path d="m22 2-6 6"></path>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+      <path d="M16 16h.01"></path>
+    </svg>
+  );
+}
+
 function MessageSquareIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -16,6 +16,8 @@ import {
   sendMessage as sendMessageService,
   markConversationRead,
     getUnreadCounts,
+  setConversationArchived,
+  deleteMessage,
   blockedUserIds,
   MAX_ATTACHMENT_BYTES,
   ATTACHMENT_MIME,
@@ -77,7 +79,9 @@ async function resolveConversation(
 
     const initialMessage = String(formData.get("message") ?? "");
     const result = await createDirectConversation(recipient.id, initialMessage);
-    if (!result.ok) return { ok: false, error: result.error };
+    if (!result.ok || result.status === "sent") {
+      return { ok: false, error: result.ok ? "Conversation unavailable." : result.error };
+    }
 
     return { ok: true, conversation_id: result.conversation_id };
   } catch (err) {
@@ -211,3 +215,33 @@ export async function getUnreadCountsAction(): Promise<Map<string, number>> {
   return getUnreadCounts();
 
 }
+
+/** Archive / unarchive one of the caller's conversations (055 is_archived). */
+export async function archiveConversationAction(formData: FormData): Promise<void> {
+  const conversationId = String(formData.get("conversationId") ?? "");
+  const archived = String(formData.get("to") ?? "archived") === "archived";
+  try {
+    await setConversationArchived(conversationId, archived);
+  } catch (err) {
+    console.error("archiveConversationAction failed:", err);
+  }
+  revalidatePath("/messages");
+}
+
+/** Soft-delete one of the caller's own messages (messages.deleted_at, 055). */
+export async function deleteMessageAction(
+  conversationId: string,
+  messageId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const result = await deleteMessage(messageId);
+    if (!result.ok) return { ok: false, error: result.error };
+    revalidatePath(`/messages/${conversationId}`);
+    revalidatePath("/messages");
+    return { ok: true };
+  } catch (err) {
+    console.error("deleteMessageAction failed:", err);
+    return { ok: false, error: "Couldn't delete the message. Please try again." };
+  }
+}
+

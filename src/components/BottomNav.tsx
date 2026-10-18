@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { cn } from "@/lib/utils";
+import { UnreadMessagesBadge } from "@/components/messages/UnreadMessagesBadge";
 
 const NAV = [
   { label: "Home", href: "/home", icon: Home },
@@ -50,7 +51,10 @@ export function BottomNav({ username }: { username?: string }) {
               {href === "/home" ? (
                 <BrandMark size={20} />
               ) : (
-                <Icon size={20} strokeWidth={1.8} />
+                <span className="relative inline-flex">
+                  <Icon size={20} strokeWidth={1.8} />
+                  {href === "/messages" && <UnreadMessagesBadge />}
+                </span>
               )}
               <span>{label}</span>
             </Link>

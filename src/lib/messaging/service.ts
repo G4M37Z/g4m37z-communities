@@ -63,6 +63,7 @@ export interface Message {
 
 export type ConversationResult =
   | { ok: true; status: "created" | "reused"; conversation_id: string }
+  | { ok: true; status: "sent" }
   | { ok: false; status: "error" | "invalid" | "forbidden" | "self" | "not_found"; error: string };
 
 export type MessageResult =
@@ -150,15 +151,86 @@ export function createDirectVerdict(args: CreateDirectArgs): CreateDirectVerdict
 // Conversation list (RLS: member-scoped SELECT)
 // ---------------------------------------------------------------------------
 
-export async function listConversations(limit = 20): Promise<Conversation[]> {
-  const supabase = await createClient();
+/** Archive filter for listConversations. */
+export type ConversationBucket = "active" | "archived";
+
+export async function listConversations(
+  limit = 20,
+  bucket: ConversationBucket = "active",
+): Promise<Conversation[]> {
   const cap = clamp(limit, 1, MAX_PAGE);
+  const { uid } = await resolveUserId();
+  if (!uid) return [];
+  const supabase = await createClient();
+
+  // Membership query archives per-user (055 is_archived); conversations are
+  // then fetched only for the requested bucket. joined_at orders both buckets
+  // newest-first as a proxy for "recent activity" until messages carry it.
+  const { data: memberships, error: memberError } = await supabase
+    .from("conversation_members")
+    .select("conversation_id, is_archived, joined_at")
+    .eq("user_id", uid)
+    .order("joined_at", { ascending: false })
+    .limit(cap * 4);
+  if (memberError || (memberships ?? []).length === 0) return [];
+
+  const membershipsById = new Map(
+    (memberships as { conversation_id: string; is_archived: boolean | null; joined_at: string }[]).map(
+      (m) => [m.conversation_id, m.is_archived === true],
+    ),
+  );
   const { data } = await supabase
     .from("conversations")
     .select("id, type, name, context_type, context_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(cap);
-  return (data ?? []) as Conversation[];
+    .in("id", [...membershipsById.keys()])
+    .order("created_at", { ascending: false });
+  const wantArchived = bucket === "archived";
+  return ((data ?? []) as Conversation[]).filter(
+    (c) => membershipsById.get(c.id) === wantArchived,
+  );
+  // capped caller-side so the archive bucket never starves the active bucket.
+}
+
+/** Archive or unarchive one of the caller's conversations (member-scoped). */
+export async function setConversationArchived(
+  conversationId: string,
+  archived: boolean,
+): Promise<ConversationResult> {
+  if (!isUuid(conversationId)) {
+    return { ok: false, status: "invalid", error: "Invalid conversation." };
+  }
+  const { uid, error: authError } = await resolveUserId();
+  if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
+  const supabase = await createClient();
+  // Own-row UPDATE policy (conversation_members_update) guards the scope.
+  const { error, count } = await supabase
+    .from("conversation_members")
+    .update({ is_archived: archived })
+    .eq("conversation_id", conversationId)
+    .eq("user_id", uid);
+  if (error) return { ok: false, status: "error", error: "Couldn't update the conversation." };
+  if (count === 0) return { ok: false, status: "forbidden", error: "You are not a member of this conversation." };
+  return { ok: true, status: "sent" };
+}
+
+/** Soft-delete one of the caller's own messages (messages.deleted_at, 055). */
+export async function deleteMessage(messageId: string): Promise<ConversationResult> {
+  if (!isUuid(messageId)) {
+    return { ok: false, status: "invalid", error: "Invalid message." };
+  }
+  const { uid, error: authError } = await resolveUserId();
+  if (!uid) return { ok: false, status: "forbidden", error: authError ?? "Not signed in." };
+  const supabase = await createClient();
+  // messages_delete_own UPDATE policy scopes rows to sender_id = auth.uid().
+  const { error, count } = await supabase
+    .from("messages")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", messageId)
+    .eq("sender_id", uid)
+    .is("deleted_at", null);
+  if (error) return { ok: false, status: "error", error: "Couldn't delete the message." };
+  if (count === 0) return { ok: false, status: "forbidden", error: "You can only delete your own messages." };
+  return { ok: true, status: "sent" };
 }
 
 export interface RecipientSuggestion {
@@ -264,6 +336,9 @@ export async function listMessages(
     .from("messages")
     .select("id, conversation_id, sender_id, body, read, delivered, created_at, attachment_url, attachment_type")
     .eq("conversation_id", conversationId)
+    // Soft-deleted rows disappear for everyone; the sender's own view is
+    // restored by the delete being a tombstone only (no hard delete).
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .range(from, to);
   return ((data ?? []) as Message[]).reverse();

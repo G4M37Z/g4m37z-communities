@@ -16,12 +16,53 @@
 | Last verified HEAD | `6a13bcd` (PlayStation theme pass below added on top) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 10 (PS-blue accents + story landing + appearance personalization + DM-call connect fix, 2026-10-18) |
-| Last verified date | 2026-10-17 (session) |
+| Documentation version | 11 (notifications + messaging expansion, 2026-10-18) |
+| Last verified date | 2026-10-18 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Notifications + messaging expansion — committed; gates green; pushed.**
+Migration `055_notifications_and_messaging.sql` (supabase_realtime already
+published `notifications`, so the bell reacts automatically): (1) deduped
+per-user **post views** — `post_views` PK `(post_id,user_id)` +
+`posts.view_count` via SECURITY DEFINER `bump_post_views` trigger (skips the
+author's own views); client `src/components/post/PostViewTracker.tsx` inserts
+after a 4s dwell with sessionStorage dedupe; view counts render on the post
+detail header and PostCard footer; (2) **community-post notifications** —
+`notify_community_post` trigger notifies active members (`left_at IS NULL`,
+author omitted, gated on `notification_enabled('posts')`, preference toggle
+"Posts in my communities" added to settings); (3) **missed/declined-call
+notifications** — `call_sessions` AFTER UPDATE trigger notifies the callee
+when a call ends MISSED/DECLINED unanswered, gated on
+`notification_enabled('calls')` ("Missed calls" toggle), notification type
+`missed_call` with reference = conversation id → link lands in the thread;
+(4) **soft delete own message** — `messages.deleted_at` +
+`messages_delete_own` UPDATE policy (replaces the false/false
+`messages_update`), `deleteMessage` service + `deleteMessageAction`,
+hover trash button on own bubbles in ThreadClient, lists/RPC filter deleted
+rows (`get_unread_counts` redefined with `deleted_at IS NULL`); (5) **archive
+a DM** — `conversation_members.is_archived` (own-row UPDATE policy already
+covers it), `listConversations(bucket)` serves active + collapsible
+**Archived** section on /messages, per-row Archive/Unarchive server action
+(a shared conversation for both sides can be *hidden*, not hard-deleted);
+(6) **live unread chips** — unread counts reconcile without a reload:
+`MessagesLive.tsx` (invisible reconciler on /messages) polls
+`get_unread_counts()` (GRANT EXECUTE to authenticated, 30s — resilient) and
+refreshes the server list via `router.refresh()` only when counts drift;
+realtime INSERT on `messages` (RLS delivers only my conversations) pushes
+instantly. `UnreadMessagesBadge.tsx` overlays the Messages icons in Sidebar +
+BottomNav with a live total using the same poll + realtime + own
+`conversation_members` reads, so the badge drop lands the moment a thread is
+read. NotificationType union extended (`community_post`, `missed_call`) with
+icons, labels, guarded hrefs. Gates: tsc 0 · eslint 0 errors · vitest 361/361 ·
+SSR 200 on `/`, `/messages`, `/notifications`, `/settings`, `/messages/new`,
+`/post/[id]`.
+
+Prior checkpoint (**doc version 10**): the PlayStation theme pass, PS-blue
+retheme, scroll-story landing, accent personalization, DM-call connect fix —
+see below, all still true.
 
 **PlayStation theme pass — user's five words ("PlayStation theme and layout, UI/UX, animation and fonts") delivered in code (2026-10-17), committed at `6a13bcd`+; gates green; pushed.**
 

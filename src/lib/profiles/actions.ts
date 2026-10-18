@@ -36,7 +36,16 @@ export async function updateGamingProfileAction(
 // Keys are channel names; values are booleans (opt-out model).
 // ---------------------------------------------------------------------------
 
-const VALID_KEYS = new Set(["comments", "replies", "votes", "follows", "events", "mentions"]);
+const VALID_KEYS = new Set([
+  "comments",
+  "replies",
+  "votes",
+  "follows",
+  "events",
+  "mentions",
+  "posts",
+  "calls",
+]);
 
 export async function updateNotificationPrefs(
   prefs: Record<string, boolean>,

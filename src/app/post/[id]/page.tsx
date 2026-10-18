@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, Eye, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
 import { PostActions } from "./PostActions";
@@ -13,6 +13,7 @@ import { CommentForm } from "@/components/comments/CommentForm";
 import { ReportButton } from "@/components/ReportButton";
 import { RealtimeComments } from "@/components/comments/RealtimeComments";
 import { ReactionButton } from "@/components/reaction-button";
+import { PostViewTracker } from "@/components/post/PostViewTracker";
 import { BookmarkButton } from "@/components/post/BookmarkButton";
 import { RepostButton } from "@/components/post/RepostButton";
 import { ShareButton } from "@/components/post/ShareButton";
@@ -93,7 +94,7 @@ export default async function PostPage({
   const { data: postRaw, error: postError } = await supabase
     .from("posts")
     .select(
-      `id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count,
+      `id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count, view_count,
        author:profiles!posts_author_id_fkey ( username, display_name, avatar_url ),
        community:communities!posts_community_id_fkey ( slug, name ),
        game:games!posts_game_id_fkey ( id, name, slug )`
@@ -181,6 +182,8 @@ export default async function PostPage({
 
   return (
     <main className="container-x py-8 sm:py-10">
+      {/* View metrics (055): deduped per-user insert after a short dwell. */}
+      <PostViewTracker postId={post.id} />
       <Link
         href={post.community ? `/communities/${post.community.slug}` : "/home"}
         className="mb-6 inline-flex items-center gap-1 text-sm text-text-muted hover:text-fg"
@@ -234,6 +237,15 @@ export default async function PostPage({
                 )}
                 <span aria-hidden="true">·</span>
                 <time dateTime={post.created_at}>{timeAgo(post.created_at)}</time>
+                {typeof post.view_count === "number" && post.view_count > 0 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <Eye size={14} />
+                      {post.view_count} {post.view_count === 1 ? "view" : "views"}
+                    </span>
+                  </>
+                )}
                 {updatedLabel && (
                   <>
                     <span aria-hidden="true">·</span>

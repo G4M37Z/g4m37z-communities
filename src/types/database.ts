@@ -166,6 +166,9 @@ export interface Post {
   /** 053_game_graph.sql — optional game context on a post.
    *  Optional in TS because not every list query selects it. */
   game_id?: string | null;
+  /** 055_notifications_and_messaging.sql — deduped per-user view count.
+   *  Optional in TS because not every list query selects it. */
+  view_count?: number | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -219,7 +222,11 @@ export type NotificationType =
   | "community_invite"
   | "follow"
   | "event_rsvp"
-  | "repost";
+  | "repost"
+  /** 055 — new post in a community the recipient is a member of. */
+  | "community_post"
+  /** 055 — a call ended MISSED/DECLINED before being answered. */
+  | "missed_call";
 
 export interface Notification {
   id: string;
@@ -655,6 +662,9 @@ export interface ConversationMember {
   user_id: string;
   joined_at: string;
   last_read_at: string | null;
+  /** 055_notifications_and_messaging.sql — per-user archive flag for the
+   *  conversation list. */
+  is_archived?: boolean | null;
 }
 
 export interface Message {
@@ -667,6 +677,9 @@ export interface Message {
   created_at: string;
   attachment_url: string | null;
   attachment_type: "image" | "gif" | "sticker" | null;
+  /** 055_notifications_and_messaging.sql — soft delete tombstone; null while
+   *  the message is live, a timestamp once the sender deletes it. */
+  deleted_at?: string | null;
 }
 
 // ----------------------------------------------------------------------------

@@ -19,6 +19,7 @@ interface JoinedPost {
   created_at: string;
   updated_at: string;
   comment_count: number;
+  view_count?: number | null;
   author: {
     username: string;
     display_name: string | null;
@@ -28,7 +29,7 @@ interface JoinedPost {
 }
 
 const POST_SELECT = `
-  id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count,
+  id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count, view_count,
   author:profiles!posts_author_id_fkey ( username, display_name, avatar_url ),
   community:communities!posts_community_id_fkey ( slug, name )
 `;
@@ -267,7 +268,31 @@ async function enrichPosts(
     if (viewerId && v.user_id === viewerId) {
       myVoteByPost.set(v.post_id, v.value === 1 ? 1 : -1);
     }
-  }  const commentCountByPost = new Map<string, number>();  for (const c of (comments ?? []) as CommentRow[]) {    commentCountByPost.set(      c.post_id,      (commentCountByPost.get(c.post_id) ?? 0) + 1    );  }  const repostCountByPost = new Map<string, number>();  const repostedByViewer = new Set<string>();  for (const r of (reposts ?? []) as RepostRow[]) {    repostCountByPost.set(      r.post_id,      (repostCountByPost.get(r.post_id) ?? 0) + 1    );    if (viewerId && r.reposter_id === viewerId) repostedByViewer.add(r.post_id);  }
+  }  const commentCountByPost = new Map<string, number>();
+
+  for (const c of (comments ?? []) as CommentRow[]) {
+
+    commentCountByPost.set(
+
+      c.post_id,
+
+      (commentCountByPost.get(c.post_id) ?? 0) + 1
+
+    );
+
+  }
+
+
+
+  const repostCountByPost = new Map<string, number>();
+  const repostedByViewer = new Set<string>();
+  for (const r of (reposts ?? []) as RepostRow[]) {
+    repostCountByPost.set(
+      r.post_id,
+      (repostCountByPost.get(r.post_id) ?? 0) + 1
+    );
+    if (viewerId && r.reposter_id === viewerId) repostedByViewer.add(r.post_id);
+  }
 
   const now = Date.now();
   const enriched: (PostCardData & { trending?: number })[] = posts.map(
@@ -285,10 +310,12 @@ async function enrichPosts(
         body: p.body,
         image_url: p.image_url,
         created_at: p.created_at,
-        updated_at: p.updated_at,        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,                repost_count: repostCountByPost.get(p.id) ?? 0,
+        updated_at: p.updated_at,        comment_count: p.comment_count ?? commentCountByPost.get(p.id) ?? 0,                repost_count: repostCountByPost.get(p.id) ?? 0,
+        view_count: p.view_count ?? null,
         reposted: repostedByViewer.has(p.id),
         reposted_by: repostMeta?.get(p.id) ?? null,
-        poll: pollMap.get(p.id) ?? null,        author: p.author,
+        poll: pollMap.get(p.id) ?? null,
+        author: p.author,
         community: p.community,
         score,
         my_vote: myVoteByPost.get(p.id) ?? null,

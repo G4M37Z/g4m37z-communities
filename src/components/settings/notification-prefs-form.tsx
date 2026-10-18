@@ -13,6 +13,8 @@ const CHANNELS = [
   { key: "follows", label: "New followers", desc: "When someone follows you" },
   { key: "events", label: "Event RSVPs (community creator)", desc: "When someone RSVPs to your event" },
   { key: "mentions", label: "Mentions", desc: "When someone @mentions you in a post or comment" },
+  { key: "posts", label: "Posts in my communities", desc: "When someone posts in a community you're a member of" },
+  { key: "calls", label: "Missed calls", desc: "When you miss a voice or video call" },
 ] as const;
 
 interface Props {

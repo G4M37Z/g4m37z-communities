@@ -24,6 +24,7 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandWordmark } from "@/components/brand/BrandWordmark";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UnreadMessagesBadge } from "@/components/messages/UnreadMessagesBadge";
 
 const NAV = [
   { label: "Home", href: "/home", icon: Home },
@@ -88,7 +89,10 @@ export function Sidebar({ username, avatarUrl, role }: SidebarProps) {
                       : "text-text-secondary hover:bg-bg hover:text-fg",
                   )}
                 >
-                  <Icon size={20} strokeWidth={2} />
+                  <span className="relative inline-flex">
+                    <Icon size={20} strokeWidth={2} />
+                    {href === "/messages" && <UnreadMessagesBadge />}
+                  </span>
                   <span className="hidden lg:inline">{label}</span>
                 </Link>
               </li>

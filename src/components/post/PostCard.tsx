@@ -1,6 +1,6 @@
 // src/components/post/PostCard.tsx — responsive composition via container query
 import Link from "next/link";
-import { MessageSquare, Image as ImageIcon, Repeat2 } from "lucide-react";
+import { MessageSquare, Image as ImageIcon, Repeat2, Eye } from "lucide-react";
 import type { Post } from "@/types/database";
 import { timeAgo } from "@/lib/utils";
 import { PostVoteControl } from "@/components/voting/PostVoteControl";
@@ -86,6 +86,12 @@ export function PostCard({ post }: Props) {
             <ShareButton postId={post.id} title={post.title} />
             <RepostButton postId={post.id} initialReposted={post.reposted ?? false} initialCount={post.repost_count ?? 0} signedIn={Boolean(post.signed_in)} />
             <Link href={`/post/${post.id}#comments`} className="inline-flex items-center gap-1 hover:text-fg"><MessageSquare size={12} />{post.comment_count} {post.comment_count === 1 ? "comment" : "comments"}</Link>
+            {typeof post.view_count === "number" && post.view_count > 0 && (
+              <span className="inline-flex items-center gap-1" aria-label={`${post.view_count} views`}>
+                <Eye size={12} />
+                {post.view_count}
+              </span>
+            )}
             <BookmarkButton postId={post.id} initialSaved={post.bookmarked ?? false} signedIn={Boolean(post.signed_in)} />
           </footer>
         </div>
