@@ -8,7 +8,7 @@
 
 ## Migration order (verified against `docs/database/`)
 
-> The canonical migration tree is **001 → 054** (note: two files are numbered
+> The canonical migration tree is **001 → 057** (note: two files are numbered
 > `031`, and there is no `039`). The table below covers the early splits; rows
 > from 031 onward are compressed and their purpose is derived from the filename
 > plus the live objects they produced.
@@ -75,6 +75,9 @@
 | 052 | `052_gaming_identity.sql` | `user_games`, `game_platform_identities`, `profiles.gaming_visibility` |
 | 053 | `053_game_graph.sql` | `communities.game_id`, `posts.game_id` |
 | 054 | `054_lfg_join_rpc.sql` | `lfg_join` RPC + caller-scoped LFG mutations |
+| 055 | `055_notifications_and_messaging.sql` | post_views + view_count, community-post/missed-call notifications, own-message soft delete, DM archive |
+| 056 | `056_game_native_formats.sql` | `tournament_frameworks.is_official` + 8 per-game formats flagged; `(game_id, is_official)` index |
+| 057 | `057_storage_hardening.sql` | bucket caps: attachments 10 MB, avatars 2 MB, post-images 5 MB, voice 5 MB |
 
 ### PostgREST embed-relationship warning (root cause of migration 030)
 
@@ -163,9 +166,10 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
   (filter `room_id=eq.<id>`).
 
 ### Storage
-- `storage.buckets` (live): `avatars` (public), `post-images` (public),
-  `community-media` (public, 5 MB, image MIME only), `message-attachments`
-  (public, no limits — flagged), `voice-recordings` (private, owner-only).
+- `storage.buckets` (live, capped by 057): `avatars` (public, 2 MB images),
+  `post-images` (public, 5 MB images), `community-media` (public, 5 MB,
+  image MIME only), `message-attachments` (public, 10 MB images),
+  `voice-recordings` (private, 5 MB, owner-only).
   See the full table under "Storage buckets" below.
 
 ### Games domain (V3.3)
@@ -404,18 +408,18 @@ games / lfg / events / tournaments). Adding these is a future hardening task.
 
 ---
 
-## Storage buckets (live, 2026-10-17)
+## Storage buckets (live, capped by 057 on 2026-10-19)
 
 | Bucket | Public | Limits |
 |---|---|---|
-| `avatars` | yes | none |
-| `post-images` | yes | none |
+| `avatars` | yes | 2 MB; image/png,jpeg,webp |
+| `post-images` | yes | 5 MB; image/png,jpeg,gif,webp |
 | `community-media` | yes | 5 MB; image/jpeg,png,webp,gif |
-| `message-attachments` | yes | **none — flagged for hardening** |
-| `voice-recordings` | no | none (owner-only read) |
+| `message-attachments` | yes | 10 MB; image/png,jpeg,gif,webp |
+| `voice-recordings` | no | 5 MB (no MIME allowlist — MediaRecorder variance) |
 
-> Security note: `message-attachments` is public with no size or MIME
-> restriction. Tracked for pre-launch hardening.
+> Object write/delete policies scope every bucket to its owner's
+> top-level folder (`storage.foldername(name)[1] = auth.uid()`).
 
 ---
 

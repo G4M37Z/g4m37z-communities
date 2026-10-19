@@ -13,15 +13,51 @@
 | Repository | `G4M37Z/g4m37z-communities` |
 | Stack | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase Auth + Postgres · Tailwind CSS v4 |
 | Branch | `main` |
-| Last verified HEAD | `6a13bcd` (PlayStation theme pass below added on top) |
+| Last verified HEAD | `c4bd11e` (everything below verified on top) |
 | Last verified tag | `v0.1.0` (older; pre-V3 — not a V3 milestone marker) |
 | Remote | `github-g4m37z-communities:G4M37Z/g4m37z-communities.git` → `github.com/G4M37Z/g4m37z-communities` |
-| Documentation version | 11 (notifications + messaging expansion, 2026-10-18) |
-| Last verified date | 2026-10-18 (session) |
+| Documentation version | 12 (UI footer pass, game-native formats, storage hardening, 2026-10-20) |
+| Last verified date | 2026-10-20 (session) |
 
 ---
 
 ## Current Checkpoint
+
+**Footer/UI pass + game-native tournament formats + hardening — committed; gates green; pushed.**
+Three user-directed sessions: (1) **site footer placement** — the global
+Explore/Account footer left the layout (`29384f6`) and now renders only on
+landing/auth/legal via `SiteFooter`; app surfaces end with a slim
+**`AppFootline`** (© G4M37Z · Terms · Privacy, border-t, mt-auto pinning,
+safe-area-aware mobile clearance below the bottom nav, self-hiding on
+full-footer routes). (2) **game-native tournament formats (056)** — creation
+is game-first: picking a game auto-applies its bound format (the
+`games.default_framework_id` binding now surfaced visually) with the stage
+pipeline rendered inline (cheap chips) plus scoring/match-format summaries;
+`is_official` marks the 8 curated per-game formats (Official badge);
+`listFrameworks` takes a gameId filter (officials first); the legacy
+bracket dropdown is demoted behind a "Use a classic bracket instead" toggle;
+`createTournament` rejects format/game mismatches server-side; ADMIN-only
+"Official game format" in the framework builder (`isOfficial` gate:
+profiles.role = admin, must be game-bound) covers non-competitive titles
+(GTA/Roblox roleplay/server formats). (3) **hardening** — GAP-STORAGE-01
+closed by `057_storage_hardening.sql` (attachments 10 MB + image MIMEs;
+avatars 2 MB; post-images 5 MB; voice 5 MB, MIME-free for MediaRecorder
+variance); GAP-POST-02 resolved (4 unreferenced post-images removed via the
+Storage REST API; `storage.protect_delete()` still blocks SQL DELETE);
+realtime `unread-dm-badge` crash confirmed dead (0 client errors in 20h of
+Vercel logs). **Auth (GAP-EMAIL-01)** — email confirmation is ON (user
+enabled it in the dashboard); code audit confirmed the flow (profile
+creation deferred to `ensure_profile` post-confirmation; link-type routing;
+error mapping) and a single repair shipped: `resendConfirmation` action
+(`auth.resend`, rate-limited 3/h/email, uniform no-probe responses) wired
+into the login verify-error and the signup inbox screen with "Resend"
+buttons (`c4bd11e`). Gates: tsc 0 · eslint 0 errors · vitest 395/395.
+Owed live passes (user-run, recorded in GAP_REGISTER): two-device DM-call
+media + messaging tests (TURN still unconfigured — CGNAT pairs will stall),
+footline spacing, tournament creation flow, first-save click re-test.
+Tenor/GIPHY GIF picker deliberately deferred (2026-10-19 user decision).
+
+**Prior checkpoint (doc version 11)**:
 
 **Notifications + messaging expansion — committed; gates green; pushed.**
 Migration `055_notifications_and_messaging.sql` (supabase_realtime already
