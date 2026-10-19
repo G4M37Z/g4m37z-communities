@@ -7,6 +7,7 @@ import "./container-queries.css";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Sidebar } from "@/components/Sidebar";
+import { AppFootline } from "@/components/AppFootline";
 import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { siteOrigin } from "@/lib/env/public";
@@ -116,6 +117,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Header className="md:hidden" />
           {user && <PresenceHeartbeat />}
           <main className="flex-1">{children}</main>
+          <AppFootline />
         </div>
 
         {/* Mobile-only bottom navigation */}
