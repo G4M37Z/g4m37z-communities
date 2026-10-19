@@ -11,6 +11,8 @@
 // ============================================================================
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { supabaseUrl } from "@/lib/env/public";
+import { supabaseServiceRoleKey } from "@/lib/env/server";
 
 /**
  * Returns a Supabase client authenticated with the service_role key.
@@ -24,21 +26,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * to make absolutely sure no service_role cookie leaks to the browser.
  */
 export function createAdminClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
+  const url = supabaseUrl();
   if (!url) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL — check your .env.local file."
+      "Missing NEXT_PUBLIC_SUPABASE_URL — check your .env.local file " +
+        "(see .env.example)."
     );
   }
-  if (!serviceKey) {
-    throw new Error(
-      "Missing SUPABASE_SERVICE_ROLE_KEY — this server-only key is " +
-        "required for service-level operations. Never expose this key to " +
-        "the browser."
-    );
-  }
+  // Server-only secret. Throws a names-only diagnostic when unset.
+  const serviceKey = supabaseServiceRoleKey();
 
   return createClient(url, serviceKey, {
     auth: {

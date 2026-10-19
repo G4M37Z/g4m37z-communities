@@ -10,6 +10,8 @@
 // tampered client cannot plant arbitrary URLs in the thread.
 // ============================================================================
 
+import { tenorApiKey } from "@/lib/env/server";
+
 const TENOR_HOSTS = new Set([
   "media.tenor.com",
   "media1.tenor.com",
@@ -54,7 +56,7 @@ export async function searchGifs(
   query: string,
   opts: { limit?: number } = {},
 ): Promise<GifSearchResult> {
-  const key = process.env.TENOR_API_KEY;
+  const key = tenorApiKey();
   if (!key) {
     return {
       ok: false,

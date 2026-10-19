@@ -6,18 +6,19 @@
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/env/public";
 
 /**
  * A minimal stub client shaped like the Supabase client. Returned when
- * Supabase env vars aren't configured yet (e.g. before the user has run
- * SETUP.md). All read methods resolve to empty results; writes throw
- * a clear error. This lets the app boot and render the empty-state UI
- * instead of 500ing on every request.
+ * Supabase env vars aren't configured yet. All read methods resolve to empty
+ * results; writes surface a clear configuration error. This lets the app boot
+ * and render the empty-state UI instead of 500ing on every request.
  */
 function stubClient() {
   const message =
     "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and " +
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local — see SETUP.md.";
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local — see .env.example and " +
+    "docs/ENVIRONMENT_VARIABLES.md.";
 
   const empty = { data: null, error: { message } };
 
@@ -97,13 +98,14 @@ function stubClient() {
  * fresh inside the handler/render so each request gets its own session.
  */
 export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = supabaseUrl();
+  const anonKey = supabaseAnonKey();
 
   if (!url || !anonKey) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY — using stub client."
+        "[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing or " +
+          "malformed — using stub client."
       );
     }
     return stubClient() as unknown as ReturnType<typeof createServerClient>;

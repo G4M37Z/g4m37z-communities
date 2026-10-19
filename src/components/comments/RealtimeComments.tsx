@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Comment } from "@/components/comments/Comment";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/env/public";
 
 interface Author {
   username: string;
@@ -82,8 +83,8 @@ export function RealtimeComments({
       created_at: string;
       updated_at: string;
     }) => {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const url = supabaseUrl();
+      const anon = supabaseAnonKey();
       if (!url || !anon) return;
       const supabase = createBrowserClient(url, anon);
 
@@ -129,8 +130,8 @@ export function RealtimeComments({
   );
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = supabaseUrl();
+    const anon = supabaseAnonKey();
     if (!url || !anon) return;
     const supabase = createBrowserClient(url, anon);
 

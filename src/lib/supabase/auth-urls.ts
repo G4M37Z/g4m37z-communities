@@ -12,6 +12,8 @@
 //    errors, stack traces, and tokens are never surfaced to the user.
 // ============================================================================
 
+import { siteOrigin } from "@/lib/env/public";
+
 /**
  * The application's trusted origin.
  *
@@ -19,14 +21,8 @@
  * deployment URL → `http://localhost:3000` for local development.
  */
 export function getSiteOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL;
-  if (raw) {
-    try {
-      return new URL(raw).origin;
-    } catch {
-      // Fall through to the defaults below.
-    }
-  }
+  const origin = siteOrigin();
+  if (origin) return origin;
   return process.env.NODE_ENV === "production"
     ? "https://g4m37z-communities.vercel.app"
     : "http://localhost:3000";

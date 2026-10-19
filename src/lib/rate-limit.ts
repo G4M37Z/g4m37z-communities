@@ -15,6 +15,8 @@
 // store before relying on limits at scale.
 // ============================================================================
 
+import { kvCredentials, rateLimitBackend } from "@/lib/env/server";
+
 interface MemoryBucket {
   count: number;
   resetAt: number;
@@ -23,26 +25,19 @@ interface MemoryBucket {
 const MEM_BUCKETS = new Map<string, MemoryBucket>();
 const MEM_MAX_BUCKETS = 10_000;
 
-function kvConfig(): { url: string; token: string } | null {
-  const url = process.env.KV_REST_API_URL ?? "";
-  const token = process.env.KV_REST_API_TOKEN ?? "";
-  return url && token ? { url, token } : null;
-}
-
 export function rateLimitEnabled(): boolean {
-  return kvConfig() !== null;
+  return kvCredentials() !== null;
 }
 
 function forcedBackend(): "memory" | "kv" | "" {
-  const v = process.env.RATE_LIMIT_BACKEND ?? "";
-  return v === "memory" || v === "kv" ? v : "";
+  return rateLimitBackend();
 }
 
 export function activeBackend(): "memory" | "kv" | "off" {
   const forced = forcedBackend();
   if (forced === "memory") return "memory";
-  if (forced === "kv") return kvConfig() ? "kv" : "off";
-  return kvConfig() ? "kv" : "memory";
+  if (forced === "kv") return kvCredentials() ? "kv" : "off";
+  return kvCredentials() ? "kv" : "memory";
 }
 
 function sweepMemory(now: number): void {
@@ -94,7 +89,7 @@ export async function rateLimit(
     return memoryRateLimit(key, limit, windowSeconds);
   }
 
-  const kv = kvConfig();
+  const kv = kvCredentials();
   if (backend === "off" || !kv) {
     return { allowed: true, remaining: limit, retryAfterSeconds: 0 };
   }

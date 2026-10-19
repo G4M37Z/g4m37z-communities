@@ -10,6 +10,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Footer } from "@/components/Footer";
 import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { siteOrigin } from "@/lib/env/public";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -56,9 +57,7 @@ export const metadata: Metadata = {
   authors: [{ name: "G4M37Z" }],
   creator: "G4M37Z",
   publisher: "G4M37Z",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-  ),
+  metadataBase: new URL(siteOrigin() ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
     locale: "en_US",

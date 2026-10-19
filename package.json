@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm run test:unit",
+    "env:check": "vitest run tests/env-config.test.ts",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'tests/browser/**'",
     "test:browser": "vitest run tests/browser",

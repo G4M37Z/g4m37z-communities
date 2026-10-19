@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import { assertBuildEnv } from "./src/lib/env/build.ts";
+
+// Build-boundary configuration validation (names only, never values).
+// Malformed values fail the build; missing optional integrations warn.
+// See src/lib/env/build.ts and docs/ENVIRONMENT_VARIABLES.md.
+assertBuildEnv(process.env);
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },

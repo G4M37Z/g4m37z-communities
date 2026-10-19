@@ -2,10 +2,10 @@
 // robots.txt — control which routes search engines can index.
 
 import type { MetadataRoute } from "next";
+import { siteOrigin } from "@/lib/env/public";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const baseUrl = siteOrigin() ?? "http://localhost:3000";
 
   return {
     rules: [

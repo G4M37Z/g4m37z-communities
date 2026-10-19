@@ -9,6 +9,8 @@
 // uploads) with digest …@E352.
 // ============================================================================
 
+import { supabaseUrl } from "@/lib/env/public";
+
 export type PostImageMime = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
 
 /**
@@ -65,7 +67,7 @@ export function postImagePathFromUrl(url: string): string | null {
   }
   const configuredHost = (() => {
     try {
-      return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
+      return new URL(supabaseUrl() ?? "").host;
     } catch {
       return "";
     }

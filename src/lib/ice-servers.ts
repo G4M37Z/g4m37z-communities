@@ -22,15 +22,17 @@
 // keep working where a hole punch is possible.
 // ============================================================================
 
+import { isTurnConfigured, publicEnv } from "@/lib/env/public";
+
 export const STUN_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
 ];
 
 function parseTurnServers(): RTCIceServer[] {
-  const raw = process.env.NEXT_PUBLIC_TURN_URL?.trim();
+  const raw = publicEnv.turnUrl;
   if (!raw) return [];
-  const username = process.env.NEXT_PUBLIC_TURN_USERNAME?.trim();
-  const credential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL?.trim();
+  const username = publicEnv.turnUsername;
+  const credential = publicEnv.turnCredential;
   if (!username || !credential) {
     console.warn(
       "[ice] NEXT_PUBLIC_TURN_URL is set without username/credential — TURN disabled",
@@ -45,7 +47,4 @@ export const ICE_SERVERS: RTCIceServer[] = [...STUN_SERVERS, ...parseTurnServers
 /** True when a TURN relay is actually configured. Call UIs use this to set
  * expectations: without a relay, calls behind symmetric NAT / carrier CGNAT
  * cannot connect even though signaling (ringing/answer) completes fine. */
-export const HAS_TURN =
-  Boolean(process.env.NEXT_PUBLIC_TURN_URL?.trim()) &&
-  Boolean(process.env.NEXT_PUBLIC_TURN_USERNAME?.trim()) &&
-  Boolean(process.env.NEXT_PUBLIC_TURN_CREDENTIAL?.trim());
+export const HAS_TURN = isTurnConfigured();

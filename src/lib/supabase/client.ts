@@ -15,10 +15,11 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/env/public";
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = supabaseUrl();
+  const anonKey = supabaseAnonKey();
 
   if (url && anonKey) {
     return createBrowserClient(url, anonKey) as SupabaseClient;
@@ -33,8 +34,9 @@ function warnOnce() {
   if (warned || typeof console === "undefined") return;
   warned = true;
   console.warn(
-    "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY — " +
-      "using no-op browser stub (pages render signed-out; data calls are disabled).",
+    "[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing or " +
+      "malformed — using the no-op browser stub (pages render signed-out). " +
+      "See .env.example and docs/ENVIRONMENT_VARIABLES.md.",
   );
 }
 
