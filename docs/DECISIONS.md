@@ -265,3 +265,41 @@ Consequences: one managed VPS enters the ops burden (env TURN_SECRET never
 client-side; rotation via env; monitoring). GAP-WEBRTC-01 closes only after
 the two-device mobile-data test passes against the Relay Node. Existing
 ice-servers.ts dual path (env config today) is transitional, not the goal.
+## Decision: Piggyback Layer — serverless media lane on Supabase Realtime
+
+Date: 2026-10-20
+Status: ACTIVE
+
+Context: The relay node plan made TURN mandatory for CGNAT pairs and implied
+waiting on a VM before calls "just work". Deep-dive (user directive: fully
+serverless) found the missing freedom: a relay is only a packet copier, and
+Supabase Realtime broadcast already is one — deployed, RLS-gated, on our
+existing channel grid. Verified limits: Free 100 msg/s project-wide, 256 KB
+broadcast payloads, 2M msgs/mo free; Pro 500 msg/s / 3 MB payloads. Voice at
+32 kbps in 100 ms chunks = ~40 msg/s per CGNAT pair; fallback hour ≈ 144k
+msgs (≈14 fallback call-hours/mo free). Video ≈ ≤1 Mbps fits Free with 250 ms
+chunking. Latency ~150–300 ms (intercom-class) vs ~80–120 ms on a TURN relay.
+
+Decision: Three-lane grid, ordered: (1) direct P2P/STUN (built); (2) NEW
+Piggyback lane — Opus-encoded audio chunks (WebCodecs encode; MSE/WebM
+playback), chunk AES-GCM with keys from an ephemeral ECDH handshake over the
+existing signaling events (no DTLS on this path), broadcast events on the
+conversation's existing channel; activates as the last fallback when ICE
+fails/times out, keeping the same call UI; (3) coturn relay (Oracle/$0) as
+the sub-100 ms/heavy-video quality lane — now optional, not a blocker.
+Serverless-first: Phase A is Piggyback (pure repo code); Phase A′ relay
+kit (docs/media/relay-node/ + SETUP_RELAY.md stays) comes online later.
+
+Alternatives: dropping the fallback idea (leaves CGNAT hard-failures);
+websocket relay via Vercel functions (no persistent sockets; wrong plane);
+waiting on provider TURN (the thing being removed).
+
+Reason: zero new infrastructure, zero new cost, platform never hard-fails;
+chunk crypto keeps the lane E2E against Supabase; the deploy kit for the
+quality lane is unchanged and ready for whenever it is wanted.
+
+Consequences: Realtime message budget becomes a monitored metric (telemetry
+per call, log rate per channel); only audio ships in Piggyback MVP (video
+needs the relay or later lane); piggyback never activates while a P2P/TURN
+path exists (quality guard); browser support line = MSE WebM/Opus (Android
+Chrome, desktop Chromium/Firefox), Safari audio/mp4 path deferred.

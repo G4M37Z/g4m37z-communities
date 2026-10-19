@@ -30,12 +30,25 @@ self-hostable, both fully under G4M37Z's control.
 ```
 phone A ──P2P/STUN────────── phone B            (1:1 and ≤5: mesh, free)
    │
-   └──G4M37Z Relay Node───phone B                (CGNAT fallback, our box)
+   ├─ Piggyback ──► Supabase Realtime ────────► phone B   (SERVERLESS lane, $0)
+   │
+   └──G4M37Z Relay Node───phone B                (quality lane, still $0-free tier)
               │
 phone A ══AND B══ G4M37Z Cast Node (WebTransport/MoQ)
               │
         whole community listeners                   (rooms/streams, 1→N)
 ```
+
+**The Piggyback Layer (the serverless invention — 2026-10-20).** Media chunks
+hitchhike on the SAME Realtime channel grid as signaling: `conversation_id`
+topics, RLS-gated, already deployed. Voice = 32 kbps Opus, 100 ms chunks,
+AES-GCM per chunk (keys from an ephemeral ECDH handshake run over the
+existing signaling events — no DTLS exists on this path). Verified limits
+(Supabase, 2026-10-20): Free tier allows 100 msg/s project-wide and 256 KB
+broadcast payloads; a CGNAT 1:1 call ≈ 40 msg/s; a fallback voice hour ≈
+144k msgs (2M/mo free ≈ 14 fallback-hours). Video ≈ up to ~1 Mbps fits the
+Free budget with 250 ms chunking. Latency ~150–300 ms — intercom-class:
+the lane that makes the platform NEVER hard-fail at "Connecting".
 
 Three runnable node types, one machine each, all G4M37Z-managed:
 
@@ -67,13 +80,19 @@ Three runnable node types, one machine each, all G4M37Z-managed:
 
 ## 4. Phase plan (execution order)
 
-**Phase A — call self-sufficiency (small, imminent):**
-1. VPS + Docker coturn, `use-auth-secret` + shared `TURN_SECRET` env.
-2. `/api/turn-credentials` server action (minting spec exists in docs/media/)
-   wired into `beginCallMedia` before the PeerConnection is built.
-3. Remove the `NEXT_PUBLIC_TURN_*` static config from `ice-servers.ts` —
-   creds come per-call, not at boot.
-4. Gates: two-device test with both phones on mobile data (CGNAT pair).
+**Phase A — Piggyback lane, SERVERLESS FIRST (code-only, no account/VM):**
+1. Piggyback media spec → implementation: chunk codec, ECDH handshake over
+   signaling events, 4×-10msg/s sender/receiver budget guard, lane telemetry.
+2. Wire it as the LAST ICE-failure fallback in `dm-call.tsx` (P2P attempt →
+   ICE timeout → piggyback upgrade-in-place, same UI).
+3. Gate: two phones on mobile data complete a voice call with NO relay
+   configured at all. First zero-infra CGNAT proof.
+
+**Phase A′ — quality lane (optional, still $0-free-tier):** VPS/Oracle relay
+via `docs/media/SETUP_RELAY.md` + deploy kit in `docs/media/relay-node/`;
+`/api/turn-credentials` minting (spec in `docs/media/turn-minting.spec.ts`)
+replacing static `NEXT_PUBLIC_TURN_*`. Brought online when sub-100 ms relay
+or heavy CGNAT video matters — NOT required for calls to work.
 
 **Phase B — GT Cast MVP (streaming plane):**
 1. WebTransport server proof (node on the same VPS, cert for subdomain:
