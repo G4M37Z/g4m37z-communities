@@ -227,3 +227,41 @@ query must now tolerate `NULL`; the room peer is unaffected because it
 filters on `room_id=eq.<id>`. Video is not implemented yet (`media` supports
 `'video'` but the UI is audio-only). Two-peer audio still needs the
 `GAP-WEBRTC-01` live test.
+## Decision: self-existent media stack (calls first, then GT Cast streams)
+
+Date: 2026-10-20
+Status: ACTIVE
+
+Context: DM calls already work only where direct NAT hole-punching succeeds;
+no TURN is configured, so CGNAT pairs (two phones on mobile data) stall at
+"Connecting". Paid call/streaming providers exist but with metered relay
+fees, per-seat pricing, and lock-in (SDK-shaped signaling). The IETF smoke
+shows WebRTC=5 primitives (STUN/TURN/ICE/SDP/SRTP + nonstandard signaling);
+the signaling plane is already G4M37Z-native (call_sessions + webrtc_signals
+in Postgres), leaving only a relay + admission path to own.
+
+Decision: Build the G4M37Z Media Grid (docs/G4M37Z_MEDIA_STACK.md):
+- Phase A: self-hosted coturn Relay Node + `/api/turn-credentials` minting
+  ephemeral HMAC-SHA1 creds (draft-uberti-behave-turn-rest-00) binding
+  Supabase auth to relay allocations; drop static NEXT_PUBLIC_TURN_* env.
+- Phase B: GT Cast — WebTransport (Baseline 2026) + WebCodecs streaming
+  endpoint on the same node for community voice rooms/listeners; no ICE on
+  the egress path.
+- Phase C: MoQ-style reactions-in-stream + inter-community federation.
+Browsers enforce two rails (WebRTC peer protocol, WebTransport client);
+the invention lives on top of the wire (credential issuance, admission,
+room topology, forwarded media protocol).
+
+Alternatives: paid TURN/edge providers (rent, metered, locked);
+LiveKit/mediasoup self-host (Phase B accelerator, not a framework identity);
+mesh-only (cannot satisfy CGNAT pairs — physics).
+
+Reason: full-stack ownership with a fixed $5/mo ceiling; the signaling
+investment is already ours; TURN/WHIP are open specs — a provider retails
+them, not invents them. Latency wins: zero transcode on the P2P path; one
+hop on the relay path.
+
+Consequences: one managed VPS enters the ops burden (env TURN_SECRET never
+client-side; rotation via env; monitoring). GAP-WEBRTC-01 closes only after
+the two-device mobile-data test passes against the Relay Node. Existing
+ice-servers.ts dual path (env config today) is transitional, not the goal.
