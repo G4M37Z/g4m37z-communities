@@ -374,3 +374,55 @@ archive's beginning, not recent messages — CLOSED
   md, labels at lg, no content underlap; bottom nav only < md); then confirm on
   the deployed preview and close.
 
+
+## GAP-STORAGE-01 — `message-attachments` bucket has no size/MIME limits
+
+- Area: Storage / abuse surface
+- Severity: P1 (unbounded public uploads; pre-launch hardening item)
+- Status: **FIXED (2026-10-19, user decision granted)** — `057_storage_hardening.sql`
+  applied to live: `message-attachments` 10 MB + image MIMEs; the file also
+  capped the sibling holes the audit surfaced — `avatars` 2 MB images, and
+  `post-images` 5 MB images (same cap as `community-media`); voice recordings
+  size-capped at 5 MB with no MIME allowlist (MediaRecorder MIME varies per
+  browser; exact-match filtering would break voice notes). Path/ownership
+  review: object write/delete policies already scope to
+  `storage.foldername(name)[1] = auth.uid()` — no change needed.
+- Verification: `select id, public, file_size_limit, allowed_mime_types from
+  storage.buckets order by id;` shows caps on all five buckets.
+
+## GAP-POST-02 — Orphaned post-images objects from failed create
+
+- Area: Storage hygiene
+- Severity: P2
+- Description: The failed-create orphan reported 2026-09-20, plus three older
+  objects from deleted posts, sit unreferenced in `post-images`.
+- Status: **RESOLVED (2026-10-19)** — referenced-count check per object
+  (posts.image_url) verified 0 references for all four; deleted via the
+  Storage API (`DELETE /storage/v1/object/post-images/<path>`, service role)
+  because SQL DELETE is still rejected by `storage.protect_delete()`;
+  post-verify shows `post-images` empty. The failed-create cleanup hook 
+  remains a nice-to-have, not tracked here.
+
+## Realtime badge crash — fix confirmed in production (991563c)
+
+- Status: **CONFIRMED FIXED (2026-10-19)** — zero `unread-dm-badge` beacon
+  crashes and zero `via:global-error` client errors in 20h of Vercel logs
+  after the unique-channel-topic fix (was 5+ errors per 30 min before).
+
+## GAP-ENV-LIVE (open) — owed live verification (code committed)
+
+- Status: OPEN. Items owed on the deployed site (user-run):
+  1. DM call two-device media test (GAP-WEBRTC-01 running item). Code review
+     clean (floor/sweep/ICE buffering/channel retry). **NOTE: no TURN relay
+     configured in Vercel env** — calls work where direct NAT hole-punching
+     works (same-home WiFi, typical home networks); CGNAT/carrier-NAT pairs
+     will hit "connecting" forever until `NEXT_PUBLIC_TURN_*` is added.
+  2. FOOTLINE — visual pass of the new slim app footline (7ab2485) across
+     app pages, phone + desktop.
+  3. TOURN-FLOW — live pass of game-native tournament creation (7bb155a):
+     pick game → official format auto-applied with pipeline; classic-bracket
+     opt-out; admin "Official game format" in the builder.
+  4. First-save click re-test (GAP-POST-01) and two-device messaging
+     confirmation (GAP-MSG-LIVE-01) remain user-run.
+- Not owed: GIF picker (needs Tenor/GIPHY key decision — user opted out for
+  now, 2026-10-19).
