@@ -16,6 +16,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+// Topics must be unique per mounted instance: supabase.channel(name) REUSES
+// an existing channel with the same topic, and .on('postgres_changes', …)
+// throws once that channel is joining/joined — which crashed the whole page
+// when Sidebar and BottomNav mounted this badge together.
+let topicSeq = 0;
+
 export function UnreadMessagesBadge() {
   const [total, setTotal] = useState(0);
 
@@ -36,7 +42,7 @@ export function UnreadMessagesBadge() {
     void refresh();
 
     const channel = supabase
-      .channel("unread-dm-badge")
+      .channel(`unread-dm-badge:${++topicSeq}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, refresh)
       .on(
         "postgres_changes",

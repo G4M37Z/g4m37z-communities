@@ -5,6 +5,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+// Unique topic per mounted instance — supabase.channel(name) reuses an
+// existing channel with the same topic and .on() throws once it is
+// joining/joined, so two indicators for the same user would crash the page.
+let topicSeq = 0;
+
 type PresenceStatus = "online" | "away" | "busy" | "offline" | "invisible";
 
 interface PresenceProps {
@@ -44,7 +49,7 @@ export function PresenceIndicator({ userId, username, size = 10, className = "" 
       });
 
     const channel = supabase
-      .channel(`presence:${userId}`)
+      .channel(`presence:${userId}:${++topicSeq}`)
       .on(
         "postgres_changes",
         {

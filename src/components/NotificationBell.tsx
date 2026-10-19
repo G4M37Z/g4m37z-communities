@@ -9,6 +9,13 @@ import { Bell, BellRing } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+// Unique topic per mounted instance: supabase.channel(name) REUSES an
+// existing channel with the same topic and .on('postgres_changes', …)
+// throws once it is joining/joined. Header and Sidebar both mount this
+// bell, so a shared "notifications" topic made the second instance throw
+// (swallowed by the catch below — its bell silently stopped updating).
+let topicSeq = 0;
+
 export function NotificationBell({
   label,
   className,
@@ -45,9 +52,9 @@ export function NotificationBell({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      // StrictMode/teardown race: if the effect was cleaned up while the
-      // auth call was pending, attaching below would add callbacks to a
-      // channel another effect instance may already have subscribed.
+      // Teardown race: if the effect was cleaned up while the auth call was
+      // pending, don't subscribe now (the unique topic below already keeps
+      // parallel mounts from colliding on a joining channel).
       if (cancelled) return;
       const userId = user?.id ?? null;
 
@@ -57,7 +64,7 @@ export function NotificationBell({
       // "*" so the badge reconciles on INSERT (new activity) AND UPDATE
       // (marked read elsewhere: /notifications page, another tab).
       const channel = supabase
-        .channel("notifications")
+        .channel(`notifications:${++topicSeq}`)
         .on(
           "postgres_changes",
           {
