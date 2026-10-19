@@ -16,14 +16,20 @@ interface StageDraft {
 
 export function FrameworkBuilder({
   games,
+  initialGameId,
+  isAdmin,
 }: {
   games: { id: string; name: string }[];
+  initialGameId?: string | null;
+  /** Admins can mint a game's official hosting format. */
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [category, setCategory] = useState("General");
-  const [gameId, setGameId] = useState("");
+  const [gameId, setGameId] = useState(initialGameId ?? "");
+  const [official, setOfficial] = useState(false);
   const [scoringType, setScoringType] = useState<"points" | "win_loss" | "rank">("points");
   const [description, setDescription] = useState("");
   const [stages, setStages] = useState<StageDraft[]>([
@@ -71,6 +77,7 @@ export function FrameworkBuilder({
       scoring_type: scoringType,
       description,
       gameId: gameId || null,
+      isOfficial: isAdmin && official,
       stages: stages.map((s) => ({
         name: s.name,
         order: s.order,
@@ -123,7 +130,9 @@ export function FrameworkBuilder({
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-wider text-text-muted">Game (optional)</span>
+          <span className="text-xs uppercase tracking-wider text-text-muted">
+            {official ? "Game (official format is bound to it)" : "Game (optional)"}
+          </span>
           <select
             value={gameId}
             onChange={(e) => setGameId(e.target.value)}
@@ -137,6 +146,25 @@ export function FrameworkBuilder({
             ))}
           </select>
         </label>
+        {isAdmin && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs uppercase tracking-wider text-text-muted">
+              Official game format (admin)
+            </span>
+            <label className="flex items-center gap-2 h-10">
+              <input
+                type="checkbox"
+                checked={official}
+                onChange={(e) => setOfficial(e.target.checked)}
+                className="h-3.5 w-3.5 accent-accent"
+              />
+              <span className="text-xs text-text-secondary">
+                Curated — becomes the game&apos;s default way of gaming
+                (esports style, or a server / roleplay format)
+              </span>
+            </label>
+          </label>
+        )}
         <label className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-wider text-text-muted">Scoring Type</span>
             <select

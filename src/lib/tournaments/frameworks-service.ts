@@ -26,13 +26,39 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MAX_NAME_LEN = 120;
 const MAX_DESC_LEN = 1000;
 
-export async function listFrameworks(supabase: SupabaseClient): Promise<Framework[]> {
-  const { data, error } = await supabase
+export async function listFrameworks(
+  supabase: SupabaseClient,
+  opts: { gameId?: string | null } = {},
+): Promise<Framework[]> {
+  let q = supabase
     .from("tournament_frameworks")
     .select("*")
+    // Game-first creation: only the selected game's hosting formats, official
+    // (curated) formats first, then user-defined ones.
+    .order("is_official", { ascending: false })
     .order("name");
+  if (opts.gameId) q = q.eq("game_id", opts.gameId);
+  const { data, error } = await q;
   if (error || !data) return [];
   return data as Framework[];
+}
+
+/**
+ * Stage pipelines for many frameworks in one query (used by the tournament
+ * creation form to render each framework's hosting pipeline inline).
+ */
+export async function getStagesForFrameworks(
+  supabase: SupabaseClient,
+  frameworkIds: string[],
+): Promise<Stage[]> {
+  if (frameworkIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("tournament_stages")
+    .select("*")
+    .in("framework_id", frameworkIds)
+    .order("stage_order", { ascending: true });
+  if (error || !data) return [];
+  return data as Stage[];
 }
 
 export async function getFrameworkStages(
@@ -56,6 +82,8 @@ export interface CreateCustomFrameworkInput {
   description: string;
   stages: { name: string; order: number; rule: ProgressionRule }[];
   gameId?: string | null;
+  /** Only honoured for admins: defines a game's curated hosting format. */
+  isOfficial?: boolean;
 }
 
 /**
@@ -106,7 +134,32 @@ export async function createCustomFramework(
     return { ok: false, error: "Invalid game selected." };
   }
 
+  // Official = curated per-game format (the game's "way of gaming"). Only
+  // platform admins may mint those; they must be bound to a game so the
+  // game-first tournament creation always has a trustworthy default.
   const session = createAdminClient();
+
+  let isOfficial = false;
+  if (input.isOfficial) {
+    const { data: profile, error: pErr } = await session
+      .from("profiles")
+      .select("role")
+      .eq("id", u.user.id)
+      .maybeSingle();
+    if (pErr || !profile) {
+      return { ok: false, error: "Could not verify your role." };
+    }
+    if ((profile as { role: string }).role !== "admin") {
+      return { ok: false, error: "Only admins can define a game's official format." };
+    }
+    if (!gameId) {
+      return {
+        ok: false,
+        error: "An official format must be bound to a game.",
+      };
+    }
+    isOfficial = true;
+  }
 
   const { data: framework, error: fErr } = await session
     .from("tournament_frameworks")
@@ -117,6 +170,7 @@ export async function createCustomFramework(
       scoring_type: input.scoring_type,
       description: description || null,
       game_id: gameId || null,
+      is_official: isOfficial,
       created_by: u.user.id,
     })
     .select("id")

@@ -32,6 +32,7 @@ function fw(overrides: Partial<Framework>): Framework {
     scoring_type: "points",
     description: null,
     game_id: null,
+    is_official: false,
     scoring_schedule: null,
     match_format: null,
     created_by: null,
@@ -224,5 +225,32 @@ describe("044_game_frameworks.sql regression", () => {
 
   it("never references the legacy tournaments.creator_id column", () => {
     expect(MIGRATION).not.toMatch(/tournaments\.creator_id|t\.creator_id/);
+  });
+});
+
+describe("056_game_native_formats.sql regression", () => {
+  const M56 = readFileSync(
+    join(process.cwd(), "docs/database/056_game_native_formats.sql"),
+    "utf8",
+  );
+
+  it("adds the is_official flag with a NOT NULL default", () => {
+    expect(M56).toMatch(
+      /is_official BOOLEAN NOT NULL DEFAULT false/,
+    );
+  });
+
+  it("flags the 044 per-game formats as official, idempotently", () => {
+    const block = M56.match(/WHERE slug IN \(([\s\S]*?)\)/);
+    expect(block).toBeTruthy();
+    const slugs = block![1].match(/'[a-z0-9-]+'/g);
+    expect(slugs?.length).toBe(8);
+    expect(M56).toMatch(/UPDATE public\.tournament_frameworks\s+SET is_official = true/);
+  });
+
+  it("builds the game-first creation index over (game_id, is_official)", () => {
+    expect(M56).toMatch(
+      /idx_frameworks_game_official\s+ON public\.tournament_frameworks\(game_id, is_official\)/,
+    );
   });
 });

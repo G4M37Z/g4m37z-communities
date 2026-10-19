@@ -865,6 +865,7 @@ export interface TournamentFramework {
   created_by: string | null;
   created_at: string;
   game_id: string | null;
+  is_official: boolean;
   scoring_schedule: Record<string, unknown> | null;
   match_format: Record<string, unknown> | null;
 }

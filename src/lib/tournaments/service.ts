@@ -521,6 +521,24 @@ export async function createTournament(
   // fresh tournament immediately "knows" its pipeline (SPEC success criterion 2).
   let currentStageId: string | null = null;
   if (input.frameworkId) {
+    // Integrity: a game-bound hosting format may only be attached to a
+    // tournament for that same game — no Fortnite format on a PUBG cup.
+    const { data: fwRow, error: fwErr } = await session
+      .from("tournament_frameworks")
+      .select("game_id")
+      .eq("id", input.frameworkId)
+      .maybeSingle();
+    if (fwErr) return { ok: false, status: "error", error: fwErr.message };
+    if (!fwRow) return { ok: false, status: "invalid_input", error: "Framework not found." };
+    const fwGame = (fwRow as { game_id: string | null }).game_id;
+    if (fwGame && input.gameId && fwGame !== input.gameId) {
+      return {
+        ok: false,
+        status: "invalid_input",
+        error: "This format belongs to a different game.",
+      };
+    }
+
     const { data: firstStage, error: stageErr } = await session
       .from("tournament_stages")
       .select("id")

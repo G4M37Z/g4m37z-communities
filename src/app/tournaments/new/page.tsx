@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listGames } from "@/lib/games/service";
-import { listFrameworks } from "@/lib/tournaments/frameworks-service";
+import {
+  listFrameworks,
+  getStagesForFrameworks,
+} from "@/lib/tournaments/frameworks-service";
 import { TournamentCreateForm } from "@/components/tournaments/TournamentCreateForm";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +23,14 @@ export default async function NewTournamentPage() {
     listGames(supabase, { limit: 100 }),
     listFrameworks(supabase),
   ]);
+  const stages = await getStagesForFrameworks(
+    supabase,
+    frameworks.map((f) => f.id),
+  );
+  const stagesByFramework: Record<string, typeof stages> = {};
+  for (const s of stages) {
+    (stagesByFramework[s.framework_id] ??= []).push(s);
+  }
 
   return (
     <main className="container-x py-8 pb-20">
@@ -33,8 +44,8 @@ export default async function NewTournamentPage() {
         Create a tournament
       </h1>
       <p className="mt-2 text-sm text-text-secondary">
-        Tournaments are organised by community owners. New tournaments
-        start in REGISTRATION.
+        Pick a game — its own hosting format (stages, points, who advances)
+        is applied automatically. Tournaments start in REGISTRATION.
       </p>
       <TournamentCreateForm
         games={games.map((g) => ({
@@ -43,6 +54,7 @@ export default async function NewTournamentPage() {
           default_framework_id: g.default_framework_id,
         }))}
         frameworks={frameworks}
+        stagesByFramework={stagesByFramework}
       />
     </main>
   );

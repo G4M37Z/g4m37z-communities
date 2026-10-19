@@ -43,6 +43,8 @@ export interface Framework {
   scoring_type: ScoringType;
   description: string | null;
   game_id: string | null;
+  /** Curated per-game hosting format (DB default false; 044 seeds + admin-defined). */
+  is_official: boolean;
   scoring_schedule: ScoringSchedule | null;
   match_format: GameMatchFormat | null;
   created_by: string | null;
