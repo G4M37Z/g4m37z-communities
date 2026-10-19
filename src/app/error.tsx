@@ -12,14 +12,34 @@ import { BrandMark } from "@/components/brand/BrandMark";
 export default function GlobalError({
   error,
   reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  reset?: () => void;
+  retry?: () => void;
 }) {
+  const doRetry = retry ?? reset ?? (() => {});
+
   useEffect(() => {
     // Surface to the browser console so devs see it locally; in prod
     // ship to your error tracker (Sentry, etc.) here.
     console.error("App error boundary caught:", error);
+    try {
+      void fetch("/api/client-error", {
+        method: "POST",
+        keepalive: true,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          via: "error.tsx",
+          m: error.message,
+          d: error.digest ?? "",
+          s: error.stack ?? "",
+          p: location.href,
+        }),
+      });
+    } catch {
+      // diagnostics must never throw
+    }
   }, [error]);
 
   return (
@@ -49,7 +69,7 @@ export default function GlobalError({
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
-            onClick={reset}
+            onClick={doRetry}
             className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
           >
             <RotateCw size={16} />
