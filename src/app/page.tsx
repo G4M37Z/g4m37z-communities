@@ -15,6 +15,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandSignature } from "@/components/brand/BrandSignature";
 import { ScrollStory } from "@/components/landing/ScrollStory";
+import { Footer } from "@/components/Footer";
 import { getHomeFeed } from "@/lib/posts/queries";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
@@ -78,6 +79,8 @@ export default async function HomePage() {
           </Reveal>
         </div>
       </section>
+
+      <Footer user={user} />
     </>
   );
 }

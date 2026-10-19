@@ -1,6 +1,7 @@
 // src/app/login/page.tsx — full-screen mobile-first login, responsive layout
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { LoginForm } from "./LoginForm";
 import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
 
@@ -23,6 +24,7 @@ export default async function LoginPage({
   const resetComplete = params.reset === "complete";
 
   return (
+    <>
     <main className="container-x flex min-h-[100dvh] flex-col items-center justify-center px-6 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
@@ -50,5 +52,7 @@ export default async function LoginPage({
         </p>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }

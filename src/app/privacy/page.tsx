@@ -3,6 +3,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
+    <>
     <main className="container-x py-10 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <header className="mb-10">
@@ -129,6 +131,8 @@ export default function PrivacyPage() {
         </footer>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }
 

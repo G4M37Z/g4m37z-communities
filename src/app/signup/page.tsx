@@ -2,6 +2,7 @@
 // Email + password sign-up. Server Component shell that renders the form
 // (a client component for the in-flight state).
 
+import { SiteFooter } from "@/components/SiteFooter";
 import { Logo } from "@/components/Logo";
 import { SignupForm } from "./SignupForm";
 import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
@@ -24,7 +25,8 @@ export default async function SignupPage({
   const error = params.error;
 
   return (
-    <main className="container-x flex min-h-[80vh] items-center justify-center py-12">
+    <>
+      <main className="container-x flex min-h-[80vh] items-center justify-center py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-5 flex w-fit mx-auto text-fg">
@@ -44,5 +46,7 @@ export default async function SignupPage({
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }

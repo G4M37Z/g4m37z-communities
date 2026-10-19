@@ -1,5 +1,6 @@
 // src/app/forgot-password/page.tsx — request a password reset email
 import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { sanitizeNextPath } from "@/lib/supabase/auth-urls";
 
@@ -19,6 +20,7 @@ export default async function ForgotPasswordPage({
   const next = sanitizeNextPath(params.next, "/");
 
   return (
+    <>
     <main className="container-x flex min-h-[80vh] items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
@@ -38,5 +40,7 @@ export default async function ForgotPasswordPage({
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }

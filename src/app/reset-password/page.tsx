@@ -5,6 +5,7 @@
 
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { createClient } from "@/lib/supabase/server";
 import { UpdatePasswordForm } from "./UpdatePasswordForm";
 
@@ -26,7 +27,8 @@ export default async function ResetPasswordPage() {
   }
 
   return (
-    <main className="container-x flex min-h-[80vh] items-center justify-center px-6 py-12">
+    <>
+      <main className="container-x flex min-h-[80vh] items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-5 flex w-fit mx-auto text-fg">
@@ -45,5 +47,7 @@ export default async function ResetPasswordPage() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }
