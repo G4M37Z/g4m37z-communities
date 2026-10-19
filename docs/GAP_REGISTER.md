@@ -15,9 +15,18 @@
   signup `429 over_email_send_rate_limit` (ERRORS.md #5).
 - Reproduction: sign up with a fresh email → confirmation flow bypassed.
 - Root cause: ox-auth email rate limit; cannot be changed via SQL.
-- Status: BLOCKED — requires a Supabase **dashboard** action.
-- Next action: re-enable "Confirm email" in `authentication → providers →
-  email` immediately before launch; remove the seeded-user workaround notes.
+- Status: **RESOLVED (user action, 2026-10-20)** — confirmation re-enabled by
+  the user in the Supabase dashboard. Code audit found the flow ready: signup
+  never inserts a profile pre-confirmation (user_metadata path + ensure_profile
+  on callback/login), the callback routes `type=recovery` vs signup correctly,
+  and error mapping covers unconfirmed/expired/used links. One repair shipped:
+  **resend path added** — `resendConfirmation` action (`supabase.auth.resend`,
+  rate-limited 3/h per email, uniform response to avoid account probing) wired
+  into the login screen (under the "verify your email first" error) and the
+  signup "check your inbox" screen; an unverified user is no longer stuck.
+- Residual: the pre-launch 429 rate-limit workaround notes are moot once
+  confirmation is the steady state; Supabase also rate-limits resends
+  upstream.
 
 ## GAP-WEBRTC-01 — Two-peer voice/video media failed across real devices —
 ROOT CAUSE FIXED in code, two-device confirmation owed

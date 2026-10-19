@@ -13,7 +13,11 @@ import {
   Loader2,
   ArrowRight,
 } from "lucide-react";
-import { signInWithPassword, signInWithGoogle } from "@/lib/supabase/actions";
+import {
+  signInWithPassword,
+  signInWithGoogle,
+  resendConfirmation,
+} from "@/lib/supabase/actions";
 import { PasswordInput } from "@/components/PasswordInput";
 
 interface LoginFormProps {
@@ -64,6 +68,31 @@ export function LoginForm({ next, initialError, initialSuccess }: LoginFormProps
     initialError ? ERROR_MESSAGES[initialError] ?? "Something went wrong." : null,
   );
   const [success, setSuccess] = useState<string | null>(initialSuccess ?? null);
+  const [resendResult, setResendResult] = useState<string | null>(null);
+  const [resendPending, startResend] = useTransition();
+
+  const VERIFY_EMAIL_COPY =
+    "Please verify your email first — check your inbox for the confirmation link.";
+  const needsConfirm = error === VERIFY_EMAIL_COPY;
+
+  function resend(email: string) {
+    setResendResult(null);
+    if (!email) {
+      setResendResult("Type your email above first, then resend.");
+      return;
+    }
+    startResend(async () => {
+      const fd = new FormData();
+      fd.set("email", email);
+      fd.set("next", next);
+      const res = await resendConfirmation(fd);
+      setResendResult(
+        res.ok
+          ? "If that address needs confirming, a new link is on its way."
+          : res.error ?? null,
+      );
+    });
+  }
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -158,6 +187,33 @@ export function LoginForm({ next, initialError, initialSuccess }: LoginFormProps
           >
             <AlertCircle size={16} className="mt-0.5 shrink-0" />
             <p>{error}</p>
+          </div>
+        )}
+
+        {needsConfirm && (
+          <div className="flex flex-col items-start gap-1.5">
+            <button
+              type="button"
+              disabled={resendPending}
+              onClick={() =>
+                resend(
+                  document.querySelector<HTMLInputElement>("#email")?.value ?? "",
+                )
+              }
+              className="text-xs font-semibold text-accent-text hover:underline disabled:opacity-60"
+            >
+              {resendPending ? "Sending…" : "Resend the confirmation email"}
+            </button>
+            {resendResult && (
+              <p
+                role="status"
+                className={`text-xs ${
+                  resendResult.startsWith("Too many") ? "text-sale" : "text-success"
+                }`}
+              >
+                {resendResult}
+              </p>
+            )}
           </div>
         )}
 

@@ -208,6 +208,44 @@ export async function signOut() {
 }
 
 // ---------------------------------------------------------------------------
+// resendConfirmation
+// Re-issues a signup confirmation email. Authentication email confirmation is
+// enabled, so an unverified user who lost their first email was previously
+// stuck: login reports "verify your email first" with no supplied remedy.
+// The response is deliberately uniform — whether or not the address belongs
+// to an existing signup — so the endpoint cannot be used to probe accounts.
+// Supabase also rate-limits resends upstream.
+// ---------------------------------------------------------------------------
+
+export async function resendConfirmation(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  // Sanitized same-origin redirect target for the email link.
+  const next = sanitizeNextPath(String(formData.get("next") ?? "/"), "/");
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  const { allowed } = await rateLimit(`resend:${email}`, 3, 3600);
+  if (!allowed) {
+    return { error: "Too many emails requested. Wait a minute and try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: authCallbackUrl(next) },
+  });
+  // Uniform response: never reveal whether the address is signed up.
+  if (error) {
+    return { error: "We couldn't send a new email right now. Try again later." };
+  }
+  return { ok: true };
+}
+
+
+// ---------------------------------------------------------------------------
 // signInWithGoogle
 // Starts the Google OAuth flow. Supabase redirects to Google, then back to
 // /auth/callback with a PKCE code that the callback exchanges for a session.

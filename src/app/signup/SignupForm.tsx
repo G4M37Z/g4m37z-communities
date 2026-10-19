@@ -15,7 +15,11 @@ import {
   Loader2,
   ArrowRight,
 } from "lucide-react";
-import { signUpWithPassword, checkUsernameAvailability } from "@/lib/supabase/actions";
+import {
+  signUpWithPassword,
+  checkUsernameAvailability,
+  resendConfirmation,
+} from "@/lib/supabase/actions";
 import { PasswordInput } from "@/components/PasswordInput";
 
 interface SignupFormProps {
@@ -28,6 +32,25 @@ const USERNAME_RULE = /^[a-zA-Z0-9_]{3,30}$/;
 export function SignupForm({ next, initialError }: SignupFormProps) {
   const [pending, startTransition] = useTransition();
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [resendPending, startResend] = useTransition();
+  const [resendResult, setResendResult] = useState<string | null>(null);
+
+  function resend(email: string) {
+    setResendResult(null);
+    startResend(async () => {
+      const fd = new FormData();
+      fd.set("email", email);
+      fd.set("next", next);
+      const res = await resendConfirmation(fd);
+      setResendResult(
+        res.ok
+          ? "New link sent — same inbox, same flow."
+          : res.error?.startsWith("Too many")
+            ? res.error
+            : "We couldn't send a new email right now. Try again later.",
+      );
+    });
+  }
     const [error, setError] = useState<string | null>(initialError ?? null);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [password, setPassword] = useState("");
@@ -137,7 +160,30 @@ export function SignupForm({ next, initialError }: SignupFormProps) {
           setting up your account. You can close this tab.
         </p>
         <p className="mt-4 text-xs text-text-muted">
-          Didn&apos;t get it? Check your spam folder, or{" "}
+          Didn&apos;t get it? Check your spam folder.
+        </p>
+        <div className="mt-2 flex flex-col items-center gap-1.5">
+          <button
+            type="button"
+            disabled={resendPending}
+            onClick={() => resend(sentTo ?? "")}
+            className="text-xs font-semibold text-accent-text hover:underline disabled:opacity-60"
+          >
+            {resendPending ? "Sending…" : "Send the email again"}
+          </button>
+          {resendResult && (
+            <p
+              role="status"
+              className={`text-xs ${
+                resendResult.startsWith("Too many") ? "text-sale" : "text-success"
+              }`}
+            >
+              {resendResult}
+            </p>
+          )}
+        </div>
+        <p className="mt-4 text-xs text-text-muted">
+          Or{" "}
           <button
             type="button"
             onClick={() => setSentTo(null)}
