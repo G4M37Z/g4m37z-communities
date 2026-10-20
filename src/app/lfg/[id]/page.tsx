@@ -8,6 +8,7 @@ import {
 } from "@/lib/lfg/service";
 import { LfgJoinLeaveButton } from "@/components/lfg/LfgJoinLeaveButton";
 import { LfgHostControls } from "@/components/lfg/LfgHostControls";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,7 @@ export default async function LfgDetailPage({
           Hosted by{" "}
           <span className="font-semibold text-fg">
             {session.host_display_name ?? session.host_username ?? "—"}
+            {session.host_verified && <VerifiedBadge size={13} className="ml-0.5" />}
           </span>
         </p>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
@@ -221,6 +223,7 @@ export default async function LfgDetailPage({
               >
                 <span className="text-sm font-semibold text-fg">
                   {p.display_name ?? p.username ?? "Gamer"}
+                  {p.verified && <VerifiedBadge size={13} className="ml-0.5" />}
                 </span>
                 <span className="text-xs text-text-muted">
                   joined {new Date(p.joined_at).toLocaleString(undefined, {

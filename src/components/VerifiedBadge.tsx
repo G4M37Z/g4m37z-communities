@@ -1,29 +1,26 @@
-import { Badge } from "@/components/Badge";
+import { cn } from "@/lib/utils";
 
 // 059_profiles_verified.sql — granted only through the trusted administrative
 // path; criteria for others pending, so render only when profiles.verified.
-export function VerifiedBadge({ className }: { className?: string }) {
+// Asset: public-domain X/Twitter-style check (public/verified-badge.png,
+// rasterized from the Wikimedia SVG); used inline next to the account name
+// the way other apps do.
+export function VerifiedBadge({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
-    <Badge
-      variant="accent"
-      className="gap-0.5"
-      title="Verified account"
-      aria-label="Verified account"
+    <img
+      src="/verified-badge.png"
+      alt="Verified account"
+      width={size}
+      height={size}
+      draggable={false}
       data-testid="verified-badge"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        className="h-2.5 w-2.5"
-      >
-        <path d="M20 6 9 17l-5-5" />
-      </svg>
-      Verified
-    </Badge>
+      className={cn("inline-block shrink-0 align-[-0.15em]", className)}
+    />
   );
 }

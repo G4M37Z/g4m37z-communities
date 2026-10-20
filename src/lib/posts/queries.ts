@@ -24,13 +24,14 @@ interface JoinedPost {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
+    verified: boolean;
   } | null;
   community: { slug: string; name: string } | null;
 }
 
 const POST_SELECT = `
   id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count, view_count,
-  author:profiles!posts_author_id_fkey ( username, display_name, avatar_url ),
+  author:profiles!posts_author_id_fkey ( username, display_name, avatar_url, verified ),
   community:communities!posts_community_id_fkey ( slug, name )
 `;
 
@@ -175,6 +176,7 @@ interface RepostMeta {
   username: string;
   comment: string | null;
   at: string;
+  verified: boolean;
 }
 
 /**
@@ -218,11 +220,15 @@ async function getRepostFeedMeta(
   }
 
   const reposterNames = new Map<string, string>();
+  const reposterVerified = new Map<string, boolean>();
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, username")
+    .select("id, username, verified")
     .in("id", [...new Set(rows.map((r) => r.reposter_id))]);
-  for (const p of profiles ?? []) reposterNames.set(p.id, p.username);
+  for (const p of profiles ?? []) {
+    reposterNames.set(p.id, p.username);
+    reposterVerified.set(p.id, p.verified);
+  }
 
   for (const r of rows) {
     if (!meta.has(r.post_id)) {
@@ -230,6 +236,7 @@ async function getRepostFeedMeta(
         username: reposterNames.get(r.reposter_id) ?? "someone",
         comment: r.comment,
         at: r.created_at,
+        verified: reposterVerified.get(r.reposter_id) ?? false,
       });
     }
   }

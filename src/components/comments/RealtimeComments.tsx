@@ -14,6 +14,7 @@ interface Author {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  verified: boolean;
 }
 
 interface CommentNode {
@@ -90,7 +91,7 @@ export function RealtimeComments({
 
       const { data: author } = await supabase
         .from("profiles")
-        .select("username, display_name, avatar_url")
+        .select("username, display_name, avatar_url, verified")
         .eq("id", inserted.author_id)
         .maybeSingle();
 

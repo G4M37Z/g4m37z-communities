@@ -238,6 +238,7 @@ export interface RecipientSuggestion {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  verified: boolean | null;
 }
 
 /** Graph-first suggestions for the new-message picker: people the caller
@@ -268,7 +269,7 @@ export async function listMessageSuggestions(limit = 8): Promise<RecipientSugges
   if (followedIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url")
+      .select("id, username, display_name, avatar_url, verified")
       .in("id", followedIds);
     collect((profiles ?? []) as RecipientSuggestion[]);
   }
@@ -284,7 +285,7 @@ export async function listMessageSuggestions(limit = 8): Promise<RecipientSugges
   if (reverseIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url")
+      .select("id, username, display_name, avatar_url, verified")
       .in("id", reverseIds);
     collect((profiles ?? []) as RecipientSuggestion[]);
   }

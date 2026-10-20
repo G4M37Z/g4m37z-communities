@@ -8,11 +8,12 @@ import { ShareButton } from "@/components/post/ShareButton";
 import { BookmarkButton } from "@/components/post/BookmarkButton";
 import { RepostButton } from "@/components/post/RepostButton";
 import { PollView as PollViewComponent } from "@/components/polls/PollView";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import type { PollView } from "@/lib/polls/service";
 
-export interface PostCardData extends Post {  author: { username: string; display_name: string | null; avatar_url: string | null } | null;  community: { slug: string; name: string } | null;  comment_count: number;  score: number;  my_vote?: 1 | -1 | null;  signed_in?: boolean;  bookmarked?: boolean;    repost_count?: number;
+export interface PostCardData extends Post {  author: { username: string; display_name: string | null; avatar_url: string | null; verified: boolean | null } | null;  community: { slug: string; name: string } | null;  comment_count: number;  score: number;  my_vote?: 1 | -1 | null;  signed_in?: boolean;  bookmarked?: boolean;    repost_count?: number;
   reposted?: boolean;
-  reposted_by?: { username: string; comment: string | null; at: string } | null;
+  reposted_by?: { username: string; comment: string | null; at: string; verified?: boolean } | null;
   poll?: PollView | null;
 }
 
@@ -42,6 +43,7 @@ export function PostCard({ post }: Props) {
                 className="font-semibold text-fg hover:text-accent-text"
               >
                 @{post.reposted_by.username}
+                {post.reposted_by.verified && <VerifiedBadge size={13} />}
               </Link>
               <span>reposted</span>
             </p>
@@ -51,7 +53,7 @@ export function PostCard({ post }: Props) {
               <><Link href={`/communities/${post.community.slug}`} className="font-semibold text-fg hover:text-accent-text">{post.community.name}</Link><span aria-hidden="true">·</span></>
             )}
             {post.author && (
-              <Link href={`/profile/${post.author.username}`} className="hover:text-fg">@{post.author.username}</Link>
+              <Link href={`/profile/${post.author.username}`} className="hover:text-fg">@{post.author.username}{post.author.verified && <VerifiedBadge size={13} />}</Link>
             )}
             <span aria-hidden="true">·</span>
             <time dateTime={post.created_at}>{timeAgo(post.created_at)}</time>

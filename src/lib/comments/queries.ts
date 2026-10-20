@@ -17,6 +17,7 @@ export interface JoinedComment {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
+    verified: boolean;
   } | null;
 }
 
@@ -41,7 +42,7 @@ export async function getCommentThread(
       .from("comments")
       .select(
         `id, post_id, author_id, parent_id, body, created_at, updated_at,
-         author:profiles!comments_author_id_fkey ( username, display_name, avatar_url )`
+         author:profiles!comments_author_id_fkey ( username, display_name, avatar_url, verified )`
       )
       .eq("post_id", postId)
       .order("created_at", { ascending: true }),

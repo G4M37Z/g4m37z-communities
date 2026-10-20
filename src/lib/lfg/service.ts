@@ -72,6 +72,7 @@ export interface LfgSessionWithJoins extends LfgSession {
   platform_name?: string | null;
   host_username?: string | null;
   host_display_name?: string | null;
+  host_verified?: boolean | null;
   participant_count?: number;
 }
 
@@ -85,6 +86,7 @@ export interface LfgParticipantWithProfile extends LfgParticipant {
   username?: string | null;
   display_name?: string | null;
   avatar_url?: string | null;
+  verified?: boolean | null;
 }
 
 export interface CreateLfgInput {
@@ -190,7 +192,7 @@ export async function listLfgSessions(
     LfgSession & {
       games: { name: string; slug: string } | Array<{ name: string; slug: string }> | null;
       platforms: { name: string } | Array<{ name: string }> | null;
-      profiles: { username: string; display_name: string | null } | Array<{ username: string; display_name: string | null }> | null;
+      profiles: { username: string; display_name: string | null; verified: boolean } | Array<{ username: string; display_name: string | null; verified: boolean }> | null;
     }
   >;
 
@@ -210,6 +212,7 @@ export async function listLfgSessions(
       platform_name: platform?.name ?? null,
       host_username: host?.username ?? null,
       host_display_name: host?.display_name ?? null,
+      host_verified: host?.verified ?? null,
       participant_count: 0,
     };
   });
@@ -231,7 +234,7 @@ export async function getLfgSession(
   const row = data as LfgSession & {
     games: { name: string; slug: string } | Array<{ name: string; slug: string }> | null;
     platforms: { name: string } | Array<{ name: string }> | null;
-    profiles: { username: string; display_name: string | null } | Array<{ username: string; display_name: string | null }> | null;
+    profiles: { username: string; display_name: string | null; verified: boolean } | Array<{ username: string; display_name: string | null; verified: boolean }> | null;
   };
   const game = Array.isArray(row.games) ? row.games[0] : row.games;
   const platform = Array.isArray(row.platforms) ? row.platforms[0] : row.platforms;
@@ -243,6 +246,7 @@ export async function getLfgSession(
     platform_name: platform?.name ?? null,
     host_username: host?.username ?? null,
     host_display_name: host?.display_name ?? null,
+    host_verified: host?.verified ?? null,
     participant_count: 0,
   };
 }
@@ -286,8 +290,8 @@ export async function listLfgParticipants(
   return (data as Array<
     LfgParticipant & {
       profiles:
-        | { username: string; display_name: string | null; avatar_url: string | null }
-        | Array<{ username: string; display_name: string | null; avatar_url: string | null }>
+        | { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }
+        | Array<{ username: string; display_name: string | null; avatar_url: string | null; verified: boolean }>
         | null;
     }
   >).map((row) => {

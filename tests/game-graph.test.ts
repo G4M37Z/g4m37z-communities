@@ -45,8 +45,8 @@ describe("migration 053 regression", () => {
 
 describe("shapePlayers", () => {
   const profiles = {
-    "u1": { username: "autotest", display_name: "Auto Test", avatar_url: null },
-    "u2": { username: "autotest2", display_name: "Two", avatar_url: null },
+    "u1": { username: "autotest", display_name: "Auto Test", avatar_url: null, verified: false },
+    "u2": { username: "autotest2", display_name: "Two", avatar_url: null, verified: false },
   };
 
   it("collapses duplicate statuses to the highest priority", () => {
@@ -69,7 +69,7 @@ describe("shapePlayers", () => {
         { user_id: "u1", status: "owned" },
         { user_id: "u3", status: "playing" },
       ],
-      { ...profiles, u3: { username: "third", display_name: null, avatar_url: null } },
+      { ...profiles, u3: { username: "third", display_name: null, avatar_url: null, verified: false } },
       {},
     );
     expect(out.map((p) => p.status)).toEqual(["playing", "owned", "followed"]);

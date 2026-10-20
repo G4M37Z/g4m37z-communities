@@ -11,6 +11,7 @@ import { CommentVoteControl } from "@/components/voting/CommentVoteControl";
 import { CommentForm } from "./CommentForm";
 import { deleteComment } from "@/lib/comments/actions";
 import { timeAgo } from "@/lib/utils";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 interface Props {
   comment: ThreadedComment;
@@ -68,6 +69,7 @@ export function Comment({
               className="font-semibold text-fg hover:text-accent-text"
             >
               @{comment.author.username}
+              {comment.author.verified && <VerifiedBadge size={13} className="ml-0.5" />}
             </Link>
             <span aria-hidden="true">·</span>
           </>

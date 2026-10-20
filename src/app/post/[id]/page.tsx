@@ -14,6 +14,7 @@ import { ReportButton } from "@/components/ReportButton";
 import { RealtimeComments } from "@/components/comments/RealtimeComments";
 import { ReactionButton } from "@/components/reaction-button";
 import { PostViewTracker } from "@/components/post/PostViewTracker";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { BookmarkButton } from "@/components/post/BookmarkButton";
 import { RepostButton } from "@/components/post/RepostButton";
 import { ShareButton } from "@/components/post/ShareButton";
@@ -35,6 +36,7 @@ interface JoinedPost extends Post {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
+    verified: boolean;
   } | null;
   community: { slug: string; name: string } | null;
   game: { id: string; name: string; slug: string } | null;
@@ -95,7 +97,7 @@ export default async function PostPage({
     .from("posts")
     .select(
       `id, community_id, author_id, title, body, image_url, created_at, updated_at, comment_count, view_count,
-       author:profiles!posts_author_id_fkey ( username, display_name, avatar_url ),
+       author:profiles!posts_author_id_fkey ( username, display_name, avatar_url, verified ),
        community:communities!posts_community_id_fkey ( slug, name ),
        game:games!posts_game_id_fkey ( id, name, slug )`
     )
@@ -233,6 +235,9 @@ export default async function PostPage({
                     className="hover:text-fg"
                   >
                     @{post.author.username}
+                    {post.author.verified && (
+                      <VerifiedBadge size={13} className="ml-0.5" />
+                    )}
                   </Link>
                 )}
                 <span aria-hidden="true">·</span>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Reveal } from "@/components/ui/reveal";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ export default async function CreatorsPage() {
                     >
                       {c.display_name}
                       {c.verified && (
-                        <span className="ml-1.5 text-accent-text">✓</span>
+                        <VerifiedBadge size={13} className="ml-1.5" />
                       )}
                     </Link>
                     {c.bio && (

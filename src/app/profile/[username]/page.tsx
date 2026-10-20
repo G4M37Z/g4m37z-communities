@@ -207,7 +207,7 @@ supabase
             <h1 className="text-2xl font-bold text-fg sm:text-3xl">
               {profileData.display_name ?? profileData.username}
             </h1>
-            {profileData.verified && <VerifiedBadge className="self-center" />}
+            {profileData.verified && <VerifiedBadge size={22} />}
             <span className="text-sm text-text-muted">
               @{profileData.username}
             </span>

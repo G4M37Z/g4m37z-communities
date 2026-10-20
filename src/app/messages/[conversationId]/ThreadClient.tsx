@@ -19,10 +19,11 @@ import { Trash2 } from "lucide-react";
 import type { Message } from "@/lib/messaging/service";
 import { deleteMessageAction } from "@/lib/messaging/actions";
 import { MessageForm } from "./MessageForm";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export type ProfileMap = Map<
   string,
-  { username: string; display_name: string | null; avatar_url: string | null }
+  { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }
 >;
 
 /** Distance (px) from the bottom within which auto-scroll stays engaged. */
@@ -252,6 +253,7 @@ export function ThreadClient({
                     {m.sender_id !== currentUserId && !grouped && !isSticker && (
                       <p className="mb-0.5 text-[10px] font-semibold text-text-muted">
                         {p?.display_name ?? p?.username ?? "Unknown"}
+                        {p?.verified && <VerifiedBadge size={12} className="ml-0.5" />}
                       </p>
                     )}
                     {m.attachment_url && (

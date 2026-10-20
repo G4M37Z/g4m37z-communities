@@ -53,8 +53,8 @@ export interface VoiceParticipant {
   is_muted: boolean;
   joined_at: string;
   profile?:
-    | { username: string; display_name: string | null; avatar_url: string | null }
-    | { username: string; display_name: string | null; avatar_url: string | null }[]
+    | { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }
+    | { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }[]
     | null;
 }
 
@@ -64,7 +64,7 @@ export async function listRoomParticipants(roomId: string) {
     .from("voice_room_participants")
     .select(
       `room_id, user_id, role, is_muted, joined_at,
-       profile:profiles!voice_room_participants_user_id_fkey ( username, display_name, avatar_url )`,
+       profile:profiles!voice_room_participants_user_id_fkey ( username, display_name, avatar_url, verified )`,
     )
     .eq("room_id", roomId)
     .order("joined_at", { ascending: true });

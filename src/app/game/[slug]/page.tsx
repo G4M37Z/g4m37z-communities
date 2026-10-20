@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/server";
 import { PageEnter } from "@/components/PageEnter";
 import {
@@ -187,6 +188,7 @@ export default async function GameDetailPage({
                     </span>
                     <span className="text-xs font-medium text-fg">
                       {p.display_name ?? p.username}
+                      {p.verified && <VerifiedBadge size={13} className="ml-0.5" />}
                     </span>
                     <span className="text-[10px] uppercase tracking-wider text-text-muted">
                       {p.status.replace("_", " ")}
@@ -245,7 +247,7 @@ export default async function GameDetailPage({
                           {p.title}
                         </span>
                         <span className="text-[10px] text-text-muted uppercase tracking-wider">
-                          {p.author_username ? `@${p.author_username} · ` : ""}
+                          {p.author_username ? `@${p.author_username}${p.author_verified ? " ✓" : ""} · ` : ""}
                           {formatDate(p.created_at)}
                         </span>
                       </Link>
@@ -289,6 +291,7 @@ export default async function GameDetailPage({
                   >
                     <span className="text-sm font-medium text-fg">
                       {s.host_display_name ?? s.host_username ?? "Host"}
+                      {s.host_verified && <VerifiedBadge size={13} className="ml-0.5" />}
                     </span>
                     <span className="text-xs uppercase tracking-wider text-accent-text">
                       {s.mode ?? "Open"}
@@ -334,6 +337,7 @@ export default async function GameDetailPage({
                       {r.author_display_name ??
                         r.author_username ??
                         "Gamer"}
+                      {r.author_verified && <VerifiedBadge size={13} className="ml-0.5" />}
                     </span>
                     <span className="text-[10px] text-text-muted uppercase tracking-wider">
                       {formatDate(r.created_at)}

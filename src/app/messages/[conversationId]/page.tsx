@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listMessages, isConversationMember, getReadState } from "@/lib/messaging/service";
 import { getCallContext } from "@/lib/messaging/calls";
 import { PageEnter } from "@/components/PageEnter";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { DmCall } from "@/components/dm-call";
 import { ThreadLive } from "./ThreadLive";
 import { ThreadClient } from "./ThreadClient";
@@ -59,15 +60,15 @@ export default async function MessageThreadPage({
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter(Boolean))] as string[];
   const profiles = new Map<
     string,
-    { username: string; display_name: string | null; avatar_url: string | null }
+    { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }
   >();
   if (senderIds.length) {
     const { data } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url")
+      .select("id, username, display_name, avatar_url, verified")
       .in("id", senderIds);
     (data ?? []).forEach(
-      (p: { id: string; username: string; display_name: string | null; avatar_url: string | null }) =>
+      (p: { id: string; username: string; display_name: string | null; avatar_url: string | null; verified: boolean }) =>
         profiles.set(p.id, p),
     );
   }
@@ -105,6 +106,7 @@ export default async function MessageThreadPage({
                   className="block truncate text-sm font-bold text-fg hover:text-accent-text"
                 >
                   {callContext.partner.display_name ?? callContext.partner.username}
+                  {callContext.partner.verified && <VerifiedBadge size={13} className="ml-0.5" />}
                 </Link>
                 <p className="truncate text-[11px] text-text-muted">
                   @{callContext.partner.username}

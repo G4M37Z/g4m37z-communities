@@ -13,6 +13,7 @@ import {
   type MessageActionState,
 } from "@/lib/messaging/actions";
 import type { RecipientSuggestion } from "@/lib/messaging/service";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 function Avatar({ person }: { person: RecipientSuggestion }) {
   if (person.avatar_url) {
@@ -157,6 +158,7 @@ export function NewConversationForm({
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-fg">
                           {person.display_name ?? person.username}
+                          {person.verified && <VerifiedBadge size={13} className="ml-0.5" />}
                         </span>
                         <span className="block truncate text-xs text-text-muted">
                           @{person.username}

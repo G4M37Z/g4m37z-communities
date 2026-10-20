@@ -9,6 +9,7 @@ import {
 } from "@/lib/messaging/actions";
 import { PageEnter } from "@/components/PageEnter";
 import { MessagesLive } from "@/components/messages/MessagesLive";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ interface EnrichedConversation {
   name: string | null;
   otherName: string;
   otherAvatar: string | null;
+  otherVerified: boolean;
   lastMsg: {
     body: string | null;
     created_at: string;
@@ -56,6 +58,11 @@ async function loadBucket(bucket: ConversationBucket) {
         ...conv,
         otherName,
         otherAvatar: other?.avatar_url ?? null,
+        otherVerified: Boolean(
+          conv.name
+            ? false // group conversations use the community name, no account
+            : other?.verified ?? false,
+        ),
         lastMsg: lastMsg as EnrichedConversation["lastMsg"],
       };
     }),
@@ -92,7 +99,10 @@ function ConversationRow({
         )}
         <div className="min-w-0 flex-1">
           <div className="mb-0.5 flex items-baseline justify-between">
-            <span className="truncate text-sm font-semibold text-fg">{conv.otherName}</span>
+            <span className="truncate text-sm font-semibold text-fg">
+              {conv.otherName}
+              {conv.otherVerified && <VerifiedBadge size={13} className="ml-0.5" />}
+            </span>
             {conv.lastMsg?.created_at && (
               <time dateTime={conv.lastMsg.created_at} className="shrink-0 text-[10px] text-text-muted">
                 {new Date(conv.lastMsg.created_at).toLocaleDateString()}

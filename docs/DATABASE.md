@@ -8,7 +8,7 @@
 
 ## Migration order (verified against `docs/database/`)
 
-> The canonical migration tree is **001 → 059** (note: two files are numbered
+> The canonical migration tree is **001 → 060** (note: two files are numbered
 > `031`, and there is no `039`). The table below covers the early splits; rows
 > from 031 onward are compressed and their purpose is derived from the filename
 > plus the live objects they produced.
@@ -80,6 +80,7 @@
 | 057 | `057_storage_hardening.sql` | bucket caps: attachments 10 MB, avatars 2 MB, post-images 5 MB, voice 5 MB |
 | 058 | `058_piggyback_key_signal.sql` | piggyback lane: `webrtc_signals.type` CHECK now also allows `PB_KEY` (ephemeral ECDH offers) |
 | 059 | `059_profiles_verified.sql` | `profiles.verified` BOOLEAN (badge, trusted admin path only — `guard_profile_verified` mirrors 014 P0.1); owner account `linyuluderrick` seeded `true`; criteria for others pending |
+| 060 | `060_partner_verified.sql` | verification in messaging: `get_conversation_partner`/`list_message_partners` recreated with `verified` (drop + recreate, grants unchanged) |
 
 ### PostgREST embed-relationship warning (root cause of migration 030)
 

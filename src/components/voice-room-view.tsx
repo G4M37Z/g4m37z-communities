@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useWebRTCPeer } from "@/components/webrtc-peer";
 import { joinVoiceRoom, leaveVoiceRoom } from "@/lib/voice/actions";
 import type { VoiceParticipant } from "@/lib/voice/queries";
@@ -48,7 +49,7 @@ export function VoiceRoomView({
       .from("voice_room_participants")
       .select(
         `room_id, user_id, role, is_muted, joined_at,
-         profile:profiles!voice_room_participants_user_id_fkey ( username, display_name, avatar_url )`,
+         profile:profiles!voice_room_participants_user_id_fkey ( username, display_name, avatar_url, verified )`,
       )
       .eq("room_id", roomId)
       .order("joined_at", { ascending: true });
@@ -236,6 +237,7 @@ export function VoiceRoomView({
                 <div className="min-w-0 flex-1">
                   <span className="font-medium text-fg">
                     {profile?.username ?? "Member"}
+                    {profile?.verified && <VerifiedBadge size={13} className="ml-0.5" />}
                   </span>
                   {isMe && <span className="ml-1 text-xs text-text-muted">(you)</span>}
                   <span className="mx-1 text-xs text-text-muted">· {p.role}</span>

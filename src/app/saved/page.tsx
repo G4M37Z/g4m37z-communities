@@ -100,6 +100,7 @@ export default async function SavedPage({
                       username: p.author?.username ?? "",
                       display_name: p.author?.display_name ?? null,
                       avatar_url: null,
+                      verified: false,
                     },
                     community: p.community,
                     signed_in: true,

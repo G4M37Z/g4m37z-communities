@@ -10,6 +10,7 @@ import { getMyNotifications, getUnreadNotificationCount } from "@/lib/notificati
 import { markNotificationRead } from "@/lib/notifications/actions";
 import { MarkAllReadButton } from "@/components/MarkAllReadButton";
 import type { Notification, Profile } from "@/types/database";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export const metadata = {
 };
 
 type NotificationWithActor = Notification & {
-  actor: Pick<Profile, "id" | "username" | "display_name" | "avatar_url"> | null;
+  actor: Pick<Profile, "id" | "username" | "display_name" | "avatar_url" | "verified"> | null;
 };
 
 export default async function NotificationsPage() {
@@ -65,11 +66,11 @@ export default async function NotificationsPage() {
   const actorIds = Array.from(
     new Set(rawNotifications.map((n) => n.actor_id).filter(Boolean) as string[])
   );
-  const actorProfiles = new Map<string, Pick<Profile, "id" | "username" | "display_name" | "avatar_url">>();
+  const actorProfiles = new Map<string, Pick<Profile, "id" | "username" | "display_name" | "avatar_url" | "verified">>();
   if (actorIds.length > 0) {
     const { data: actors } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url")
+      .select("id, username, display_name, avatar_url, verified")
       .in("id", actorIds);
     for (const a of actors ?? []) {
       actorProfiles.set(a.id, a);
@@ -234,7 +235,10 @@ function NotificationItem({
           {href ? (
             <Link href={href} className="hover:text-accent-text">
               {actor && (
-                <span className="font-semibold">@{actor.username}</span>
+                <span className="font-semibold">
+                  @{actor.username}
+                  {actor.verified && <VerifiedBadge size={13} className="ml-0.5" />}
+                </span>
               )}
               {label}
               {notification.reference_id && (
@@ -246,7 +250,10 @@ function NotificationItem({
           ) : (
             <>
               {actor && (
-                <span className="font-semibold">@{actor.username}</span>
+                <span className="font-semibold">
+                  @{actor.username}
+                  {actor.verified && <VerifiedBadge size={13} className="ml-0.5" />}
+                </span>
               )}
               {label}
             </>

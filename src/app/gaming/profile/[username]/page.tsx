@@ -137,7 +137,7 @@ export default async function GamingProfilePage({ params }: Props) {
           <div className="min-w-0 flex-1">
             <h1 className="flex items-center gap-2 truncate text-2xl font-black tracking-tight text-fg">
               {name}
-              {gamer.verified && <VerifiedBadge />}
+              {gamer.verified && <VerifiedBadge size={22} />}
             </h1>
             <Link
               href={`/profile/${encodeURIComponent(gamer.username)}`}

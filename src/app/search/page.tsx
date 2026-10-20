@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Users, MessageSquare, Hash, Search as SearchIcon } from "lucide-react";
 import { searchAll } from "@/lib/search/queries";
 import { timeAgo } from "@/lib/utils";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -189,6 +190,7 @@ export default async function SearchPage({ searchParams }: Props) {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-fg">
                           @{u.username}
+                          {u.verified && <VerifiedBadge size={13} className="ml-0.5" />}
                         </p>
                         {u.display_name && (
                           <p className="truncate text-xs text-text-muted">

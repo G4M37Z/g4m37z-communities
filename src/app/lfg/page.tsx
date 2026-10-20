@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listLfgSessions } from "@/lib/lfg/service";
 import { listGames, listPlatforms } from "@/lib/games/service";
 import { Reveal } from "@/components/ui/reveal";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -220,6 +221,7 @@ export default async function LfgDiscoverPage({
                       Host:{" "}
                       <span className="text-fg">
                         {s.host_display_name ?? s.host_username ?? "—"}
+                        {s.host_verified && <VerifiedBadge size={13} className="ml-0.5" />}
                       </span>
                     </p>
                   </div>

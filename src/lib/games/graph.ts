@@ -29,6 +29,7 @@ export interface GraphPlayer {
   avatar_url: string | null;
   status: string;
   in_game_name: string | null;
+  verified: boolean;
 }
 
 export interface GraphCommunity {
@@ -44,6 +45,7 @@ export interface GraphPost {
   title: string;
   created_at: string;
   author_username: string | null;
+  author_verified: boolean;
 }
 
 export interface GameGraph {
@@ -66,7 +68,7 @@ export interface GameGraph {
  */
 export function shapePlayers(
   library: Array<{ user_id: string; status: string }>,
-  profiles: Record<string, { username: string; display_name: string | null; avatar_url: string | null }>,
+  profiles: Record<string, { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }>,
   identities: Record<string, string>,
 ): GraphPlayer[] {
   const PRIORITY = ["playing", "favorite", "owned", "want_to_play", "followed"];
@@ -88,6 +90,7 @@ export function shapePlayers(
       avatar_url: p.avatar_url,
       status,
       in_game_name: identities[userId] ?? null,
+      verified: p.verified,
     });
   }
   players.sort((a, b) => {
@@ -147,7 +150,7 @@ export async function getGameGraph(
     supabase
       .from("posts")
       .select(
-        "id, title, created_at, profiles:profiles!posts_author_id_fkey ( username )",
+        "id, title, created_at, profiles:profiles!posts_author_id_fkey ( username, verified )",
       )
       .eq("game_id", gameId)
       .order("created_at", { ascending: false })
@@ -164,12 +167,12 @@ export async function getGameGraph(
   const userIds = [...new Set(library.map((r) => r.user_id))];
   let profileMap: Record<
     string,
-    { username: string; display_name: string | null; avatar_url: string | null }
+    { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }
   > = {};
   if (userIds.length > 0) {
     const { data: profs } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url")
+      .select("id, username, display_name, avatar_url, verified")
       .in("id", userIds);
     profileMap = Object.fromEntries(
       ((profs ?? []) as Array<{
@@ -177,7 +180,8 @@ export async function getGameGraph(
         username: string;
         display_name: string | null;
         avatar_url: string | null;
-      }>).map((p) => [p.id, { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }]),
+        verified: boolean;
+      }>).map((p) => [p.id, { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url, verified: p.verified }]),
     );
   }
 
@@ -198,7 +202,7 @@ export async function getGameGraph(
     id: string;
     title: string;
     created_at: string;
-    profiles: { username: string } | Array<{ username: string }> | null;
+    profiles: { username: string; verified: boolean } | Array<{ username: string; verified: boolean }> | null;
   }>).map((p) => {
     const author = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
     return {
@@ -206,6 +210,7 @@ export async function getGameGraph(
       title: p.title,
       created_at: p.created_at,
       author_username: author?.username ?? null,
+      author_verified: author?.verified ?? false,
     };
   });
 

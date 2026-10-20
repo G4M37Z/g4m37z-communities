@@ -325,6 +325,7 @@ export interface GameReviewWithAuthor extends GameReview {
   author_username?: string | null;
   author_display_name?: string | null;
   author_avatar_url?: string | null;
+  author_verified?: boolean | null;
 }
 
 export interface CreateReviewInput {
@@ -513,7 +514,7 @@ export async function listGameReviews(
   const { data, error } = await supabase
     .from("game_reviews")
     .select(
-      "id, game_id, user_id, gameplay_score, graphics_score, performance_score, story_score, audio_score, value_score, overall_score, body, created_at, profiles:profiles!game_reviews_user_id_fkey ( username, display_name, avatar_url )",
+      "id, game_id, user_id, gameplay_score, graphics_score, performance_score, story_score, audio_score, value_score, overall_score, body, created_at, profiles:profiles!game_reviews_user_id_fkey ( username, display_name, avatar_url, verified )",
     )
     .eq("game_id", gameId)
     .order("created_at", { ascending: false })
@@ -522,8 +523,8 @@ export async function listGameReviews(
   return (data as Array<
     GameReview & {
       profiles:
-        | { username: string; display_name: string | null; avatar_url: string | null }
-        | Array<{ username: string; display_name: string | null; avatar_url: string | null }>
+        | { username: string; display_name: string | null; avatar_url: string | null; verified: boolean }
+        | Array<{ username: string; display_name: string | null; avatar_url: string | null; verified: boolean }>
         | null;
     }
   >).map((row) => {
@@ -533,6 +534,7 @@ export async function listGameReviews(
       author_username: author?.username ?? null,
       author_display_name: author?.display_name ?? null,
       author_avatar_url: author?.avatar_url ?? null,
+      author_verified: author?.verified ?? null,
     };
   });
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { PageEnter } from "@/components/PageEnter";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export default async function CreatorDetailPage({
         <header className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight text-fg">
             {creator.display_name}
-            {creator.verified && <span className="ml-2 text-accent-text">✓</span>}
+            {creator.verified && <VerifiedBadge size={18} className="ml-1" />}
           </h1>
           {creator.bio && (
             <p className="mt-2 text-sm text-text-secondary">{creator.bio}</p>

@@ -29,6 +29,7 @@ export interface SearchResult {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
+    verified: boolean;
   }>;
 }
 
@@ -75,7 +76,7 @@ export async function searchAll(rawQuery: string): Promise<SearchResult> {
         .from("posts")
         .select(
           `id, title, body, created_at, comment_count,
-           author:profiles!posts_author_id_fkey ( username ),
+           author:profiles!posts_author_id_fkey ( username, verified ),
            community:communities!posts_community_id_fkey ( slug, name )`
         )
         .or(`title.ilike.${pattern},body.ilike.${pattern}`)
@@ -84,7 +85,7 @@ export async function searchAll(rawQuery: string): Promise<SearchResult> {
 
       supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, created_at")
+        .select("id, username, display_name, avatar_url, verified, created_at")
         .or(
           `username.ilike.${userPattern},display_name.ilike.${userPattern}`
         )
@@ -145,7 +146,7 @@ export async function searchAll(rawQuery: string): Promise<SearchResult> {
       body: string | null;
       created_at: string;
       comment_count: number;
-      author: { username: string } | { username: string }[] | null;
+            author: { username: string; verified: boolean } | { username: string; verified: boolean }[] | null;
       community: { slug: string; name: string } | { slug: string; name: string }[] | null;
     }>).map((p) => ({
       id: p.id,

@@ -16,6 +16,7 @@
 // The service-role key is never used here.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendSignal,
@@ -882,7 +883,10 @@ export function DmCall({
             <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-accent text-2xl font-bold text-white">
               {partnerName.charAt(0).toUpperCase()}
             </div>
-            <p className="text-base font-bold text-fg">{partnerName}</p>
+            <p className="text-base font-bold text-fg">
+              {partnerName}
+              {partner.verified ? <VerifiedBadge size={14} /> : null}
+            </p>
 
             {isIncoming && (
               <p className="mt-1 text-sm text-text-secondary">
