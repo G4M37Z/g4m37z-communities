@@ -376,5 +376,5 @@ Next recommended action: pre-launch punch list in docs/GAP_REGISTER.md —
   re-enable email confirmation last (it re-triggers the 429), run the
   two-device voice test, triage sql/.
 ```
-- Migrations 001–058 are applied to the live DB and are the source of truth (two files are numbered `031`; there is no `039`). `docs/database/` files are the canonical migration log.
+- Migrations 001–059 are applied to the live DB and are the source of truth (two files are numbered `031`; there is no `039`). `docs/database/` files are the canonical migration log. 059 adds `profiles.verified` (badge, trusted admin path only); only the owner account `linyuluderrick` is verified so far — criteria for others is pending.
 - **PostgREST embeds** (`?select=...,author:profiles!posts_author_id_fkey`): the FK hint name must match a real FK that targets the embedded table. Do not add bare inline `REFERENCES auth.users(id)` on user columns — see `docs/DATABASE.md` warning and `030_fix_posts_profiles_relationship.sql`.

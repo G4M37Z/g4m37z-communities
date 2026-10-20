@@ -47,6 +47,8 @@ export interface Profile {
   notification_prefs: Record<string, unknown>;
   // 052_gaming_identity.sql
   gaming_visibility: string;
+  // 059_profiles_verified.sql — trusted admin path only (014-style guard)
+  verified: boolean;
 }
 
 // ----------------------------------------------------------------------------

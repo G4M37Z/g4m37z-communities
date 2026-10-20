@@ -15,6 +15,7 @@ import {
 } from "@/lib/achievements/service";
 import { listPlatformLinks, PLATFORM_LABELS } from "@/lib/profiles/platform-links";
 import { PlatformIcon } from "@/components/platform-icon";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ interface ProfileData {
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
+  verified: boolean;
 }
 
 interface PostRow {
@@ -89,7 +91,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, bio, created_at")
+    .select("id, username, display_name, avatar_url, bio, created_at, verified")
     .eq("username", normalizeUsername(username))
     .maybeSingle();
 
@@ -205,6 +207,7 @@ supabase
             <h1 className="text-2xl font-bold text-fg sm:text-3xl">
               {profileData.display_name ?? profileData.username}
             </h1>
+            {profileData.verified && <VerifiedBadge className="self-center" />}
             <span className="text-sm text-text-muted">
               @{profileData.username}
             </span>

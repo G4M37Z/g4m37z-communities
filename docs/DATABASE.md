@@ -8,7 +8,7 @@
 
 ## Migration order (verified against `docs/database/`)
 
-> The canonical migration tree is **001 → 058** (note: two files are numbered
+> The canonical migration tree is **001 → 059** (note: two files are numbered
 > `031`, and there is no `039`). The table below covers the early splits; rows
 > from 031 onward are compressed and their purpose is derived from the filename
 > plus the live objects they produced.
@@ -79,6 +79,7 @@
 | 056 | `056_game_native_formats.sql` | `tournament_frameworks.is_official` + 8 per-game formats flagged; `(game_id, is_official)` index |
 | 057 | `057_storage_hardening.sql` | bucket caps: attachments 10 MB, avatars 2 MB, post-images 5 MB, voice 5 MB |
 | 058 | `058_piggyback_key_signal.sql` | piggyback lane: `webrtc_signals.type` CHECK now also allows `PB_KEY` (ephemeral ECDH offers) |
+| 059 | `059_profiles_verified.sql` | `profiles.verified` BOOLEAN (badge, trusted admin path only — `guard_profile_verified` mirrors 014 P0.1); owner account `linyuluderrick` seeded `true`; criteria for others pending |
 
 ### PostgREST embed-relationship warning (root cause of migration 030)
 
@@ -114,8 +115,12 @@ The migrations are designed to be idempotent (use `IF NOT EXISTS`,
 ## Tables by domain
 
 ### Profiles / auth
-- `profiles(id uuid PK, username text UNIQUE, display_name, avatar_url, bio, role text, created_at, updated_at, terms_accepted_at?, terms_version?, gaming_handle?, platforms text[], favorite_games text[], play_style?, lfg_available bool, presence_state text, notification_prefs jsonb NOT NULL, gaming_visibility text NOT NULL)`.
+- `profiles(id uuid PK, username text UNIQUE, display_name, avatar_url, bio, role text, created_at, updated_at, terms_accepted_at?, terms_version?, gaming_handle?, platforms text[], favorite_games text[], play_style?, lfg_available bool, presence_state text, notification_prefs jsonb NOT NULL, gaming_visibility text NOT NULL, verified bool NOT NULL DEFAULT false)`.
 - `role` is one of `'member' | 'moderator' | 'admin' | 'suspended'`.
+- `verified` (059) is only mutable through the trusted administrative path —
+  `trg_guard_profile_verified` rejects any authenticated actor changing it,
+  same model as `trg_guard_profile_role`. Only the owner account
+  (`linyuluderrick`) starts `true`; criteria for others is pending.
 - UPDATE policy uses `USING (auth.uid() = id)` with no `WITH CHECK` — this is
   **closed** by the `trg_guard_profile_role` trigger from
   `014_p0_security_containment.sql`. The trigger rejects role changes

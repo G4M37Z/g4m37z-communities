@@ -17,6 +17,7 @@ import { PLATFORMS, type Platform } from "@/lib/profiles/platforms";
 import { GameCover } from "@/components/games/GameCover";
 import { GameStatusBadge } from "@/components/gaming/GameStatusBadge";
 import { FollowButton } from "@/components/profile/FollowButton";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { PageEnter } from "@/components/PageEnter";
 import type { GameStatus } from "@/lib/gaming/types";
 
@@ -73,7 +74,7 @@ export default async function GamingProfilePage({ params }: Props) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, gaming_visibility")
+    .select("id, username, display_name, avatar_url, gaming_visibility, verified")
     .eq("username", normalizeUsername(username))
     .maybeSingle();
   if (!profile) notFound();
@@ -84,6 +85,7 @@ export default async function GamingProfilePage({ params }: Props) {
     display_name: string | null;
     avatar_url: string | null;
     gaming_visibility: string;
+    verified: boolean;
   };
 
   const {
@@ -133,7 +135,10 @@ export default async function GamingProfilePage({ params }: Props) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-black tracking-tight text-fg">{name}</h1>
+            <h1 className="flex items-center gap-2 truncate text-2xl font-black tracking-tight text-fg">
+              {name}
+              {gamer.verified && <VerifiedBadge />}
+            </h1>
             <Link
               href={`/profile/${encodeURIComponent(gamer.username)}`}
               className="text-sm text-accent-text hover:underline"
