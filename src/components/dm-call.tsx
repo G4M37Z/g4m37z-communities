@@ -42,9 +42,14 @@ import type {
   CallMedia,
 } from "@/lib/messaging/call-utils";
 import { ICE_SERVERS, HAS_TURN } from "@/lib/ice-servers";
+import { PiggybackSession } from "@/lib/piggyback/session";
 
 /** Small grace on top of the 45s server-side ring timeout. */
 const CLIENT_RING_TIMEOUT_MS = RING_TIMEOUT_MS + 1500;
+
+/** Piggyback fallback activation: this long without remote media on ICE, or an
+ * ICE failure anytime, upgrades the call to the serverless media lane. */
+const PIGGYBACK_ACTIVATE_MS = 12_000;
 
 type MediaState = "idle" | "requesting" | "live" | "denied";
 
@@ -75,6 +80,9 @@ export function DmCall({
   const [camOn, setCamOn] = useState(true);
   const [relayInUse, setRelayInUse] = useState(false);
   const [remoteCandidateCount, setRemoteCandidateCount] = useState(0);
+  // Serverless piggyback lane (fallback when ICE cannot establish): set live
+  // once the ECDH handshake closes on BOTH sides and chunks flow.
+  const [pbLive, setPbLive] = useState(false);
   // Set when a remote track actually arrived (i.e. the offer/answer negotiated
   // media). A peer connection can reach "connected" on the data-less ICE
   // association alone — without this the overlay would show Connected while
@@ -95,6 +103,16 @@ export function DmCall({
   const startingRef = useRef(false);
   const callRef = useRef<CallSession | null>(initialCall);
   const sweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Piggyback lane handles: session ref + one-shot activation marker + a timer
+  // to catch the case where ICE never resolves at all (no candidates, no
+  // failure state — just silence).
+  const pbSessionRef = useRef<PiggybackSession | null>(null);
+  const pbTriedRef = useRef(false);
+  const pbTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirror of hasRemoteMedia/connState for checkers that run outside React's
+  // render cycle (timers can't read state safely).
+  const hasRemoteMediaRef = useRef(false);
+  const connStateRef = useRef<RTCPeerConnectionState>("new");
   // Server-authoritative timestamp floor for signal replay. The optimistic
   // client-side timestamps (start()/accept()) cannot be trusted as floors:
   // a device clock even slightly ahead of the Postgres clock excludes the
@@ -118,6 +136,18 @@ export function DmCall({
       clearTimeout(sweepTimerRef.current);
       sweepTimerRef.current = null;
     }
+    if (pbTimerRef.current) {
+      clearTimeout(pbTimerRef.current);
+      pbTimerRef.current = null;
+    }
+    if (pbSessionRef.current) {
+      pbSessionRef.current.stop();
+      pbSessionRef.current = null;
+    }
+    pbTriedRef.current = false;
+    hasRemoteMediaRef.current = false;
+    connStateRef.current = "new";
+    setPbLive(false);
     if (signalsChannelRef.current) {
       try {
         await supabase.removeChannel(signalsChannelRef.current);
@@ -250,6 +280,9 @@ export function DmCall({
           });
           remoteDescSetRef.current = true;
           await flushPendingIce();
+        } else if (msg.type === "PB_KEY") {
+          const pb = pbSessionRef.current;
+          if (pb?.state !== "closed") pb?.handleSignal(msg);
         } else if (msg.type === "ICE_CANDIDATE" && msg.payload.candidate) {
           setRemoteCandidateCount((n) => n + 1);
           await applyRemoteCandidate({
@@ -270,6 +303,35 @@ export function DmCall({
       applyRemoteCandidate,
     ],
   );
+
+  // -------------------------------------------------------------------------
+  // Piggyback lane (serverless fallback — G4M37Z_MEDIA_STACK.md §2)
+  // -------------------------------------------------------------------------
+  const activatePiggyback = useCallback(() => {
+    const session = callRef.current;
+    if (!session || pbSessionRef.current) return;
+    if (session.id.startsWith("pending-")) return; // need the real call id
+    const channel = signalsChannelRef.current;
+    const stream = localStreamRef.current;
+    if (!channel || !stream) return;
+    pbTriedRef.current = true;
+    const pb = new PiggybackSession(
+      {
+        supabase,
+        conversationId,
+        callKey: `${conversationId}:${session.id}`,
+        myId: currentUserId,
+        peerId: partnerId,
+      },
+      {
+        onLive: () => setPbLive(true),
+        onError: (err) => console.warn("piggyback:", err),
+      },
+    );
+    pb.attachChannel(channel);
+    pbSessionRef.current = pb;
+    pb.begin(stream);
+  }, [supabase, conversationId, currentUserId, partnerId]);
 
   const beginCallMedia = useCallback(
     async (session: CallSession) => {
@@ -319,11 +381,19 @@ export function DmCall({
       pendingIceRef.current = [];
       offeredRef.current = false;
       setHasRemoteMedia(false);
+      hasRemoteMediaRef.current = false;
+      connStateRef.current = "new";
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      pc.onconnectionstatechange = () => setConnState(pc.connectionState);
+      pc.onconnectionstatechange = () => {
+        connStateRef.current = pc.connectionState;
+        setConnState(pc.connectionState);
+      };
       pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "failed") setConnState("failed");
+        if (pc.iceConnectionState === "failed") {
+          setConnState("failed");
+          activatePiggyback();
+        }
         // Once ICE confirms bidirectional connectivity the remote stream is
         // safe to play — unblock autoplay here if the early attempt was
         // rejected before any user gesture registered on this page.
@@ -340,6 +410,14 @@ export function DmCall({
         const remote = event.streams[0];
         if (!remote) return;
         setHasRemoteMedia(true);
+        hasRemoteMediaRef.current = true;
+        // Quality guard: the moment real P2P media exists, the serverless
+        // fallback lane must hand audio back to it.
+        if (pbSessionRef.current) {
+          pbSessionRef.current.stop();
+          pbSessionRef.current = null;
+          setPbLive(false);
+        }
         remoteStreamRef.current = remote;
         if (!remoteAudioRef.current) {
           remoteAudioRef.current = new Audio();
@@ -508,6 +586,16 @@ export function DmCall({
           }
         })();
       }, 7000);
+      // Piggyback watchdog: if the ICE layer has neither connected nor failed
+      // within the budget (silent CGNAT: hole punch attempts stall forever),
+      // upgrade the call to the serverless media lane. One-shot per call.
+      if (pbTimerRef.current) clearTimeout(pbTimerRef.current);
+      pbTimerRef.current = setTimeout(() => {
+        const cur = callRef.current;
+        if (!cur || cur.status !== "active") return;
+        if (connStateRef.current === "connected" || hasRemoteMediaRef.current) return;
+        activatePiggyback();
+      }, PIGGYBACK_ACTIVATE_MS);
     },
     [
       currentUserId,
@@ -516,6 +604,7 @@ export function DmCall({
       partnerId,
       handleSignal,
       sendOffer,
+      activatePiggyback,
     ],
   );
 
@@ -735,9 +824,11 @@ export function DmCall({
   const isEnded = call?.status === "ended";
   // Media is only real once remote tracks arrived. peerConnectionState can
   // read "connected" with zero m-lines answered — treat that as connecting.
+  // The piggyback lane counts as live media: it delivers decoded audio even
+  // though no WebRTC track event ever fires on this path.
   const isMediaLive =
-    isLive && connState === "connected" && hasRemoteMedia;
-  const isMediaFailed = isLive && connState === "failed";
+    isLive && (pbLive || (connState === "connected" && hasRemoteMedia));
+  const isMediaFailed = isLive && connState === "failed" && !pbLive;
   const isMediaConnecting = isLive && !isMediaLive && !isMediaFailed;
   const overlayOpen = Boolean(call);
   const activeMedia: CallMedia = call?.media ?? "audio";
@@ -746,7 +837,9 @@ export function DmCall({
     isMediaFailed
       ? "Connection failed — check your network"
       : isMediaLive
-        ? "Connected"
+        ? pbLive
+          ? "Connected · fallback"
+          : "Connected"
         : isMediaConnecting && remoteCandidateCount > 0
           ? "Connecting…"
           : mediaState === "requesting"
@@ -841,7 +934,7 @@ export function DmCall({
                 )}
                 {!isMediaLive && !isMediaFailed && (
                   <p className="absolute inset-x-0 top-2 mx-auto w-fit rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold text-white">
-                    Connecting media…
+                    {pbLive ? "Fallback audio — video off" : "Connecting media…"}
                   </p>
                 )}
                 {isMediaFailed && (

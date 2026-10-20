@@ -15,7 +15,14 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type SignalType = "OFFER" | "ANSWER" | "ICE_CANDIDATE" | "PEER_JOIN" | "PEER_LEAVE";
+export type SignalType =
+  | "OFFER"
+  | "ANSWER"
+  | "ICE_CANDIDATE"
+  | "PEER_JOIN"
+  | "PEER_LEAVE"
+  // Piggyback lane (058): ephemeral ECDH key exchange, RLS-gated like all rows.
+  | "PB_KEY";
 
 /** A signaling row is addressed either by voice room or by DM conversation. */
 export type SignalTarget =
@@ -43,6 +50,10 @@ export interface SignalPayload {
   sdpMLineIndex?: number | null;
   // PEER_JOIN / PEER_LEAVE:
   participantId?: string;
+  // PB_KEY (piggyback lane, 058): ephemeral ECDH offer from this row's sender.
+  kid?: string;
+  jwk?: JsonWebKey;
+  salt?: string;
 }
 
 export interface SignalingMessage {
