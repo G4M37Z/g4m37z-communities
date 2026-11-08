@@ -19,7 +19,7 @@
   /* Dark-first neutrals — game-store chrome (near-black, warm-neutral) */
   --color-fg: #FAF9F7;
   --color-text-secondary: #ACAAB2;
-  --color-text-muted: #8A8892;
+  --color-text-muted: #9C99A6;
   --color-text-disabled: #504E57;
 
   --color-bg: #0C0B0D;
@@ -32,7 +32,7 @@
   /* Font chain */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif,
+  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif,
     system-ui, sans-serif;
   --font-signature: var(--font-caveat), "Segoe Script", cursive;
 
@@ -59,7 +59,7 @@
 /* Typography — apple-design §15: tracking is size-specific, never one value.
    Large display text tightens; body stays near 0. Headings set in the
    console-tooling display face (Archivo — docs/BRAND.md "Typography"). */
-h1, h2 { font-family: var(--font-display); font-weight: 800; }
+h1, h2 { font-family: var(--font-display); font-weight: 700; }
 h1, h2, .text-2xl { letter-spacing: -0.02em; }
 .text-3xl, .text-4xl { letter-spacing: -0.025em; }
 
@@ -93,7 +93,11 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
 /* Responsive typography — fluid, continuous, never jumps */
 @layer base {
   html {
-    font-size: clamp(14px, 0.875rem + 0.25vw, 18px);
+    /* Fixed 16px root: the previous fluid clamp rescaled the whole UI
+       (and every rem radius/space token) between 14 and 18px, which is why
+       type read as inconsistent across laptop widths. */
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     font-family: var(--font-sans);
@@ -497,4 +501,150 @@ h1, h2, .text-2xl { letter-spacing: -0.02em; }
     --color-accent-soft: #F2E4CE;
     --color-accent-text: #92400E;
   }
+}
+
+/* ============================================================================
+   Motion + gradient vocabulary (UI pass, 2026-11-08)
+   One shared set of keyframes so movement reads as a system: gradient text,
+   aurora fields, a marquee rail, float, and the app-window shell used by
+   messaging. Every animation is switched off under prefers-reduced-motion.
+   ========================================================================== */
+
+@keyframes g4-gradient-pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Live gradient headline — colour travels across the text. */
+.text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-fg) 0%,
+    var(--color-accent-text) 34%,
+    #a78bfa 58%,
+    #67e8f9 78%,
+    var(--color-fg) 100%
+  );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: g4-gradient-pan 9s ease-in-out infinite;
+}
+[data-theme="light"] .text-gradient {
+  background-image: linear-gradient(100deg, #111114 0%, var(--color-accent) 36%, #6d28d9 62%, #0e7490 82%, #111114 100%);
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]) .text-gradient {
+    background-image: linear-gradient(100deg, #111114 0%, var(--color-accent) 36%, #6d28d9 62%, #0e7490 82%, #111114 100%);
+  }
+}
+
+/* Gradient action — primary CTA, same colour travel at a calmer pace. */
+.btn-gradient {
+  background-image: linear-gradient(100deg, var(--color-accent) 0%, #7c3aed 52%, #0891b2 100%);
+  background-size: 190% 100%;
+  animation: g4-gradient-pan 8s ease-in-out infinite;
+}
+.btn-gradient:hover { filter: brightness(1.09) saturate(1.06); }
+
+/* Aurora field — slow drifting colour behind hero content. Rendered as an
+   absolutely positioned element (not a pseudo) so it never fights the host's
+   own background. */
+.aurora-field {
+  position: absolute;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  filter: blur(46px) saturate(135%);
+  background:
+    radial-gradient(36% 40% at 24% 30%, color-mix(in srgb, var(--color-accent) 46%, transparent), transparent 72%),
+    radial-gradient(32% 36% at 76% 24%, color-mix(in srgb, #7c3aed 40%, transparent), transparent 74%),
+    radial-gradient(40% 44% at 58% 84%, color-mix(in srgb, #06b6d4 30%, transparent), transparent 76%);
+  animation: g4-aurora-drift 24s ease-in-out infinite alternate;
+}
+@keyframes g4-aurora-drift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50% { transform: translate3d(2%, 1.5%, 0) scale(1.06); }
+  100% { transform: translate3d(-1%, 2%, 0) scale(1.02); }
+}
+
+/* Marquee rail — two identical halves in one track; half two is aria-hidden
+   and untabbable, so the loop stays visual only. */
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: g4-marquee var(--marquee-duration, 52s) linear infinite;
+}
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track { animation-play-state: paused; }
+.marquee-reverse .marquee-track { animation-direction: reverse; }
+@keyframes g4-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Float — small vertical drift for decorative chips. */
+@keyframes g4-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+.float-slow { animation: g4-float 7s ease-in-out infinite; }
+
+/* Entrance — staggered hero copy without JS. */
+@keyframes g4-rise {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: g4-rise 720ms var(--ease-out) both; }
+.rise-1 { animation-delay: 80ms; }
+.rise-2 { animation-delay: 160ms; }
+.rise-3 { animation-delay: 240ms; }
+.rise-4 { animation-delay: 320ms; }
+
+/* App window — messaging reads as software: one bordered panel, an internal
+   scroller and a pinned composer, never the page itself scrolling. */
+.window-shell {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-fg) 5%, var(--color-surface)) 0%, var(--color-surface) 55%);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 10%, transparent),
+    0 40px 80px -52px #000;
+  overflow: hidden;
+}
+.window-titlebar { background: color-mix(in srgb, var(--color-bg) 74%, transparent); }
+@supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+  .window-titlebar { -webkit-backdrop-filter: var(--material-blur); backdrop-filter: var(--material-blur); }
+}
+
+/* Icon tile — saturated, lit container so icons stop reading pale. */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--color-fg);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-accent) 58%, transparent), color-mix(in srgb, #7c3aed 44%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-fg) 24%, transparent),
+    0 8px 20px -12px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+/* Lucide icons: a touch heavier so strokes survive on dark surfaces. */
+svg.lucide { stroke-width: 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient, .btn-gradient, .aurora-field, .marquee-track, .float-slow, .rise {
+    animation: none !important;
+  }
+  .marquee { -webkit-mask-image: none; mask-image: none; }
 }

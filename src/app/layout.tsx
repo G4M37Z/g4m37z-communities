@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Inter } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 import { caveat } from "@/components/brand/BrandSignature";
 import "./globals.css";
 import "./container-queries.css";
@@ -20,9 +20,10 @@ const inter = Inter({
 
 // Display face — console-tooling: geometric, heavy, uppercase-friendly
 // (docs/BRAND.md "Typography"). Headings only; body copy stays Inter.
-const archivo = Archivo({
+const sora = Sora({
   subsets: ["latin"],
-  variable: "--font-archivo",
+  variable: "--font-sora",
+  weight: ["400", "600", "700", "800"],
   display: "swap",
 });
 
@@ -105,7 +106,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${archivo.variable} ${caveat.variable} h-full`}
+      className={`${inter.variable} ${sora.variable} ${caveat.variable} h-full`}
     >
       <body className="flex min-h-full flex-col bg-bg font-sans text-fg antialiased">
         {/* md+ chrome: slim icon rail on tablet, full sidebar on desktop */}
