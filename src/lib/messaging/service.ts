@@ -345,6 +345,65 @@ export async function listMessages(
   return ((data ?? []) as Message[]).reverse();
 }
 
+/** Rows per thread page — the newest window and each older-history page. */
+export const MESSAGE_PAGE_SIZE = 20;
+
+export type OlderCursor = { created_at: string; id: string };
+
+// ISO-8601 instant, and nothing else: the cursor is embedded in a PostgREST
+// filter string below, so quotes / commas / parentheses must never get through.
+const ISO_TS_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Validates a history cursor supplied by the client before it is embedded in
+ * `.or()` filter syntax. PostgREST builds that filter from a string, so an
+ * unchecked timestamp or id could smuggle in extra clauses; only a well-formed
+ * ISO instant and a UUID are accepted.
+ */
+export function olderCursorVerdict(
+  cursor: { created_at?: unknown; id?: unknown } | null | undefined,
+): { ok: true; cursor: OlderCursor } | { ok: false } {
+  const createdAt = cursor?.created_at;
+  const id = cursor?.id;
+  if (typeof createdAt !== "string" || !ISO_TS_RE.test(createdAt)) return { ok: false };
+  if (typeof id !== "string" || !isUuid(id)) return { ok: false };
+  return { ok: true, cursor: { created_at: createdAt, id } };
+}
+
+/**
+ * One page of history strictly older than `before`.
+ *
+ * Keyset (created_at, id) rather than offset: offset paging drifts when new
+ * messages arrive while history is being read — rows repeat or vanish at the
+ * page boundary. Fetched newest-first (the id is the tiebreaker for rows that
+ * share an instant) and reversed for the UI's ascending display order. RLS
+ * still scopes rows to the caller's conversations, and soft-deleted rows are
+ * excluded exactly as in `listMessages`.
+ */
+export async function listMessagesBefore(
+  conversationId: string,
+  before: OlderCursor,
+  limit = MESSAGE_PAGE_SIZE,
+): Promise<{ messages: Message[]; hasMore: boolean }> {
+  if (!isUuid(conversationId)) return { messages: [], hasMore: false };
+  const verdict = olderCursorVerdict(before);
+  if (!verdict.ok) return { messages: [], hasMore: false };
+  const size = clamp(limit, 1, MAX_PAGE);
+  const { created_at, id } = verdict.cursor;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("messages")
+    .select("id, conversation_id, sender_id, body, read, delivered, created_at, attachment_url, attachment_type")
+    .eq("conversation_id", conversationId)
+    .is("deleted_at", null)
+    .or(`created_at.lt."${created_at}",and(created_at.eq."${created_at}",id.lt.${id})`)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(size + 1);
+  const rows = (data ?? []) as Message[];
+  return { messages: rows.slice(0, size).reverse(), hasMore: rows.length > size };
+}
+
 // ---------------------------------------------------------------------------
 // Mutations — request-scoped client (RLS re-enforces auth.uid() server-side)
 // ---------------------------------------------------------------------------
@@ -552,6 +611,8 @@ export async function getReadState(
 export const __test = {
   isUuid,
   clamp,
+  olderCursorVerdict,
+  MESSAGE_PAGE_SIZE,
   MAX_BODY,
   MAX_PAGE,
   UUID_RE,

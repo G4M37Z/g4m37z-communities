@@ -18,10 +18,14 @@ import {
     getUnreadCounts,
   setConversationArchived,
   deleteMessage,
+  isConversationMember,
+  listMessagesBefore,
   blockedUserIds,
   MAX_ATTACHMENT_BYTES,
   ATTACHMENT_MIME,
   type RecipientSuggestion,
+  type Message,
+  type OlderCursor,
 } from "@/lib/messaging/service";
 
 const MAX_USERNAME = 32;
@@ -207,6 +211,30 @@ export async function markReadAction(
 }
 
 
+
+/**
+ * One page of history older than `before` for an open thread. Membership is
+ * checked explicitly (RLS already scopes the select); the cursor is validated
+ * in the service before it reaches the query builder.
+ */
+export async function loadOlderMessagesAction(
+  conversationId: string,
+  before: OlderCursor,
+): Promise<
+  | { ok: true; messages: Message[]; hasMore: boolean }
+  | { ok: false; error: string }
+> {
+  try {
+    if (!(await isConversationMember(conversationId))) {
+      return { ok: false, error: "You are not a member of this conversation." };
+    }
+    const page = await listMessagesBefore(conversationId, before);
+    return { ok: true, ...page };
+  } catch (err) {
+    console.error("loadOlderMessages failed:", err);
+    return { ok: false, error: "Couldn't load older messages. Try again." };
+  }
+}
 
 /** Server-side unread counts for the conversations list. */
 

@@ -171,6 +171,23 @@ describe("thread pagination contract (2026-09-29 stale-thread defect)", () => {
     expect(src).toMatch(/\.reverse\(\)/);
   });
 
+  it("history pages are keyset-based, never offset-shifted", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/messaging/service.ts"),
+      "utf8",
+    );
+    const olderFn = src.slice(
+      src.indexOf("export async function listMessagesBefore"),
+      src.indexOf("// ---", src.indexOf("export async function listMessagesBefore")),
+    );
+    // A keyset cursor survives concurrent inserts; an offset window drifts and
+    // repeats/skips rows at the page boundary while history is being read.
+    expect(olderFn).toMatch(/created_at\.lt\./);
+    expect(olderFn).toMatch(/order\("created_at", \{ ascending: false \}\)/);
+    expect(olderFn).toMatch(/\.reverse\(\)/);
+    expect(olderFn).not.toMatch(/\.range\(/);
+  });
+
   it("stale-comment guard: no ascending listMessages may return", () => {
     // If this fails, someone reintroduced ascending pagination into the
     // message list — re-check the thread page against this contract before
@@ -184,5 +201,49 @@ describe("thread pagination contract (2026-09-29 stale-thread defect)", () => {
       src.indexOf("// ---------------------------------------------------------------------------\n// Mutations"),
     );
     expect(listFn).not.toMatch(/ascending: true/);
+  });
+});
+
+describe("olderCursorVerdict (history paging cursor validation)", () => {
+  const id = "26bdebc3-1522-488f-9edb-0ccf6507843a";
+
+  it("accepts a well-formed ISO instant + UUID", () => {
+    expect(
+      __test.olderCursorVerdict({ created_at: "2026-09-29T11:04:28.933827+00:00", id }),
+    ).toEqual({ ok: true, cursor: { created_at: "2026-09-29T11:04:28.933827+00:00", id } });
+    expect(__test.olderCursorVerdict({ created_at: "2026-09-29T11:04:28Z", id }).ok).toBe(true);
+  });
+
+  it("rejects non-timestamp and non-UUID cursors", () => {
+    expect(__test.olderCursorVerdict(null).ok).toBe(false);
+    expect(__test.olderCursorVerdict({}).ok).toBe(false);
+    expect(__test.olderCursorVerdict({ created_at: "yesterday", id }).ok).toBe(false);
+    expect(
+      __test.olderCursorVerdict({ created_at: "2026-09-29 11:04:28+00", id }).ok,
+    ).toBe(false);
+    expect(
+      __test.olderCursorVerdict({ created_at: "2026-09-29T11:04:28Z", id: "not-a-uuid" }).ok,
+    ).toBe(false);
+  });
+
+  it("refuses PostgREST filter injection through the cursor", () => {
+    // The cursor is interpolated into `.or(...)`, so filter syntax must never
+    // reach the query string.
+    const injections = [
+      '2026-09-29T11:04:28Z,id.gt.00000000-0000-0000-0000-000000000000',
+      '2026-09-29T11:04:28Z"',
+      "2026-09-29T11:04:28Z)",
+      "2026-09-29T11:04:28Z or true",
+    ];
+    for (const created_at of injections) {
+      expect(__test.olderCursorVerdict({ created_at, id }).ok).toBe(false);
+    }
+    expect(
+      __test.olderCursorVerdict({ created_at: "2026-09-29T11:04:28Z", id: `${id},id.gt.x` }).ok,
+    ).toBe(false);
+  });
+
+  it("pages in fixed-size windows", () => {
+    expect(__test.MESSAGE_PAGE_SIZE).toBe(20);
   });
 });

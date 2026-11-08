@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { listMessages, isConversationMember, getReadState } from "@/lib/messaging/service";
+import {
+  listMessages,
+  isConversationMember,
+  getReadState,
+  MESSAGE_PAGE_SIZE,
+} from "@/lib/messaging/service";
 import { getCallContext } from "@/lib/messaging/calls";
 import { PageEnter } from "@/components/PageEnter";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -136,6 +141,9 @@ export default async function MessageThreadPage({
           initialMessages={messages}
           profiles={profiles}
           readState={readState}
+          // A full newest window *may* have history behind it; the first
+          // older-page load that comes back short turns the control off.
+          initialHasOlder={messages.length >= MESSAGE_PAGE_SIZE}
         />
       </main>
     </PageEnter>

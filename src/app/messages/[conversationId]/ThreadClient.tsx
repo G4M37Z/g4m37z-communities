@@ -13,11 +13,16 @@
 // only when the reader is already near the bottom (a "Jump to latest" pill
 // appears otherwise), and bubbles use chat-style shaping with in-bubble
 // timestamps and receipts.
+//
+// History paging: the server renders only the newest window (page 1), so
+// scrolling to the top (or pressing "Load older messages") pages backwards
+// with a keyset cursor. Prepended rows are anchored to the reader's current
+// scroll position, so reading history never jumps.
 
 import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { Message } from "@/lib/messaging/service";
-import { deleteMessageAction } from "@/lib/messaging/actions";
+import { deleteMessageAction, loadOlderMessagesAction } from "@/lib/messaging/actions";
 import { MessageForm } from "./MessageForm";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
@@ -35,12 +40,14 @@ export function ThreadClient({
   initialMessages,
   profiles,
   readState,
+  initialHasOlder,
 }: {
   conversationId: string;
   currentUserId: string;
   initialMessages: Message[];
   profiles: ProfileMap;
   readState: Map<string, string | null>;
+  initialHasOlder: boolean;
 }) {
   // Receipts (046): a direct thread has exactly one partner; their
   // last_read_at is the instant the sender's ✓✓ turns blue. Falls back to
@@ -73,6 +80,17 @@ export function ThreadClient({
   const pinnedRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
 
+  // History paging state. `hasOlder` is optimistic at first render (the server
+  // only knows whether the newest window filled a page); the first load that
+  // comes back short turns the control off.
+  const [hasOlder, setHasOlder] = useState(initialHasOlder);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [olderError, setOlderError] = useState<string | null>(null);
+  // Scroll anchor captured before older rows are prepended: restoring
+  // (new scrollHeight − old scrollHeight + old scrollTop) keeps the bubble the
+  // reader is looking at exactly where it was.
+  const anchorRef = useRef<{ height: number; top: number } | null>(null);
+
   function measurePinned() {
     const el = listRef.current;
     if (!el) return true;
@@ -94,10 +112,63 @@ export function ThreadClient({
     }
   }, [messages.length]);
 
+  // Restore the reader's position after history is prepended. The list uses
+  // CSS smooth scrolling for its own auto-scroll, so this asks for an instant
+  // jump explicitly — an animated one would look like the thread moved.
+  useEffect(() => {
+    const el = listRef.current;
+    const anchor = anchorRef.current;
+    if (!el || !anchor) return;
+    anchorRef.current = null;
+    el.scrollTo({
+      top: el.scrollHeight - anchor.height + anchor.top,
+      behavior: "instant",
+    });
+  }, [messages.length]);
+
   function handleSent(m: Message) {
     setMessages((prev) =>
       prev.some((x) => x.id === m.id) ? prev : [...prev, m]
     );
+  }
+
+  // Fetch one page of history older than the oldest row on screen. The action
+  // re-checks membership and validates the cursor server-side; rows are
+  // merged by id so a concurrent refresh cannot duplicate a page boundary.
+  async function loadOlder() {
+    const el = listRef.current;
+    const oldest = messages[0];
+    if (!el || !oldest?.created_at || loadingOlder || !hasOlder) return;
+
+    setLoadingOlder(true);
+    setOlderError(null);
+    anchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+
+    const res = await loadOlderMessagesAction(conversationId, {
+      created_at: oldest.created_at,
+      id: oldest.id,
+    });
+
+    if (!res.ok) {
+      anchorRef.current = null;
+      setLoadingOlder(false);
+      setOlderError(res.error);
+      return;
+    }
+
+    const known = new Set(messages.map((m) => m.id));
+    const added = res.messages.filter((m) => !known.has(m.id));
+    if (added.length === 0) anchorRef.current = null;
+
+    if (added.length > 0) {
+      setMessages((prev) =>
+        [...prev, ...added].sort((a, b) =>
+          (a.created_at ?? "").localeCompare(b.created_at ?? "")
+        )
+      );
+    }
+    setHasOlder(res.hasMore);
+    setLoadingOlder(false);
   }
 
   // Soft-delete (055 messages.deleted_at): the action tombstones the row; the
@@ -143,10 +214,31 @@ export function ThreadClient({
           onScroll={() => {
             const near = measurePinned();
             if (near) setShowJump(false);
+            const el = listRef.current;
+            if (el && el.scrollTop < 24 && hasOlder && !loadingOlder) void loadOlder();
           }}
           className="flex flex-col space-y-1 overflow-y-auto px-1 pb-2"
           style={{ maxHeight: "min(58vh, 34rem)", minHeight: "12rem", scrollBehavior: "smooth" }}
         >
+          {hasOlder && (
+            <li className="pt-1">
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => void loadOlder()}
+                  disabled={loadingOlder}
+                  className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-fg shadow-sm hover:bg-bg disabled:opacity-60"
+                >
+                  {loadingOlder ? "Loading…" : "↑ Load older messages"}
+                </button>
+              </div>
+            </li>
+          )}
+          {olderError && (
+            <li role="alert" className="pb-1 text-center text-[11px] text-muted-foreground">
+              {olderError}
+            </li>
+          )}
           {messages.map((m, i) => {
             const own = m.sender_id === currentUserId;
             const prev = i > 0 ? messages[i - 1] : undefined;

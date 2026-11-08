@@ -435,3 +435,32 @@ archive's beginning, not recent messages — CLOSED
      confirmation (GAP-MSG-LIVE-01) remain user-run.
 - Not owed: GIF picker (needs Tenor/GIPHY key decision — user opted out for
   now, 2026-10-19).
+
+## GAP-MSG-HIST-01 — Thread history paging (scroll-up) — IMPLEMENTED,
+browser click unverified locally
+
+- Area: Messaging / thread pagination
+- Status: implemented 2026-11-08 on base 7e80b98
+- Why: page 1 is now the newest window (GAP-MSG-OPEN-01), which left anything
+  older unreachable in-app — a thread simply stopped at its 20th-newest
+  message with no way back.
+- What: `listMessagesBefore` pages backwards with a keyset cursor
+  (`created_at`, `id`) instead of an offset, so concurrent inserts cannot
+  repeat or skip rows at the page boundary; soft-deleted rows are excluded
+  exactly as in `listMessages`. `loadOlderMessagesAction` re-checks
+  membership, and `olderCursorVerdict` validates the cursor before it is
+  embedded in PostgREST `.or()` syntax (filter-injection guard). The thread
+  auto-loads near the top and offers an explicit "Load older messages"
+  control; prepended rows are anchored to the reader's scroll position.
+- Verified: tsc PASS, eslint 0 errors, vitest 413/413 (incl. cursor
+  validation + injection vectors + keyset contract), production build exit 0.
+  Live data path proven twice: the PostgREST keyset filter returns HTTP 200
+  while a deliberately malformed filter returns 400, and a SQL replication of
+  the keyset page returns exactly the older 20 rows of a 42-row thread.
+  The server-rendered thread shows the newest 20 rows plus the load control.
+- Not verified: the interactive click. Locally the production build traps
+  route content in Next's hidden stream container (`display:none`), so all
+  routes render unusable locally — reproduced on /messages too, unrelated to
+  this change. Root cause traced once to a stale `next start` (started before
+  a rebuild) serving HTML whose chunks no longer existed; retest on the
+  deployed preview before calling this user-verified.
